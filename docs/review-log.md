@@ -260,3 +260,19 @@ Not done: the time ranges still use a dash in normal text; some screen readers r
 Text judge on the new wording: FAIL on 2 strings in round 1 ("Every time counts" played on the word "time", and an error message still said "2 days" instead of 6 hours), then PASS in round 2.
 
 67 unit and server tests pass. The walkthrough checks that the confirm button comes straight after the grid.
+
+## Cycle 10: checking the cycle 9 changes (26 Nov, 02:45–03:10)
+
+A new reviewer read the cycle 9 code change and wrote a repro script for each problem, with a fake clock and the real fonts. The new "can't make this time" rules held up: no bug found in how people are counted or how plans move. 1 P1 and 5 P2s came in with the screens, all fixed. Every repro script was run again after the fix.
+
+| Priority | Finding | Change |
+|---|---|---|
+| P1 | When a save failed (no internet), the screen still said "Your times are saved", and screen readers heard it right after the error. | "Saved" only shows after a real save. A failed save shows only the error. |
+| P2 | In the demo, "Your times are saved" followed you when you switched to another person. | It belongs to the person who saved. Switching person or opening a private link clears it. |
+| P2 | An hour before the plan, the "can't make this time" card still said the plan could move, and at check-in it pointed to a grid that wasn't there. | Near the start it says "It's too late to move the plan to another time", and the grid is hidden. The confirmed time keeps its red outline. |
+| P2 | The reminder never showed in the demo, because the demo plan is always brand new. | The demo shows it straight away. The 3-hour rule and the deadline use the server's clock. |
+| P2 | The toast covered the grid at 200% text, and tapping it passed the tap to a hidden time underneath. | Tapping the toast closes it, and the tap stops there. The "plan is confirmed" and "checked in" messages are announced instead of shown, since the screen already changes. |
+| P2 | "Afternoon" still split mid-word at 200% text with the real font. | At 200% text, each time gets its own full-width line with its label ("Afternoon 3–6pm"), so nothing has to split. |
+| P3 | The saved and "plan is ready" announcements cut each other off. A unit test skipped its own check. Two sentences on the ready card said the same thing. The deadline-passed text left out the 12-hour rule. A code comment was garbled. Tapping a picked idea didn't unpick it. "No, I can't" did nothing if the plan had just stopped being confirmed. Long group names in the header. | All fixed. The walkthrough now taps "No, I can't" and checks the grid stays. |
+
+67 unit and server tests pass. The walkthrough passes.

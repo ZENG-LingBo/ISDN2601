@@ -644,10 +644,15 @@ test('"No, I can\'t" make the confirmed time keeps you in, so your other times c
 });
 
 test('taking the confirmed time out of your times counts as "can\'t make it", and adding it back undoes it', () => {
-  let state = confirmedThursday([SAT_EVE]);
+  // 4 people can make Thursday, so the plan stays there when Mei takes it out of her times.
+  let state = withFriends(crew());
+  for (const id of [MANDY, JASON, MEI, TOM]) state = respond(state, id, true, [THU_EVE]);
+  if (!state.hangs[H].lock) state = L.reduce(state, { type: 'lock', hangId: H, memberId: MANDY }, NOW);
   state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [SAT_EVE] }, NOW);
-  const lock = state.hangs[H].lock;
-  if (lock && lock.slot === THU_EVE) assert.equal(L.buildView(state, MEI, NOW).hangs[0].mine.declined, true);
+  assert.equal(state.hangs[H].lock.slot, THU_EVE);
+  const mei = L.buildView(state, MEI, NOW).hangs[0];
+  assert.equal(mei.mine.declined, true);
+  assert.equal(mei.mine.on, true);
   state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [SAT_EVE, THU_EVE] }, NOW);
   assert.equal(L.buildView(state, MEI, NOW).hangs[0].mine.declined, false);
   assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, decline: 'yes' }, NOW), { code: 'invalid' });

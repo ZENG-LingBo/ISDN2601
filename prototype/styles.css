@@ -170,6 +170,7 @@ a {
 .bar-link {
   min-width: 0;
   max-width: 60%;
+  flex-shrink: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -702,8 +703,18 @@ select {
   color: var(--ink-2);
 }
 
+.cell.best.closed:disabled {
+  border-color: var(--red);
+  border-style: solid;
+}
+
 .cell-mark {
   font-weight: 600;
+}
+
+.cell-mark:empty,
+.cell-count:empty {
+  display: none;
 }
 
 .cell-count {
@@ -948,7 +959,7 @@ select {
   font-weight: 500;
   z-index: 20;
   display: none;
-  pointer-events: none; /* taps go through to the page underneath */
+  cursor: pointer;
 }
 
 .toast.show {
@@ -997,17 +1008,26 @@ h1:focus-visible,
    own line above its 3 times, so the time buttons keep a usable size. */
 @media (max-width: 19em) {
   .grid-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
   .grid-row .day {
-    grid-column: 1 / -1;
-    padding-top: 0.4rem;
+    padding-top: 0.5rem;
   }
-  .grid-head > span:first-child {
+  .grid-head {
     display: none;
   }
-  .grid-head .clock {
-    white-space: normal;
+  .cell {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0 0.5rem;
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+  }
+  .cell::before {
+    content: attr(data-label);
+    flex-basis: 100%;
+    font-weight: 600;
   }
   .placard-rows div {
     grid-template-columns: 1fr;

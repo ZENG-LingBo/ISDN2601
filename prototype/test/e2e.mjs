@@ -229,6 +229,11 @@ async function context(opts = {}) {
   step(`demo: ${banner}`);
 
   if (await page.locator('text=Can you make it?').count()) {
+    // "No, I can't" keeps Mandy in, with her other times; then she changes her mind.
+    await page.click('#skip-time');
+    await page.waitForSelector("text=You can't make this time");
+    check(await page.locator('button.cell').count() > 0, 'after "No, I can\'t", the time grid should stay so other times can be changed');
+    step('demo: Mandy said she can\'t make the new time, and stayed in with her other times');
     await page.click('#join-time');
     await page.waitForSelector('#demo-start');
     step('demo: Mandy was asked about the new time and said yes');

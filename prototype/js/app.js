@@ -9,6 +9,11 @@ const app = document.getElementById('app');
 const toastEl = document.getElementById('toast');
 const liveEl = document.getElementById('live');
 const alertEl = document.getElementById('alert');
+// Tapping the message closes it, and the tap doesn't reach whatever is underneath.
+toastEl.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  hideToast();
+});
 
 let route = parseRoute();
 let view = null;
@@ -542,7 +547,7 @@ function gridBlock(hang) {
       // with "to" instead of a dash, which some screen readers read out as "dash".
       const shown = [isMine ? "You're free" : '', countText].filter(Boolean).join('. ');
       const aria = `${shown ? `${shown}. ` : ''}${id === highlight && !hang.lock && !s.closed ? 'Best time so far. ' : ''}${spoken(L.slotLabel(id))}.${id === highlight && hang.lock ? ' Confirmed time.' : ''}`;
-      return `<button class="${cls.join(' ')}" type="button" id="slot-${esc(id)}" data-act="slot" data-slot="${esc(id)}" aria-pressed="${isMine}" aria-label="${esc(aria)}" ${(s.closed && !isMine) || notYet ? 'disabled' : ''}>
+      return `<button class="${cls.join(' ')}" type="button" id="slot-${esc(id)}" data-label="${esc(`${t.label[0].toUpperCase()}${t.label.slice(1)} ${t.clock}`)}" data-act="slot" data-slot="${esc(id)}" aria-pressed="${isMine}" aria-label="${esc(aria)}" ${(s.closed && !isMine) || notYet ? 'disabled' : ''}>
         <span class="cell-mark">${isMine ? 'You' : ''}</span><span class="cell-count">${esc(countText)}</span>${id === highlight && !hang.lock && !s.closed ? '<span class="cell-best">Best</span>' : ''}
       </button>`;
     }).join('');
@@ -561,7 +566,7 @@ function gridBlock(hang) {
       ${rows}
     </div>
     ${bestLine ? `<p class="grid-note">${esc(bestLine)}</p>` : ""}
-    ${ui.saved === hang.id && !pendingFree.has(hang.id) && mine.size ? `<p class="saved">Your times are saved.${hang.status === 'open' ? ' You can close this page and come back with the same link.' : ''}</p>` : ''}
+    ${ui.saved && ui.saved.hangId === hang.id && view.me && ui.saved.memberId === view.me.id && !pendingFree.has(hang.id) && mine.size ? `<p class="saved">Your times are saved.${hang.status === 'open' ? ' You can close this page and come back with the same link.' : ''}</p>` : ''}
   </section>`;
 }
 
@@ -590,7 +595,7 @@ function placesBlock(hang) {
 
 function remindBlock(hang) {
   if (!hang.waiting || hang.mine.on !== true) return '';
-  if (Date.now() - hang.createdAt < 3 * 3600 * 1000) return ''; // give people time to answer first
+  if (!view.crew.demo && view.now - hang.createdAt < 3 * 3600 * 1000) return ''; // give people time to answer first (the demo shows it straight away)
   const link = linkTo(`plan-${view.crew.id}-${hang.id}`);
   const text = L.nudgeMessage(hang, link);
   return `<div class="remind">
@@ -606,7 +611,7 @@ function answeredLine(hang) {
 }
 
 function waitingLine(hang) {
-  if (hang.decideBy <= Date.now()) return `${answeredLine(hang)} Minibus confirms the plan as soon as enough people are free at the same time.`;
+  if (hang.decideBy <= view.now) return `${answeredLine(hang)} Minibus confirms the plan as soon as enough people are free at the same time, if that time is at least 12 hours away.`;
   const deadline = L.momentLabel(hang.decideBy);
   return `${answeredLine(hang)} Minibus confirms the plan when everyone has answered, or on ${deadline}. Enough people must be free at the same time.`;
 }
@@ -649,7 +654,7 @@ function readyStatus(hang) {
     ${statusTitle('Enough people are free')}
     <p class="big">${esc(slotText(hang.best.id))}</p>
     <p>${esc(`${people(hang.best.count)} are free then.`)} ${esc(answeredLine(hang))}</p>
-    ${isSoon(hang.best.id) ? '<p>This time is soon, so Minibus won\'t confirm it on its own. Someone who is in needs to confirm it.</p>' : ''}
+    ${isSoon(hang.best.id) ? '<p>This time is soon, so Minibus won\'t confirm it on its own.</p>' : ''}
     ${onBoard
       ? '<button class="btn primary wide" type="button" id="confirm" data-act="lock">Confirm this time now</button><p>Anyone who is in can confirm it.</p>'
       : '<p>Say you\'re in to confirm the plan now.</p>'}
@@ -679,7 +684,9 @@ function lockedStatus(hang) {
     return `<section class="status">
       ${statusTitle("The plan is confirmed. You can't make this time.")}
       ${summary}
-      <p>Your other times still count. If enough people are free at one of them, the plan can move there. You can change your times below.</p>
+      <p>${hang.lock.tooLateToMove
+        ? "It's too late to move the plan to another time."
+        : 'Your other times still count. If enough people are free at one of them, the plan can move there. You can change your times below.'}</p>
       <button class="btn" type="button" id="join-time" data-act="join-time">I can make it after all</button>
     </section>`;
   }
@@ -853,7 +860,7 @@ function planScreen() {
     // If you were still answering when the plan was confirmed, keep your grid so you can finish.
     // People who can't make the confirmed time keep the grid too, so they can change their other times.
     const declined = hang.mine.on === true && !hang.lock.imGoing && hang.mine.declined;
-    const keepGrid = ((ui.answerFirst && hang.lock.imGoing) || declined) && !hang.lock.checkinOpen ? gridBlock(hang) : '';
+    const keepGrid = ((ui.answerFirst && hang.lock.imGoing) || declined) && !hang.lock.tooLateToMove ? gridBlock(hang) : '';
     return `${top}${lockedStatus(hang)}${keepGrid}${hang.lock.imGoing && !hang.lock.checkinOpen ? placesBlock(hang) : ''}${joinedBanner(hang)}${back}`;
   }
 
@@ -1287,27 +1294,34 @@ function flushFree({ leaving = false } = {}) {
   }
   saveChain = saveChain.then(async () => {
     let wasReady = true;
+    let allSaved = true;
     for (const { hangId, set, action, wasReady: r } of actions) {
       wasReady = wasReady && r;
+      let saved = true;
       try {
         await store.act(crewId, action, { keepalive: true });
       } catch (e) {
+        saved = false;
+        allSaved = false;
         toast(e.message || "Your times weren't saved. Try again.", { error: true });
       }
       if (pendingFree.get(hangId) === set) pendingFree.delete(hangId);
-      ui.saved = hangId;
+      // "Saved" only after a real save, and only for the person who saved.
+      ui.saved = saved && view && view.me ? { hangId, memberId: view.me.id } : null;
     }
     await refresh(false);
-    if (!pendingFree.size) announce('Your times are saved.', true);
-    cueIfReady(wasReady);
+    if (allSaved && !pendingFree.size) cueIfReady(wasReady, 'Your times are saved.');
   });
   return saveChain;
 }
 
 // When your own answer makes the plan ready, say so, even if the confirm button is further down.
-function cueIfReady(wasReady) {
+// One announcement after your own answer: what was saved, and whether the plan is now ready.
+function cueIfReady(wasReady, first = '') {
   const hang = currentHang();
-  if (!wasReady && hang && hang.status === 'ready' && hang.best) announce(`Enough people are free on ${slotText(hang.best.id)}. You can confirm the plan now.`, true);
+  const ready = !wasReady && hang && hang.status === 'ready' && hang.best;
+  const text = [first, ready ? `Enough people are free on ${slotText(hang.best.id)}. You can confirm the plan now.` : ''].filter(Boolean).join(' ');
+  if (text) announce(text, true);
 }
 
 async function showCode(hang) {
@@ -1424,7 +1438,7 @@ app.addEventListener('change', (event) => {
   const target = event.target;
   if (target.dataset.act === 'play-as') {
     store.playAs(route.crewId, target.value);
-    Object.assign(ui, { lateMessage: null, code: null, since: null, swapOpen: false, swapPick: null });
+    Object.assign(ui, { lateMessage: null, code: null, since: null, saved: null, swapOpen: false, swapPick: null });
     refresh(false);
     toast(`You're now seeing the plan as ${target.options[target.selectedIndex].text.replace(' (you)', '')}.`);
   }
@@ -1446,6 +1460,7 @@ app.addEventListener('click', (event) => {
     const s = ui.privateLink;
     ui.privateLink = null;
     if (s && a === 'switch-yes') store.claim(s.crewId, s.memberId, s.key, s.crewName);
+    Object.assign(ui, { saved: null, lateMessage: null, since: null });
     return void go(s ? `crew-${s.crewId}` : 'start');
   }
   if (a === 'share') {
@@ -1502,7 +1517,7 @@ app.addEventListener('click', (event) => {
   if (a === 'fill') {
     const input = document.getElementById(target.dataset.target);
     if (input) {
-      input.value = target.dataset.value;
+      input.value = input.value.trim() === target.dataset.value ? '' : target.dataset.value;
       syncIdeaChips();
     }
     return;
@@ -1565,7 +1580,7 @@ app.addEventListener('click', (event) => {
         ui.swapOpen = false;
         const wasReady = fresh.status === 'ready';
         await act({ type: 'respond', on: target.dataset.on === '1', seq: nextSeq() });
-        cueIfReady(wasReady);
+        cueIfReady(wasReady, 'Saved.');
         break;
       }
       case 'like':
@@ -1581,7 +1596,7 @@ app.addEventListener('click', (event) => {
         break;
       case 'lock':
         await act({ type: 'lock' });
-        toast('The plan is confirmed. Copy the message and paste it into your group chat.');
+        announce('The plan is confirmed. Copy the message and paste it into your group chat.', true);
         focusStatus();
         break;
       case 'join-time':
@@ -1599,6 +1614,7 @@ app.addEventListener('click', (event) => {
       }
       case 'decline':
         await act({ type: 'respond', decline: true, seq: nextSeq() });
+        if (!currentHang()?.lock) toast("The plan isn't confirmed anymore. Pick the times you can make.");
         focusStatus();
         break;
       case 'late-done':
@@ -1697,7 +1713,7 @@ app.addEventListener('submit', (event) => {
         throw e;
       }
       ui.errors = {};
-      toast("You're checked in.");
+      announce("You're checked in.", true);
       focusStatus();
     });
   } else if (form.id === 'size-form') {
@@ -1718,6 +1734,7 @@ window.addEventListener('hashchange', () => {
   seenNow = null;
   ui.since = null;
   ui.lateMessage = null;
+  ui.saved = null;
   load();
 });
 
