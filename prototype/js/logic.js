@@ -14,6 +14,7 @@ export const DECIDE_AFTER_MS = 48 * HOUR_MS; // after this, a plan with enough p
 export const MIN_FOR_COUNTS = 2; // counts per time stay hidden until this many OTHER people are in...
 export const MIN_ANSWERED_FOR_COUNTS = 3; // ...and this many other people have answered, so a yes can't be singled out
 export const MOVED_NOTE_MS = 24 * 3600 * 1000; // "the plan moved" shows for a day
+export const SHOWN_CODE_MS = 2 * 60 * 1000; // typing a code counts if someone else showed it this recently
 export const REMOVE_AFTER_MS = 6 * HOUR_MS; // someone who never answered can be removed after this
 export const AUTO_LEAD_MS = 12 * HOUR_MS; // Minibus only confirms or moves a plan on its own if it's at least this far away
 export const CHECKIN_OPENS_BEFORE_MS = 30 * 60 * 1000; // check-in opens 30 minutes before the plan
@@ -185,6 +186,7 @@ function clone(value) {
 }
 
 function clampInt(value, min, max, fallback) {
+  if (typeof value !== 'number' && typeof value !== 'string') return fallback;
   const n = Number.parseInt(value, 10);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, n));
@@ -565,7 +567,15 @@ export function reduce(prev, action, nowMs) {
 
   if (type === 'setSeats') {
     if (hang.lock || hang.outcome) throw new ActionError('closed', "This plan is already confirmed.");
-    hang.seats = clampInt(action.seats, LIMITS.seatsMin, LIMITS.seatsMax, hang.seats);
+    const seats = clampInt(action.seats, LIMITS.seatsMin, LIMITS.seatsMax, hang.seats);
+    // Once others have answered, changing the number could be used to work out their answers.
+    // The one exception: everyone has answered and no time works, so the group can need fewer people.
+    const s = summarize(state, hang.id, nowMs);
+    const othersAnswered = s.answeredIds.some((id) => id !== member.id);
+    if (othersAnswered && !(s.stuck && seats < hang.seats)) {
+      throw new ActionError('closed', "The number of people needed can't change once others have answered. It can only go down if everyone has answered and no time works.");
+    }
+    hang.seats = seats;
     return settle(state, nowMs);
   }
 
@@ -574,13 +584,29 @@ export function reduce(prev, action, nowMs) {
     if (!checkinOpen(hang.lock.slot, nowMs)) throw new ActionError('checkin_closed', 'Check-in opens 30 minutes before the plan and closes when it ends.');
     const summary = summarize(state, hang.id, nowMs);
     if (!summary.lockPeople.includes(member.id)) throw new ActionError('not_going', 'Only people who are going can check in.');
-    if (type === 'checkin') {
-      const code = String(action.code || '').replace(/\D/g, '');
-      const ok = code === checkinCode(state, hang.id, nowMs) || code === checkinCode(state, hang.id, nowMs, 1);
-      if (!ok) throw new ActionError('wrong_code', "That code didn't work. Codes change every minute, so ask for the current one.");
+    if (type === 'showCode') {
+      // Showing the code doesn't check you in. You're checked in when a friend types it in.
+      r.shownAt = nowMs;
+      member.r[hang.id] = r;
+      return state;
     }
+    const raw = typeof action.code === 'string' || typeof action.code === 'number' ? String(action.code) : '';
+    const code = raw.replace(/\D/g, '');
+    const ok = code === checkinCode(state, hang.id, nowMs) || code === checkinCode(state, hang.id, nowMs, 1);
+    if (!ok) throw new ActionError('wrong_code', "That code didn't work. Codes change every minute, so ask for the current one.");
+    // The code has to come from someone else who showed it in the last 2 minutes. Both of you are checked in.
+    const showers = summary.lockPeople.filter((id) => {
+      if (id === member.id) return false;
+      const theirs = response(state.members[id], hang.id);
+      return typeof theirs.shownAt === 'number' && nowMs - theirs.shownAt <= SHOWN_CODE_MS;
+    });
+    if (!showers.length) throw new ActionError('no_shower', 'Ask a friend who is there to tap "Show the code", then type in their code.');
     if (!r.checkedIn) r.checkedIn = nowMs;
     member.r[hang.id] = r;
+    for (const id of showers) {
+      const theirs = state.members[id].r[hang.id];
+      if (!theirs.checkedIn) theirs.checkedIn = nowMs;
+    }
     const after = summarize(state, hang.id, nowMs);
     if (after.checkedIn.length >= CHECKINS_TO_MEET) {
       hang.outcome = { met: true, at: nowMs, by: member.id, checked: true };
@@ -591,8 +617,13 @@ export function reduce(prev, action, nowMs) {
   if (type === 'respond') {
     if (hang.outcome) throw new ActionError('closed', 'This plan is over. Start a new one.');
     // A save that was sent before the last one we kept is out of date. Ignore it.
-    if (typeof action.seq === 'number' && typeof r.seq === 'number' && action.seq < r.seq) return state;
-    if (typeof action.seq === 'number') r.seq = action.seq;
+    // seq is the phone's clock in microseconds. One far in the future (a fast clock, or made up)
+    // is ignored, so it can't block later saves.
+    const maxSeq = (nowMs + 60_000) * 1000 + 999;
+    const seqOk = (x) => typeof x === 'number' && Number.isFinite(x) && x <= maxSeq;
+    if (seqOk(action.seq) && seqOk(r.seq) && action.seq < r.seq) return state;
+    if (seqOk(action.seq)) r.seq = action.seq;
+    else if (!seqOk(r.seq)) delete r.seq;
     if (!r.at) r.at = nowMs; // first answer, for measuring how fast people reply
     r.updatedAt = nowMs;
     if (action.on !== undefined) {
@@ -630,7 +661,7 @@ export function reduce(prev, action, nowMs) {
       const dropped = hang.note && hang.note.type === 'dropped' ? hang.note : null;
       if (wasGoing && !isGoing) {
         // "out" and "prev" stay on the server: the view never says who dropped out.
-        const out = dropped ? [...new Set([...(dropped.out || []), member.id])] : [member.id];
+        const out = dropped ? [...new Set([...(dropped.out || []), member.id])].filter((id) => has(state.members, id)) : [member.id];
         hang.note = { type: 'dropped', still: goingAfter.length, out, prev: dropped ? dropped.prev : hang.note, at: nowMs };
       } else if (!wasGoing && isGoing && dropped) {
         // If everyone who dropped out came back, take the notice back and show the one before it.
@@ -735,9 +766,9 @@ export function buildView(state, meId, nowMs) {
         seats: hang.seats,
         budget: hang.budget,
         createdAt: hang.createdAt,
-        createdBy: nameOf(hang.createdBy),
+        createdBy: me ? nameOf(hang.createdBy) : '',
         decideBy: hang.decideBy,
-        status: s.status,
+        status: !me && s.status === 'ready' ? 'open' : s.status, // signed-out viewers can't tell if it's ready
         expected: s.expected,
         joined: s.joined,
         answered: s.answeredIds.length,
@@ -751,7 +782,7 @@ export function buildView(state, meId, nowMs) {
         slots: s.slots.map((x) => ({ id: x.id, closed: x.closed, count: showCounts ? x.count : 0 })),
         best: showBest && s.best ? { id: s.best.id, count: s.best.count } : null,
         stuck: s.stuck,
-        ready: s.ready,
+        ready: Boolean(me) && s.ready,
         places: s.places.map((p) => ({ id: p.id, name: p.name, likes: p.likes, liked: mine.likes.includes(p.id) })),
         lock: hang.lock
           ? {
@@ -781,12 +812,12 @@ export function buildView(state, meId, nowMs) {
   return {
     crew: { id: state.crew.id, name: state.crew.name, size: state.crew.size, demo: state.crew.demo },
     me: me ? { id: me.id, name: me.name } : null,
-    // canRemove is only worked out for the person who made the group, and only for people who joined
-    // more than 6 hours ago and never answered (for example, they lost their phone).
     members: Object.values(state.members).map((m) => ({
       id: m.id,
       name: m.name,
-      canRemove: Boolean(me) && me.id === manager && canRemoveMember(state, manager, m, nowMs),
+      // Shown for everyone who joined more than 6 hours ago, so the list doesn't reveal who has answered.
+      // The server still refuses to remove anyone who has answered, with the same message for every refusal.
+      canRemove: Boolean(me) && me.id === manager && m.id !== manager && nowMs - m.joinedAt >= REMOVE_AFTER_MS,
     })),
     iManage: Boolean(me) && me.id === manager,
     hangs,
@@ -845,7 +876,7 @@ export function calendarUrl(view, crewName) {
     action: 'TEMPLATE',
     text: `${view.idea} (${crewName})`,
     dates: `${utcStamp(start)}/${utcStamp(end)}`,
-    details: `With ${view.lock.people.join(', ')}. Planned with Minibus.`,
+    details: 'Planned with Minibus.', // no names: Google would see them
   });
   if (view.lock.placeName) params.set('location', view.lock.placeName);
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
@@ -868,7 +899,7 @@ export function icsText(view, crewName, uid, nowMs) {
     `DTSTART:${utcStamp(start)}`,
     `DTEND:${utcStamp(end)}`,
     `SUMMARY:${icsEscape(`${view.idea} (${crewName})`)}`,
-    `DESCRIPTION:${icsEscape(`With ${view.lock.people.join(', ')}.`)}`,
+    `DESCRIPTION:${icsEscape('Planned with Minibus.')}`,
   ];
   if (view.lock.placeName) lines.push(`LOCATION:${icsEscape(view.lock.placeName)}`);
   lines.push('END:VEVENT', 'END:VCALENDAR');

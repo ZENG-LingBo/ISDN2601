@@ -278,3 +278,26 @@ A new reviewer read the cycle 9 code change and wrote a repro script for each pr
 Text judge: PASS in round 1. Two optional changes taken: the deadline-passed text is split into two sentences, and "This time is soon" now says "less than 12 hours away". Not taken: making what screen readers hear match the visible grid label word for word at 200% text, because the normal layout shows different words.
 
 67 unit and server tests pass. The walkthrough passes.
+
+## Cycle 11: docs accuracy and server security (26 Nov, 03:10–04:00)
+
+Two new reviewers worked in parallel.
+
+- **Docs accuracy.** A reviewer checked every claim in the READMEs and the study plan against the code. The root README was accurate. The prototype README had 6 wrong claims (for example, when the plan moves, and when a plan counts as met), 1 out-of-date privacy list, and 7 missing rules. The study plan said the export counts "can't make it" notices, which it doesn't. All fixed, then the text judge passed both files after 3 rounds.
+- **Server security.** A reviewer attacked a local copy of the server with a fake clock and 16,696 random actions. Saving, static files, member keys, headers and odd input held up. It found 2 privacy leaks, 6 problems to fix before a class test, and 10 smaller ones.
+
+| Priority | Finding | Change |
+|---|---|---|
+| P1 | The group maker's "Manage members" list showed who had answered. With "the plan isn't ready yet", that could show who said no. | The list offers everyone who joined more than 6 hours ago. The server still refuses to remove anyone who answered, with the same message for every refusal. |
+| P1 | Any member could set the number of people needed to 2, tap one time at a time and watch for "ready", then set it back. That showed the hidden totals. Signed-out viewers could also see "ready". | The number can change only until someone else answers. After that, it can only go down, and only when everyone has answered and no time works. Signed-out viewers never see "ready". Test added. |
+| P2 | Two people at home could each tap "Show the code", and the plan counted as met. | Showing the code doesn't check you in. Typing a code checks you in only if someone else showed it in the last 2 minutes, and then both of you are checked in. Test added. |
+| P2 | A failed save (full disk) was only logged. People kept answering, and everything was lost on restart. | The server stops accepting changes, says so, and reports an error on `/api/health`. It tries again every 30 seconds. Test added. |
+| P2 | One network could fill the server with 2,000 groups and make saves fail. | At most 200 groups, and 20 new groups per network per day. |
+| P2 | The daily export couldn't be used to restore the data. | A new admin backup download, with restore steps in the README. A test restores a backup and signs in with an old private link. |
+| P2 | A save numbered from a phone clock far in the future blocked all later saves without an error. | Numbers more than a minute ahead of the server are ignored. Test added. |
+| P2 | The README's check for request limits couldn't tell if the limits counted each person. | A new admin address check, and README steps to try it from 2 networks. Test added. |
+| P3 | All rate limits reset at once after 20,000 addresses. Check-in codes, live updates and calendar files had no limits. One address could hold all live-update slots. Link opens could be counted many times. One broken group stopped the 10-minute update for everyone. Odd input caused a few 500 errors, and so did a malformed address. The dropped-out list kept people who had left. Signed-out viewers saw who started a plan. Calendar entries carried everyone's names to Google. No HSTS header. | All fixed. Calendar entries now say "Planned with Minibus" without names. The README tells the student to mention Google Fonts and Google Calendar in the consent form. |
+
+Not done: anyone with the group link can still join until the group has 20 members (written in the README's limits).
+
+74 unit and server tests pass (up from 67). The walkthrough passes. All of the reviewer's repro scripts were run again after the fix.

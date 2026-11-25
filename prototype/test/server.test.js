@@ -329,3 +329,50 @@ test('link opens and refused rejoins are counted for the user test', async () =>
   assert.equal(data.crews[a.crewId].crew.stats.nameTaken, 1);
   assert.equal(data.crews[a.crewId].crew.secret, undefined);
 });
+
+test('the admin backup can be restored: members can still sign in afterwards', async () => {
+  const a = await newCrew({ crewName: 'back me up' });
+  assert.equal((await call('GET', '/api/admin/backup')).status, 404);
+  const res = await fetch(`${base}/api/admin/backup`, { headers: { authorization: 'Bearer admin-secret-for-tests-0123456789abcdef' } });
+  assert.equal(res.status, 200);
+  const backup = await res.text();
+  assert.ok(!backup.includes(a.key), 'no private links in the backup, only key hashes');
+  // Restore it into a fresh server and sign in with the old key.
+  const file = path.join(dir, 'restored.json');
+  await writeFile(file, backup);
+  const restored = await start(file);
+  const view = await fetch(`${restored.base}/api/crews/${a.crewId}`, { headers: { 'x-minibus-member': a.memberId, 'x-minibus-key': a.key } });
+  assert.equal((await view.json()).me.name, 'A');
+  await stop(restored.inst);
+});
+
+test('the admin address check shows which address the limits count', async () => {
+  assert.equal((await call('GET', '/api/admin/ip')).status, 404);
+  const res = await fetch(`${base}/api/admin/ip`, {
+    headers: { authorization: 'Bearer admin-secret-for-tests-0123456789abcdef', 'x-forwarded-for': '1.2.3.4, 5.6.7.8' },
+  });
+  const data = await res.json();
+  assert.equal(data.countedAs, '5.6.7.8');
+  assert.equal(data.trustProxy, true);
+});
+
+test('when saving fails, changes are refused and the health check says so', async () => {
+  const notAFolder = path.join(dir, 'a-file');
+  await writeFile(notAFolder, 'x');
+  const broken = await start(path.join(notAFolder, 'store.json'));
+  const first = await fetch(`${broken.base}/api/crews`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ crewName: 'g', size: 3, idea: 'x', seats: 2, creatorName: 'A' }),
+  });
+  assert.equal(first.status, 201);
+  await broken.inst.flush();
+  assert.equal((await fetch(`${broken.base}/api/health`)).status, 503);
+  const second = await fetch(`${broken.base}/api/crews`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ crewName: 'g', size: 3, idea: 'x', seats: 2, creatorName: 'A' }),
+  });
+  assert.equal(second.status, 503);
+  await stop(broken.inst);
+});

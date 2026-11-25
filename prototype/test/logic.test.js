@@ -279,13 +279,14 @@ test('leaving deletes your name and answers, and the group gets smaller', () => 
   assert.equal(state.crew.size, 4);
 });
 
-test('only the group maker can remove someone, after 2 days, if they never answered', () => {
+test('only the group maker can remove someone, after 6 hours, if they never answered', () => {
   let state = withFriends(crew({ size: 5 }));
   state = respond(state, JASON, true, [THU_EVE]);
   // Straight after joining, nobody can be removed, and nobody else even sees the option.
   assert.ok(L.buildView(state, MANDY, NOW).members.every((m) => !m.canRemove));
   const later = NOW + L.REMOVE_AFTER_MS + HOUR;
-  assert.deepEqual(L.buildView(state, MANDY, later).members.filter((m) => m.canRemove).map((m) => m.name).sort(), ['Mei', 'Tom']);
+  // The list offers everyone who joined 6 hours ago, so it doesn't show who has answered.
+  assert.deepEqual(L.buildView(state, MANDY, later).members.filter((m) => m.canRemove).map((m) => m.name).sort(), ['Jason', 'Mei', 'Tom']);
   assert.ok(L.buildView(state, JASON, later).members.every((m) => !m.canRemove), 'only the group maker sees it');
   // Every refusal has the same message, so it never tells you who has answered.
   const tries = [
@@ -656,4 +657,54 @@ test('taking the confirmed time out of your times counts as "can\'t make it", an
   state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [SAT_EVE, THU_EVE] }, NOW);
   assert.equal(L.buildView(state, MEI, NOW).hangs[0].mine.declined, false);
   assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, decline: 'yes' }, NOW), { code: 'invalid' });
+});
+
+test('the number of people needed is locked once others have answered, except to go down when no time works', () => {
+  let state = withFriends(crew({ size: 4 }));
+  state = L.reduce(state, { type: 'setSeats', hangId: H, memberId: MANDY, seats: 2 }, NOW);
+  assert.equal(state.hangs[H].seats, 2, 'nobody else has answered yet');
+  state = respond(state, JASON, true, [THU_EVE]);
+  assert.throws(() => L.reduce(state, { type: 'setSeats', hangId: H, memberId: MANDY, seats: 3 }, NOW), { code: 'closed' });
+  assert.throws(() => L.reduce(state, { type: 'setSeats', hangId: H, memberId: MEI, seats: 2 }, NOW), { code: 'closed' });
+  // Odd input is refused like any other change, not a crash.
+  assert.throws(() => L.reduce(state, { type: 'setSeats', hangId: H, memberId: MANDY, seats: { toString: 'x' } }, NOW), { code: 'closed' });
+});
+
+test('check-in needs a second person: typing a code counts only if someone else showed it', () => {
+  let state = confirmedThursday();
+  const at = L.slotTime(THU_EVE, 'start') - 10 * 60 * 1000;
+  // Mandy shows the code: she isn't checked in yet.
+  state = L.reduce(state, { type: 'showCode', hangId: H, memberId: MANDY }, at);
+  assert.deepEqual(L.summarize(state, H, at).checkedIn, []);
+  // Jason shows it to himself and types it: refused.
+  let jason = L.reduce(state, { type: 'showCode', hangId: H, memberId: JASON }, at + 3 * 60 * 1000);
+  assert.throws(
+    () => L.reduce(jason, { type: 'checkin', hangId: H, memberId: JASON, code: L.checkinCode(jason, H, at + 3 * 60 * 1000) }, at + 3 * 60 * 1000),
+    { code: 'no_shower' },
+  );
+  // Mei types the code Mandy just showed: both are checked in, and the plan counts as met.
+  state = L.reduce(state, { type: 'checkin', hangId: H, memberId: MEI, code: L.checkinCode(state, H, at) }, at + 30 * 1000);
+  assert.deepEqual(L.summarize(state, H, at + 30 * 1000).checkedIn.sort(), [MANDY, MEI].sort());
+  assert.equal(state.hangs[H].outcome.met, true);
+  assert.throws(() => L.reduce(confirmedThursday(), { type: 'checkin', hangId: H, memberId: MEI, code: { toString: 'x' } }, at), { code: 'wrong_code' });
+});
+
+test('a save numbered from a clock far in the future cannot block later saves', () => {
+  let state = withFriends(crew());
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, on: true, free: [THU_EVE], seq: (NOW + 24 * HOUR) * 1000 }, NOW);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [SAT_EVE], seq: NOW * 1000 }, NOW);
+  assert.deepEqual(state.members[MEI].r[H].free, [SAT_EVE]);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [THU_EVE], seq: 1e308 }, NOW);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [FRI_LUNCH], seq: NOW * 1000 + 5 }, NOW);
+  assert.deepEqual(state.members[MEI].r[H].free, [FRI_LUNCH]);
+});
+
+test('people who are not signed in see no names and cannot tell if a plan is ready', () => {
+  let state = withFriends(crew({ seats: 2 }));
+  state = respond(state, MANDY, true, [THU_EVE]);
+  state = respond(state, JASON, true, [THU_EVE]);
+  const outside = L.buildView(state, null, NOW).hangs[0];
+  assert.equal(outside.createdBy, '');
+  assert.equal(outside.ready, false);
+  assert.notEqual(outside.status, 'ready');
 });

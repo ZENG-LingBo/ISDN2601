@@ -755,7 +755,7 @@ function checkinBlock(hang) {
     <p>When you meet, one person shows the code and the others type it in. When ${L.CHECKINS_TO_MEET} people have checked in, the plan counts as met.</p>
     <p>${esc(who)}</p>
     ${shown
-      ? `<p class="code" id="checkin-code" tabindex="-1"><span aria-hidden="true">${esc(shown.code)}</span><span class="sr-only">Check-in code: ${esc(shown.code.split('').join(' '))}</span></p><p>This code changes every minute.</p>`
+      ? `<p class="code" id="checkin-code" tabindex="-1"><span aria-hidden="true">${esc(shown.code)}</span><span class="sr-only">Check-in code: ${esc(shown.code.split('').join(' '))}</span></p><p>This code changes every minute. When a friend types it in, you're both checked in.</p>`
       : '<button class="btn primary" type="button" id="show-code" data-act="show-code">Show the code</button>'}
     ${hang.lock.iCheckedIn ? '' : `<form id="checkin-form" class="field" novalidate>
       <label for="ci-code">Enter the code</label>
@@ -1709,7 +1709,7 @@ app.addEventListener('submit', (event) => {
       try {
         await act({ type: 'checkin', code: data.code });
       } catch (e) {
-        if (['wrong_code', 'slow_down'].includes(e.code)) return showFieldError('ci-code', e.message);
+        if (['wrong_code', 'no_shower', 'slow_down'].includes(e.code)) return showFieldError('ci-code', e.message);
         throw e;
       }
       ui.errors = {};

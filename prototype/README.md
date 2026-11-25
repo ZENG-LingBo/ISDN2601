@@ -14,10 +14,10 @@ This is a prototype for the next stage of an ISDN 1001 project at HKUST. It resp
 2. Each friend opens the link, types their name, and says whether they're in.
 3. People who are in tap the times they're free over the next 7 days: lunch (12:30–2pm), afternoon (3–6pm) or evening (7–10pm). You can't tap a time until you say you're in, so picking a time never counts as a yes by accident.
 4. Anyone can suggest a place, and everyone can vote. If you type a place, it also counts as your vote. If you tap a suggested place, it's only added to the list.
-5. The plan is confirmed when enough people are free at the same time and everyone has answered. If not everyone answers, Minibus waits 48 hours. Then it confirms the plan if enough people are free at the same time. If the 48 hours end at night, it waits until 9am. Minibus only confirms a time on its own if it's at least 12 hours away, because nobody gets a notification. For a time less than 12 hours away, someone who is in has to confirm it. If everyone has answered and no time works, the plan says so, and the group can lower the number of people needed. If someone still hasn't answered 3 hours after the plan is made, people who are in see a reminder they can send to the group. The demo shows it straight away.
+5. The plan is confirmed when enough people are free at the same time and everyone has answered. If not everyone answers, Minibus waits 48 hours. Then it confirms the plan if enough people are free at the same time. If the 48 hours end at night, it waits until 9am. Minibus only confirms a time on its own if it's at least 12 hours away, because nobody gets a notification. For a time less than 12 hours away, someone who is in has to confirm it. The number of people needed can change until someone else answers. After that, it can only go down, and only if everyone has answered and no time works. If everyone has answered and no time works, the plan says so, and the group can lower the number of people needed. If someone still hasn't answered 3 hours after the plan is made, people who are in see a reminder they can send to the group. The demo shows it straight away.
 6. If you can't make the confirmed time, tap "Can't make it? Change my times" instead of cancelling. If the plan is confirmed or moved to a time you didn't pick, Minibus asks "Can you make it?", and you can tap "No, I can't". Either way, you stay in the plan, and your other times still count. If the confirmed time no longer has enough people, the plan moves to another time that has enough people and is at least 12 hours away. If there isn't one, the group goes back to choosing a time. For 24 hours after the plan moves, a notice shows the old and new times.
 7. In the 2 hours before the plan starts, it can't move. If you find out in those 2 hours that you can't make it, tap "Can't make it? Tell the group", then "I can't make it". This takes you out of the plan. The plan shows how many people are still going, and Minibus writes a message for you to send. You can tap "I can make it too" until the plan ends.
-8. When the group meets, one person shows a 4-digit check-in code and the others type it in. Check-in opens 30 minutes before the plan and closes when it ends. The code changes every minute. Showing the code also checks you in. Once 2 people have checked in, the plan counts as met.
+8. When the group meets, one person shows a 4-digit check-in code and the others type it in. Check-in opens 30 minutes before the plan and closes when it ends. The code changes every minute. When someone types in a code that another person showed in the last 2 minutes, they're both checked in. You can't check yourself in with a code you showed. Once 2 people have checked in, the plan counts as met.
 9. If fewer than 2 people check in, the people who were going can say afterwards whether they met. Every answer is kept. The plan counts as met if at least 1 person says "Yes, we met" and at least as many say yes as say no. If someone said they could make it after the plan had started, they can answer only if they checked in. These answers are self-reported.
 
 ## How it uses the research
@@ -80,7 +80,13 @@ Friends need to reach the server from their own phones, and the server needs to 
    - `MINIBUS_DELETE_BY` = the date you'll delete everything, like `31 Dec 2026`
 5. Generate a public domain.
 6. Create a test plan. Then restart the service and redeploy it once, and check that the plan is still there.
-7. Check the request limits work behind Railway: on one phone, create 31 test groups within a minute. The 31st should say "Too many requests". If it doesn't, ask for help before the test.
+7. Check that request limits count each visitor, not Railway. Open this on your phone's mobile data, then on Wi-Fi, replacing the token and address:
+
+   ```bash
+   curl -H "Authorization: Bearer YOUR_ADMIN_TOKEN" https://YOUR-APP.up.railway.app/api/admin/ip
+   ```
+
+   `countedAs` should be a different address each time, and it should be your own public address, not a Railway one. If it's the same on both networks, ask for help before the test.
 8. Put a reminder in your calendar for the deletion date. Nothing is deleted automatically.
 
 New accounts get a 30-day trial with US$5 of credit. After that, Railway's free plan gives US$1 of credit a month and a small volume, which may be enough for a one-week test. If not, the Hobby plan is US$5 a month. Prices change, so check railway.com/pricing before you start. Don't use hosts that delete files when they restart (like Render's free plan): you would lose the data file.
@@ -104,6 +110,16 @@ Do this every day of the test. The export has every group, plan and answer, incl
 - how many people left, were removed, or tried to join with a name that was taken (a sign they lost their name and answers on that phone)
 
 It doesn't include anyone's private link or the check-in secret. A copied message is only a sign that it was posted, not proof.
+
+The export is for reading, not for restoring. Also download a full backup every day:
+
+```bash
+curl -H "Authorization: Bearer YOUR_ADMIN_TOKEN" https://YOUR-APP.up.railway.app/api/admin/backup -o minibus-backup.json
+```
+
+The backup has everything the server needs, including check-in secrets, but not anyone's private link. Keep it as safe as the export. To restore it, stop the service, replace `/data/store.json` with the backup file (for example, with Railway's volume file browser or a one-off shell), and start the service again. Everyone's private links keep working.
+
+If the server can't save (for example, the volume is full), it stops accepting changes, shows "The server can't save changes right now", and `/api/health` returns an error. It tries again every 30 seconds.
 
 ### Delete a whole group
 
@@ -131,6 +147,7 @@ Minibus doesn't ask for a phone number, email or location.
 - Each person can delete their name and answers with "Leave and delete my answers" on the group page. The group name and plan ideas stay until the group is deleted.
 - The person who made the group can remove someone who joined more than 6 hours ago and never answered anything, for example if they lost their phone and joined again under a new name.
 - The server may be outside Hong Kong. Say so in your consent form.
+- The app loads its fonts from Google Fonts, so Google sees each visitor's IP address. "Add to Google Calendar" opens Google Calendar with the plan's name, time and place, but no names of people. Say both in your consent form.
 
 ### Consent for a user test
 
@@ -141,6 +158,7 @@ Before a test, give every participant a short consent form. It should say:
 - that taking part is voluntary and they can leave and delete their answers at any time
 - when everything will be deleted, and how to contact you
 - that the data is stored on a server that may be outside Hong Kong
+- that Google Fonts sees each visitor's IP address, and that Google Calendar sees the plan details if they add it there
 
 Only include people aged 18 or over. Ask your instructor to approve the test in writing first. Don't collect screenshots of group chats, because they include messages from people who didn't agree to take part.
 
@@ -177,4 +195,5 @@ Screenshots go into `test/screenshots`. The walkthrough loads Playwright from `/
 - If nobody checks in, "Did you meet?" is self-reported.
 - Times are in Hong Kong time.
 - Names that look the same but use different alphabets (like a Cyrillic "а") aren't treated as the same name yet.
-- The server keeps everything in one file. That's fine for a class test with a few dozen groups, not for a public launch.
+- The server keeps everything in one file. That's fine for a class test with a few dozen groups, not for a public launch. It holds at most 200 groups, and one network can make at most 20 new groups a day.
+- Anyone with the group link can join until the group has 20 members. The person who made the group can only remove people who never answered.

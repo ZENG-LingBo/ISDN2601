@@ -12,7 +12,7 @@
 // different phones share them. It runs the exact same rules (js/logic.js).
 
 import http from 'node:http';
-import { readFile, writeFile, rename, mkdir, open } from 'node:fs/promises';
+import { readFile, writeFile, rename, mkdir, open, unlink } from 'node:fs/promises';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { networkInterfaces } from 'node:os';
 import path from 'node:path';
@@ -21,8 +21,13 @@ import * as L from './js/logic.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const MAX_BODY = 16 * 1024;
-const MAX_CREWS = 2000;
+const MAX_CREWS = 200; // far more than a class test needs, and small enough that saves stay quick
 const MAX_STREAMS_PER_CREW = 50;
+const MAX_STREAMS = 500; // open live-update connections, all groups together
+const MAX_STREAMS_PER_IP = 20;
+const IP_CREATES_PER_DAY = 20;
+const CODE_SHOWS_PER_MINUTE = 20;
+const SAVE_RETRY_MS = 30_000;
 const MEMBER_WRITES_PER_MINUTE = 120;
 const IP_CREATES_PER_MINUTE = 30;
 const IP_JOINS_PER_MINUTE = 120; // a whole class might join from one campus network
@@ -118,21 +123,47 @@ export async function createMinibusServer({
   let saveTimer = null;
   let firstPendingAt = 0;
   let saving = Promise.resolve();
+  let lastSaveOk = true; // while false, changes are refused, so nobody thinks their answer was kept
+  let retryTimer = null;
   async function writeNow() {
     await mkdir(path.dirname(dataFile), { recursive: true });
     const tmp = `${dataFile}.${process.pid}.tmp`;
-    const fh = await open(tmp, 'w');
     try {
-      await fh.writeFile(JSON.stringify(db));
-      await fh.sync();
-    } finally {
-      await fh.close();
+      const fh = await open(tmp, 'w');
+      try {
+        await fh.writeFile(JSON.stringify(db));
+        await fh.sync();
+      } finally {
+        await fh.close();
+      }
+      await rename(tmp, dataFile); // atomic on the same filesystem
+    } catch (e) {
+      await unlink(tmp).catch(() => {});
+      throw e;
     }
-    await rename(tmp, dataFile); // atomic on the same filesystem
+    try {
+      const dir = await open(path.dirname(dataFile), 'r'); // make the rename itself survive a power cut
+      await dir.sync().catch(() => {});
+      await dir.close();
+    } catch {
+      /* not every system can sync a folder */
+    }
   }
   function queueWrite() {
     firstPendingAt = 0;
-    saving = saving.then(writeNow).catch((e) => log.error('Save failed:', e.message));
+    saving = saving
+      .then(writeNow)
+      .then(() => {
+        lastSaveOk = true;
+      })
+      .catch((e) => {
+        lastSaveOk = false;
+        log.error('Save failed:', e.message);
+        // Keep trying, so the server recovers on its own once there's disk space again.
+        clearTimeout(retryTimer);
+        retryTimer = setTimeout(queueWrite, SAVE_RETRY_MS);
+        if (retryTimer.unref) retryTimer.unref();
+      });
   }
   // Quick changes are grouped into one write, but nothing waits more than 2 seconds.
   function scheduleSave() {
@@ -160,6 +191,9 @@ export async function createMinibusServer({
 
   // ---------- live updates ----------
   const listeners = new Map(); // crewId -> Set<res>
+  let openStreams = 0;
+  const streamsByIp = new Map(); // ip -> open live-update connections
+  const openedSeen = new Set(); // "crew:plan:ip" already counted as an open
   function notify(crewId) {
     const set = listeners.get(crewId);
     if (!set) return;
@@ -185,7 +219,10 @@ export async function createMinibusServer({
     }
     b.count += 1;
     buckets.set(bucketKey, b);
-    if (buckets.size > 20_000) buckets.clear();
+    if (buckets.size > 20_000) {
+      for (const [k, v] of buckets) if (t > v.reset) buckets.delete(k); // drop only the expired ones
+      if (buckets.size > 50_000) buckets.clear(); // last resort
+    }
     return b.count <= limit;
   }
 
@@ -212,6 +249,8 @@ export async function createMinibusServer({
     const isText = typeof body === 'string' || Buffer.isBuffer(body);
     res.writeHead(status, {
       ...SECURITY_HEADERS,
+      // Behind an https host (like Railway), tell browsers to always use https.
+      ...(trustProxy && req.headers['x-forwarded-proto'] === 'https' ? { 'strict-transport-security': 'max-age=15552000' } : {}),
       'content-type': isText ? headers['content-type'] || 'text/plain; charset=utf-8' : 'application/json; charset=utf-8',
       'cache-control': 'no-store',
       ...headers,
@@ -291,7 +330,12 @@ export async function createMinibusServer({
 
   // ---------- routes ----------
   async function handle(req, res) {
-    const url = new URL(req.url, 'http://local');
+    let url;
+    try {
+      url = new URL(req.url, 'http://local');
+    } catch {
+      return fail(req, res, 400, 'invalid', 'The server could not read that request.');
+    }
     const p = url.pathname;
     const reading = req.method === 'GET' || req.method === 'HEAD';
 
@@ -302,13 +346,25 @@ export async function createMinibusServer({
       const [file, type] = STATIC[p];
       return send(req, res, 200, await readFile(path.join(ROOT, file)), { 'content-type': type, 'cache-control': 'no-cache' });
     }
-    if (reading && p === '/api/health') return send(req, res, 200, { ok: true });
+    if (reading && p === '/api/health') return lastSaveOk ? send(req, res, 200, { ok: true }) : send(req, res, 503, { ok: false, error: 'save_failed' });
+    if (!reading && !lastSaveOk) return fail(req, res, 503, 'save_failed', "The server can't save changes right now. Try again in a few minutes.");
 
     // ---------- admin (only when ADMIN_TOKEN is set) ----------
     if (p === '/api/admin/export' && reading) {
       if (!isAdmin(req)) return fail(req, res, 404, 'not_found', 'Not found.');
       const crews = Object.fromEntries(Object.entries(db.crews).map(([id, entry]) => [id, L.exportState(entry.state)])); // no keys or secrets
       return send(req, res, 200, { exportedAt: now(), crews }, { 'content-disposition': 'attachment; filename="minibus-export.json"' });
+    }
+    // The whole data file, for restoring after a problem. It has key hashes and check-in secrets,
+    // but no private links. Keep it as safe as the export.
+    if (p === '/api/admin/backup' && reading) {
+      if (!isAdmin(req)) return fail(req, res, 404, 'not_found', 'Not found.');
+      return send(req, res, 200, db, { 'content-disposition': 'attachment; filename="minibus-backup.json"' });
+    }
+    // Which address the server counts for request limits. Use it to check TRUST_PROXY on a host.
+    if (p === '/api/admin/ip' && reading) {
+      if (!isAdmin(req)) return fail(req, res, 404, 'not_found', 'Not found.');
+      return send(req, res, 200, { countedAs: clientIp(req), forwardedFor: String(req.headers['x-forwarded-for'] || ''), trustProxy });
     }
     const adminDelete = /^\/api\/admin\/crews\/([a-z0-9]{6,40})$/.exec(p);
     if (adminDelete && req.method === 'DELETE') {
@@ -322,6 +378,7 @@ export async function createMinibusServer({
 
     if (p === '/api/crews' && req.method === 'POST') {
       if (!allow(`ip:${clientIp(req)}`, IP_CREATES_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
+      if (!allow(`ipday:${clientIp(req)}`, IP_CREATES_PER_DAY, 24 * 3600 * 1000)) return fail(req, res, 429, 'slow_down', 'Too many new groups from this network today. Try again tomorrow.');
       if (Object.keys(db.crews).length >= MAX_CREWS) return fail(req, res, 507, 'full', 'This server is full.');
       const body = await readBody(req);
       const ids = { crewId: L.newId(), hangId: L.newId(), memberId: L.newId() };
@@ -347,9 +404,15 @@ export async function createMinibusServer({
     }
 
     if (sub === 'events' && req.method === 'GET') {
+      const ip = clientIp(req);
+      if (!allow(`events:${ip}`, 60)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
       if (!listeners.has(crewId)) listeners.set(crewId, new Set());
       const set = listeners.get(crewId);
-      if (set.size >= MAX_STREAMS_PER_CREW) return fail(req, res, 503, 'busy', 'Too many open pages for this group.');
+      if (set.size >= MAX_STREAMS_PER_CREW || openStreams >= MAX_STREAMS || (streamsByIp.get(ip) || 0) >= MAX_STREAMS_PER_IP) {
+        return fail(req, res, 503, 'busy', 'Too many open pages for this group.');
+      }
+      openStreams += 1;
+      streamsByIp.set(ip, (streamsByIp.get(ip) || 0) + 1);
       res.writeHead(200, {
         ...SECURITY_HEADERS,
         'content-type': 'text/event-stream',
@@ -362,11 +425,16 @@ export async function createMinibusServer({
       req.on('close', () => {
         clearInterval(ping);
         set.delete(res);
+        openStreams -= 1;
+        const left = (streamsByIp.get(ip) || 1) - 1;
+        if (left > 0) streamsByIp.set(ip, left);
+        else streamsByIp.delete(ip);
       });
       return;
     }
 
     if (icsHang && reading) {
+      if (!allow(`read:${clientIp(req)}`, IP_READS_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
       const view = L.buildView(entry.state, null, now());
       const hang = view.hangs.find((h) => h.id === icsHang);
       if (!hang || !hang.lock) return fail(req, res, 404, 'not_found', "This plan doesn't have a time yet.");
@@ -384,7 +452,10 @@ export async function createMinibusServer({
       if (!allow(`opened:${clientIp(req)}`, IP_READS_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
       const body = await readBody(req);
       const hang = typeof body.hangId === 'string' && Object.prototype.hasOwnProperty.call(entry.state.hangs, body.hangId) ? entry.state.hangs[body.hangId] : null;
-      if (hang) {
+      const seenKey = `${crewId}:${body.hangId}:${clientIp(req)}`;
+      if (hang && !openedSeen.has(seenKey)) {
+        if (openedSeen.size > 50_000) openedSeen.clear();
+        openedSeen.add(seenKey); // once per address while the server runs
         hang.stats = hang.stats || {};
         hang.stats.opens = (hang.stats.opens || 0) + 1;
         scheduleSave();
@@ -434,10 +505,11 @@ export async function createMinibusServer({
       return send(req, res, 200, { ok: true });
     }
 
-    // Show the check-in code. Showing it also checks you in, since you're there.
+    // Show the check-in code. You are checked in when a friend types it in.
     if (codeHang) {
       const me = authMember(req, entry);
       if (!me) return fail(req, res, 403, 'not_member', "You're not in this group on this device. Open the group link and join first.");
+      if (!allow(`code:${me}`, CODE_SHOWS_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
       entry.state = L.reduce(entry.state, { type: 'showCode', hangId: codeHang, memberId: me }, now());
       scheduleSave();
       notify(crewId);
@@ -472,7 +544,13 @@ export async function createMinibusServer({
 
   // Every 10 minutes, apply time-based changes (like the 48-hour deadline) even if nobody is looking.
   const tick = setInterval(() => {
-    for (const [crewId, entry] of Object.entries(db.crews)) settleCrew(crewId, entry);
+    for (const [crewId, entry] of Object.entries(db.crews)) {
+      try {
+        settleCrew(crewId, entry);
+      } catch (e) {
+        log.error(`Couldn't update group ${crewId}:`, e.message);
+      }
+    }
   }, SETTLE_EVERY_MS);
   tick.unref();
   server.on('close', () => clearInterval(tick));
