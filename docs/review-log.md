@@ -457,3 +457,5 @@ What changed:
 | P3 | The page was long. "Mood" allowed only one choice. "Fill from my timetable" replaced your taps and marked 16 of 21 times as free. The chat mock-up didn't show the private message or the result. | "Where?" waits until there's something to do. The private block folds to one line when you come back. Food and energy are separate rows. The timetable adds to your taps from a busier pretend timetable. The mock-up shows the private message and the confirmed plan. |
 
 92 unit and server tests pass. The walkthrough passes.
+
+Text judge on the 2030 version: FAIL in round 1 (the privacy promise and 3 smaller items), FAIL in round 2 ("right after someone answers" sounded like saying yes could give a limit away), then PASS in round 3.
