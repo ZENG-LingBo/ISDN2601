@@ -232,7 +232,7 @@ A new reviewer read the cycles 5 and 6 code change line by line and wrote a smal
 
 65 unit and server tests pass. The walkthrough passes.
 
-## Cycle 9: usability re-test and visual design (26 Nov, 02:05–02:40)
+## Cycle 9: usability re-test and visual design (26 Nov, 02:05–02:30)
 
 Two new reviewers worked in parallel.
 
@@ -261,7 +261,7 @@ Text judge on the new wording: FAIL on 2 strings in round 1 ("Every time counts"
 
 67 unit and server tests pass. The walkthrough checks that the confirm button comes straight after the grid.
 
-## Cycle 10: checking the cycle 9 changes (26 Nov, 02:45–03:10)
+## Cycle 10: checking the cycle 9 changes (26 Nov, 02:30–02:45)
 
 A new reviewer read the cycle 9 code change and wrote a repro script for each problem, with a fake clock and the real fonts. The new "can't make this time" rules held up: no bug found in how people are counted or how plans move. 1 P1 and 5 P2s came in with the screens, all fixed. Every repro script was run again after the fix.
 
@@ -279,7 +279,7 @@ Text judge: PASS in round 1. Two optional changes taken: the deadline-passed tex
 
 67 unit and server tests pass. The walkthrough passes.
 
-## Cycle 11: docs accuracy and server security (26 Nov, 03:10–04:00)
+## Cycle 11: docs accuracy and server security (26 Nov, 02:45–03:00)
 
 Two new reviewers worked in parallel.
 
