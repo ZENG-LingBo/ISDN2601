@@ -1187,6 +1187,7 @@ function statusWords(hang) {
       if (hang.lock && hang.lock.iCheckedIn) return 'You met';
       if (hang.lock && hang.lock.imGoing && hang.lock.checkinOpen) return 'Your friends have checked in';
       if (hang.lock && hang.lock.imGoing && hang.outcome && !hang.outcome.checked && hang.mine.met === true) return 'You met';
+      if (hang.outcome && !hang.outcome.checked && hang.mine.met === false) return 'This plan counts as met';
       return 'The group met';
     case 'fizzled':
       return "Didn't meet";
