@@ -210,6 +210,6 @@ Two reviewers who hadn't seen the earlier rounds checked the prototype at the sa
 
 Not done: a QR code for check-in (needs your OK to add a library), and push notifications.
 
-Text judge on the new wording: FAIL on 7 strings, all fixed. "Can't come" became "can't make it" everywhere, to match "Can you make it?". The panel no longer says Minibus tells the group (it can't send messages; you send it). The moved message says "Old time:" instead of brackets inside brackets. The deadline uses the same clock style as the times ("9am", not "09:00"). Skipped on purpose: showing the exact number of answers needed before totals appear, because it would hint at how many said yes.
+Text judge on the new wording: FAIL on 7 strings in round 1, all fixed, then PASS in round 2. "Can't come" became "can't make it" everywhere, to match "Can you make it?". The panel no longer says Minibus tells the group (it can't send messages; you send it). The moved message says "Old time:" instead of brackets inside brackets. The deadline uses the same clock style as the times ("9am", not "09:00"). Skipped on purpose: showing the exact number of answers needed before totals appear, because it would hint at how many said yes.
 
 63 unit and server tests pass. The browser walkthrough now also checks focus on new screens, the grid waiting for "I'm in", no error alerts on a normal confirm, and "I can't make it" followed by joining again.
