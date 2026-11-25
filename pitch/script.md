@@ -37,8 +37,8 @@ The script is about 240 words when the numbers are read out in full. At a calm 1
 
 ## Slide 5: Why plans fall through (0:57–1:12)
 
-> Why do plans fall through? No one is in charge. The plan has no set time or place, just “soon”.
-> And we’re afraid of looking too eager, but friends want to hear from us more than we think.
+> Why do plans fall through? No one is in charge. The plan has no set time or place. People just
+> say “soon”. And we’re afraid of looking too eager, but friends want to hear from us more than we think.
 
 *Count the three reasons on your fingers.*
 
@@ -64,7 +64,7 @@ questions?” The last line is your ending.*
 
 ## If you go over time
 
-Cut these, in this order. Each one saves 2 to 4 seconds, and the story still works:
+Cut these, in this order. Each one saves 1 to 2 seconds, and the story still works:
 
 1. Slide 4: “Here’s the strange part.” Start with “We say yes…”.
 2. Slide 3: “This year,”.
@@ -79,7 +79,7 @@ chat.” Use your real number, or leave the line out. If you add it, also make c
 
 ## Before you present
 
-- [ ] Practise three times with a phone timer. Every run should finish under 1:55.
+- [ ] Practise three times with a phone timer. Every run should finish under 1:52.
 - [ ] Practise the How Might We sentence on its own five times. It's the line the markers will write down.
 - [ ] Put your name on the first slide (it says `[Your name]`).
 - [ ] Open the HKFYG press release (link in `research/background-study.md`) and check the 83.7% and 47.7% figures yourself.
@@ -104,21 +104,21 @@ The research says no. People underestimate how much their friends like them (Boo
 Year 1 has ready-made chances to meet, like orientation camp, halls and shared classes. By Year 2, everyone has a different timetable, but the friendships are still new. Close friendships need about 200 hours together (Hall, 2019), so this is when missed plans hurt the most.
 
 **“Is Mandy real? Did you talk to users?”**
-Mandy is a persona built from the research, and the slide says so. My next step is interviews with HKUST students. *(If you did the friend check tonight, add your real result here.)*
+Mandy is a persona built from the research, and the slide says so. My next step is to interview HKUST students. *(If you did the friend check tonight, add your real result here.)*
 
 **“Darley and Latané studied emergencies, not group chats.”**
 Yes. Their study shows diffusion of responsibility: the more people who could act, the less each one feels it's their job. I'm applying that idea to group chats.
 
 **“What's your solution?”**
-Today is only about the problem. I kept the question open on purpose, so the answer could be a space, an event or a group habit, not only an app. *(Don't show or mention any prototype.)*
+Today is only about the problem. I kept the question open on purpose, so the answer could be a place, an event or a group habit, not only an app. *(Don't show or mention any prototype.)*
 
 **“Maybe people just don't want to meet?”**
-More people are disappointed than pleased when plans are cancelled: 36% against 17% (YouGov, 2023). People want to meet, but the plan falls through.
+In another poll, 36% said they're usually disappointed when plans are cancelled, and only 17% pleased (YouGov, 2023). So relief is common, but most people still want to meet.
 
 **“How was the 83.7% measured?”**
 It's from an online survey of 600 people aged 12 to 24 by the Hong Kong Federation of Youth Groups, using the UCLA loneliness scale. It isn't a random sample.
 
-**If someone asks about the 86% guilt figure:** it's about people who cancel, not people who feel relieved when a friend cancels. “Relieved, then guilty” describes the persona's feelings; if pressed, say that.
+**If someone asks about the 86% guilt figure:** it's about people who cancel, not people who feel relieved when a friend cancels. “Relieved, then guilty” describes the persona's feelings; if someone asks, say that.
 
 **“How does this fit ‘Leisure in 2030’?”**
 The brief asks how free time can move from killing time to meaningful downtime. Right now, students often spend that time alone on their phones. This project is about helping friends spend that time together.
