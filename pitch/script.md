@@ -80,7 +80,7 @@ A new reason was added: even when friends want to meet, choosing what to do stal
 a meal, and friends with food or money limits stay quiet and say “whatever” (Harvey, 1974). Slide 5
 now has 4 reasons, the empathy map has 2 new items, slide 2 has a fifth pain point, and the problem
 statement on slide 7 has one new phrase. The How Might We question didn't change. To keep the
-time, three lines were cut for good: “Here’s the strange part.” on slide 4, “This year,” on slide 3, and “Why do plans fall through?” on slide 5. Slide 4 now says “When we cancel, we feel guilty”, because the 86% guilt figure is about people who cancel, not people whose friend cancels.
+time, three lines were cut for good: “Here’s the strange part.” on slide 4, “This year,” on slide 3, and “Why do plans fall through?” on slide 5. Slide 4’s spoken line is now “When we cancel, we feel guilty”, because the 86% guilt figure is about people who cancel, not people whose friend cancels.
 The research is in `research/background-study.md`, section 5.
 
 ## Optional line, only if it's true
@@ -130,7 +130,7 @@ In another poll, 36% said they're usually disappointed when plans are cancelled,
 **“How was the 83.7% measured?”**
 It's from an online survey of 600 people aged 12 to 24 by the Hong Kong Federation of Youth Groups, using the UCLA loneliness scale. It isn't a random sample.
 
-**If someone asks about the 86% guilt figure:** it’s about people who cancel, not people who feel relieved when a friend cancels. That’s why slide 4 says “When we cancel, we feel guilty.”
+**If someone asks about the 86% guilt figure:** it’s about people who cancel, not people who feel relieved when a friend cancels. That’s why the spoken line on slide 4 is “When we cancel, we feel guilty.”
 
 **“Where does the ‘always dinner’ point come from?”**
 I noticed it in my own friend groups first, then looked for research. The Abilene paradox (Harvey, 1974) describes a group agreeing to a plan most of them don't want, because nobody says so. In a Scottish survey, 44% of people with a food allergy didn't always tell restaurant staff, and teenagers worried most about making a fuss (Food Standards Scotland, 2020). I haven't found Hong Kong data on this yet, so it's a question for my interviews.
