@@ -231,3 +231,30 @@ A new reviewer read the cycles 5 and 6 code change line by line and wrote a smal
 | P3 | Screen readers heard "7 dash 10pm" in announcements. | Announcements and alerts say "7 to 10pm". |
 
 65 unit and server tests pass. The walkthrough passes.
+
+## Cycle 9: usability re-test and visual design (26 Nov, 02:05–02:40)
+
+Two new reviewers worked in parallel.
+
+- **Usability re-test.** An agent ran the server version with a controllable clock, Wednesday night to Sunday, and played 5 first-time students: the group maker, a midnight replier, someone coming back after 2 days, someone dropping out an hour before, and a screen reader user. All 6 problems from cycle 5 are now fixed. Verdict: not yet ready for a class test, because of 1 new P1.
+- **Visual design.** A designer looked at every screen at 390 and 320 px, in light and dark, and at 200% text. Verdict: the placard, the seat row and the plain style work and should stay. The layout broke at 200% text, and several screens buried their main button.
+
+| Priority | Finding | Change |
+|---|---|---|
+| P1 | On a confirmed plan, someone who changed their times was asked again "Can you make it?". "No, I can't" took them out of the plan completely, so their other times stopped counting, and the plan later failed to move to a time that worked for everyone. | "No, I can't" (or removing the confirmed time) now means "I can't make this time" only. You stay in, your other times still count, and the screen says "You can't make this time" with "I can make it after all". If the plan moves, you're asked about the new time. Tests added. |
+| P1 | At 200% text, the time grid, the placard and the one-line forms broke: words split, cells 32px wide. | On very narrow screens or with large text, each day goes on its own line above its 3 times, forms wrap, and the plan name shrinks a little instead of breaking mid-word. |
+| P2 | Body text was fixed at 17px, so it didn't grow with the phone's text size. | It's set in rem now. |
+| P2 | When the plan became ready, a toast covered 2 rows of the grid for 6 seconds, and a tap under it was lost. "Confirm this time now" was about 1,950px down. | No toast. The confirm box comes straight after the grid. Taps always go through the toast. |
+| P2 | After tapping times, nothing said they were saved. | "Your times are saved." under the grid, also read by screen readers. |
+| P2 | The grid note said totals were hidden while the same screen showed "3 people are free then". | The note shows the best time when there is one. |
+| P2 | "Copy reminder" was the biggest button minutes after the plan was sent. | No reminder in the first 3 hours. Only one filled button per card. |
+| P2 | After the plan went back to choosing, it showed a deadline that had already passed. | "Minibus confirms the plan as soon as enough people are free at the same time." |
+| P2 | At the meetup, the check-in was below the message and calendar buttons. | Check-in comes first. Near the start, "Can't make it? Tell the group" comes straight after the time. |
+| P2 | Three notice styles stacked up, and the place was shown 3 times. | One banner: "Since you last looked", then the plan's notice. The place shows on the placard and in the message only. |
+| P2 | "Best" was just a slightly thicker border, and "too late" looked like "say you're in first". | The best time has a red border and the word "Best". Too-late times have no border. |
+| P2 | The home page group links were 20px tall. | 44px. |
+| P3 | Smaller items: no "you're not going" after "Done", old "moved" wording a day later, a crash in screen reader announcements on the join screen, "2 days" instead of "6 hours" on the group page, the starter's name on the join screen, "Budget not set", the picked idea chip not looking picked, the private link box looking like the demo controls, the leave button looking safe, wrapped link buttons left-aligned, a green focus ring on red error fields, "Anyone who is in can confirm it" missing. | All fixed. "Moved" notices show for a day. |
+
+Not done: the time ranges still use a dash in normal text; some screen readers read it out. The grid buttons and announcements say "7 to 10pm".
+
+67 unit and server tests pass. The walkthrough checks that the confirm button comes straight after the grid.

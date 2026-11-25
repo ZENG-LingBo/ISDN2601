@@ -44,6 +44,7 @@ The cycles ran faster than first planned, so the schedule below shows what actua
 | 01:20–01:50 | 6 | Accessibility check: keyboard only, screen reader labels, contrast, zoom to 200%. 4 P1s, 9 P2s fixed across both cycles. |
 | 01:20 | 7 | Last look at the pitch deck and script by a reviewer who hadn't seen them. Timing fixed. |
 | 01:45–02:05 | 8 | A new reviewer checked the cycle 5 and 6 code change. 5 problems it caused, plus 4 small ones, all fixed. |
-| until about 06:15 | 9+ | More find, rank, fix, check cycles on whatever ranks highest. Push after every cycle. |
+| 02:05–02:40 | 9 | Usability re-test (all cycle 5 problems fixed, 1 new P1) and a visual design review. All P1 and P2 fixed. |
+| until about 06:15 | 10+ | More find, rank, fix, check cycles on whatever ranks highest. Push after every cycle. |
 
 The deck and script for 9:00 are frozen once they pass. Only the prototype keeps changing after that.
