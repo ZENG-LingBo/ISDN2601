@@ -521,7 +521,7 @@ function answerBlock(hang) {
   const on = hang.mine.on;
   return `<section class="block">
     <h2>Are you in?</h2>
-    <p>Until the plan is confirmed, nobody sees your name with your answer. People only see totals, like "3 free". Friends may still be able to guess your answer from the totals, especially in a small group.</p>
+    <p>Until the plan is confirmed, nobody sees your name with your answer. People only see totals, like "3 free". Friends may still be able to guess your answer from the totals.</p>
     <div class="choice" role="group" aria-label="Are you in?">
       <button class="btn toggle" type="button" id="on-yes" data-act="on" data-on="1" aria-pressed="${on === true}">I'm in</button>
       <button class="btn toggle" type="button" id="on-no" data-act="on" data-on="0" aria-pressed="${on === false}">Not this time</button>

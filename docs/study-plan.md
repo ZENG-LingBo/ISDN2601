@@ -53,6 +53,7 @@ Download the export every day ([how](../prototype/README.md#back-up-and-download
 - What happened with the plan, in your own words?
 - Was there a moment you felt awkward or pushy? When?
 - Did seeing only numbers, not names, change what you answered?
+- Would you rather see no numbers until the plan is confirmed?
 - Would you use this again for the next plan? Why or why not?
 
 ## What to report
