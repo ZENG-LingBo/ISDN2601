@@ -200,9 +200,12 @@ async function context(opts = {}) {
 
   check(!(await page.locator('#demo-box').getAttribute('open') !== null), 'demo controls should start folded');
   await page.click('#demo-box > summary');
+  const mandysCells = await page.$$eval('button.cell.mine', (els) => els.map((e) => e.dataset.slot).join());
   await page.selectOption('#play-as', { label: 'Jason' });
   await page.waitForTimeout(200);
   check((await page.locator('#play-as option:checked').textContent()) === 'Jason', 'should now be playing Jason');
+  const jasonsCells = await page.$$eval('button.cell.mine', (els) => els.map((e) => e.dataset.slot).join());
+  check(jasonsCells !== mandysCells, 'switching to Jason should show his times straight away, while the menu still has focus');
   await page.selectOption('#play-as', { label: 'Mandy (you)' });
   await page.waitForTimeout(200);
   step('demo: switched to Jason and back');

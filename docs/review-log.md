@@ -213,3 +213,21 @@ Not done: a QR code for check-in (needs your OK to add a library), and push noti
 Text judge on the new wording: FAIL on 7 strings in round 1, all fixed, then PASS in round 2. "Can't come" became "can't make it" everywhere, to match "Can you make it?". The panel no longer says Minibus tells the group (it can't send messages; you send it). The moved message says "Old time:" instead of brackets inside brackets. The deadline uses the same clock style as the times ("9am", not "09:00"). Skipped on purpose: showing the exact number of answers needed before totals appear, because it would hint at how many said yes.
 
 63 unit and server tests pass. The browser walkthrough now also checks focus on new screens, the grid waiting for "I'm in", no error alerts on a normal confirm, and "I can't make it" followed by joining again.
+
+## Cycle 8: checking the cycle 5 and 6 changes (26 Nov, 02:30–03:15)
+
+A new reviewer read the cycles 5 and 6 code change line by line and wrote a small test script for each problem, comparing with the version before. Verdict: 5 real problems came in with that change, and the tests didn't catch any of them. All 9 findings are fixed. Every repro script was run again after the fix.
+
+| Priority | Finding | Change |
+|---|---|---|
+| P1 | On iPhone, tapping "I'm in" scrolled the page past the whole time grid. Safari doesn't focus a tapped button, so the "focus was lost" fallback ran after almost every tap. "Show the code" also scrolled the code off screen. | The fallback only runs when the focused element itself disappeared, and it never scrolls. "Show the code" puts focus on the code. Headings scroll into view only if they're off screen. |
+| P2 | In the demo, "See it as" didn't switch the screen until you tapped somewhere else. The menu counted as "typing", so updates waited. | Menus no longer count as typing. A new walkthrough check makes sure the times change straight away. |
+| P2 | After typing in a field, the first tap on a time could be lost: the held-back update redrew the page between pressing and releasing. | The held-back update waits until the tap is over. Tapping a suggested place no longer puts the cursor in the text field. |
+| P2 | In the demo, the "You're no longer going" card followed you when you switched to another person. | The card belongs to the person who tapped "I can't make it". Switching person clears it. |
+| P2 | "Since you last looked" never showed for a tab left open: every live update counted as seen, even with the tab hidden. | What you've seen is saved when you hide the tab or leave the plan. Coming back to the tab shows what changed. Wording fixed to "1 more person has answered". |
+| P3 | The "someone can't make it" notice cleared when one person came back, even if another was still out. After a move, it also wiped the "plan moved" notice. | Minibus keeps a private list of who dropped out. The notice clears only when all of them are back, and then the earlier notice returns. Tests added. |
+| P3 | Someone who said no could join a minute before the end and decide "Did you meet?". | People who join after the start can still check in. Without a check-in, they can't answer "Did you meet?". Test added. |
+| P3 | Error screens ("Can't find this plan") had no heading for focus to move to. | They do now. |
+| P3 | Screen readers heard "7 dash 10pm" in announcements. | Announcements and alerts say "7 to 10pm". |
+
+65 unit and server tests pass. The walkthrough passes.

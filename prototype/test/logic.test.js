@@ -544,13 +544,23 @@ test('dropping out when it is too late to move the plan tells the group', () => 
   // Mei changes her mind: she can still add the confirmed time, and the notice goes away.
   state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, on: true, free: [THU_EVE] }, lastHour);
   assert.deepEqual(L.summarize(state, H, lastHour).lockPeople.sort(), [JASON, MANDY, MEI].sort());
-  assert.equal(state.hangs[H].note, null);
+  assert.equal(state.hangs[H].note.type, 'auto', 'the notice goes back to how the plan was confirmed');
 
   // Mei drops again and Tom joins late instead: the notice stays, with the new count.
   state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [] }, lastHour);
   state = L.reduce(state, { type: 'respond', hangId: H, memberId: TOM, on: true, free: [THU_EVE] }, lastHour);
   assert.equal(state.hangs[H].note.type, 'dropped');
   assert.equal(state.hangs[H].note.still, 3);
+
+  // Two people drop out and one comes back: the notice stays until both are back.
+  let two = confirmedThursday();
+  two = L.reduce(two, { type: 'respond', hangId: H, memberId: JASON, free: [] }, lastHour);
+  two = L.reduce(two, { type: 'respond', hangId: H, memberId: MEI, free: [] }, lastHour);
+  two = L.reduce(two, { type: 'respond', hangId: H, memberId: MEI, on: true, free: [THU_EVE] }, lastHour);
+  assert.equal(two.hangs[H].note.type, 'dropped', 'Jason is still out');
+  assert.equal(two.hangs[H].note.still, 2);
+  two = L.reduce(two, { type: 'respond', hangId: H, memberId: JASON, on: true, free: [THU_EVE] }, lastHour);
+  assert.equal(two.hangs[H].note.type, 'auto');
 
   // Once the plan has ended, nobody can join it.
   const after = L.slotTime(THU_EVE, 'end') + HOUR;
@@ -585,4 +595,28 @@ test('"Did you meet?": every answer is kept, and the result follows them', () =>
   assert.equal(view.status, 'happened');
   assert.deepEqual([view.outcome.yes, view.outcome.no], [2, 1]);
   assert.equal(state.members[JASON].r[H].met, false, 'the "no" is kept, not overwritten');
+});
+
+test('the notice from before someone dropped out comes back when they rejoin', () => {
+  let state = confirmedThursday();
+  state.hangs[H].note = { type: 'moved', from: FRI_LUNCH, to: THU_EVE, at: NOW };
+  const lastHour = L.slotTime(THU_EVE, 'start') - HOUR;
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [] }, lastHour);
+  assert.equal(state.hangs[H].note.type, 'dropped');
+  assert.equal(L.buildView(state, MANDY, lastHour).hangs[0].note.out, undefined, 'the view never lists who dropped out');
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, on: true, free: [THU_EVE] }, lastHour);
+  assert.equal(state.hangs[H].note.type, 'moved');
+});
+
+test('someone who joins after the start can check in, but without a check-in cannot answer "Did you meet?"', () => {
+  let state = confirmedThursday();
+  const started = L.slotTime(THU_EVE, 'start') + 10 * 60 * 1000;
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: TOM, on: true, free: [THU_EVE] }, started);
+  assert.ok(L.summarize(state, H, started).lockPeople.includes(TOM), 'Tom can still join');
+  const after = L.slotTime(THU_EVE, 'end') + HOUR;
+  assert.equal(L.buildView(state, TOM, after).hangs[0].lock.canSayMet, false);
+  assert.equal(L.buildView(state, MEI, after).hangs[0].lock.canSayMet, true);
+  state = L.reduce(state, { type: 'outcome', hangId: H, memberId: MANDY, met: false }, after);
+  assert.throws(() => L.reduce(state, { type: 'outcome', hangId: H, memberId: TOM, met: true }, after), { code: 'not_going' });
+  assert.equal(state.hangs[H].outcome.met, false);
 });

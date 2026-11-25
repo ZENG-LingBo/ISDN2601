@@ -606,6 +606,9 @@ export function reduce(prev, action, nowMs) {
       // The confirmed time can always be added until it ends, so you can still join, or undo "I can't come".
       const joinable = (id) => hang.lock && id === hang.lock.slot && nowMs < slotTime(id, 'end');
       r.free = [...new Set(action.free)].filter((id) => valid.has(id) && (!isClosed(id, nowMs) || before.has(id) || joinable(id)));
+      // Joining after the start is allowed (you can still check in), but without a check-in
+      // a late joiner can't decide "Did you meet?" for the people who were there.
+      if (hang.lock && r.free.includes(hang.lock.slot) && !before.has(hang.lock.slot) && nowMs >= slotTime(hang.lock.slot)) r.lateJoin = nowMs;
     }
     const goingBefore = hang.lock && isClosed(hang.lock.slot, nowMs) ? summarize(state, hang.id, nowMs).lockPeople : null;
     member.r[hang.id] = r;
@@ -614,12 +617,15 @@ export function reduce(prev, action, nowMs) {
       const goingAfter = summarize(state, hang.id, nowMs).lockPeople;
       const wasGoing = goingBefore.includes(member.id);
       const isGoing = goingAfter.includes(member.id);
+      const dropped = hang.note && hang.note.type === 'dropped' ? hang.note : null;
       if (wasGoing && !isGoing) {
-        hang.note = { type: 'dropped', still: goingAfter.length, who: member.id, at: nowMs };
-      } else if (!wasGoing && isGoing && hang.note && hang.note.type === 'dropped') {
-        // The same person changed their mind: take the notice back. Someone else joined: update the count.
-        if (hang.note.who === member.id) hang.note = null;
-        else hang.note.still = goingAfter.length;
+        // "out" and "prev" stay on the server: the view never says who dropped out.
+        const out = dropped ? [...new Set([...(dropped.out || []), member.id])] : [member.id];
+        hang.note = { type: 'dropped', still: goingAfter.length, out, prev: dropped ? dropped.prev : hang.note, at: nowMs };
+      } else if (!wasGoing && isGoing && dropped) {
+        // If everyone who dropped out came back, take the notice back and show the one before it.
+        const out = (dropped.out || []).filter((id) => id !== member.id);
+        hang.note = out.length ? { ...dropped, out, still: goingAfter.length } : dropped.prev || null;
       }
     }
     return settle(state, nowMs);
@@ -664,7 +670,7 @@ export function reduce(prev, action, nowMs) {
     if (!hasEnded(hang.lock.slot, nowMs)) throw new ActionError('too_early', "You can answer this after the plan.");
     if (hang.outcome && hang.outcome.checked) return state; // check-ins already settled it
     const summary = summarize(state, hang.id, nowMs);
-    if (!summary.lockPeople.includes(member.id)) throw new ActionError('not_going', 'Only people who were going can answer this.');
+    if (!summary.lockPeople.includes(member.id) || (r.lateJoin && !r.checkedIn)) throw new ActionError('not_going', 'Only people who were going when the plan started can answer this.');
     if (typeof action.met !== 'boolean') throw new ActionError('invalid', 'Something went wrong. Try again.');
     // Everyone who was going can answer. Each answer is kept; the result follows the answers so far.
     r.met = action.met;
@@ -744,6 +750,7 @@ export function buildView(state, meId, nowMs) {
               people: s.lockPeople.map(nameOf),
               reason: hang.lock.reason,
               imGoing: Boolean(me) && s.lockPeople.includes(me.id),
+              canSayMet: Boolean(me) && s.lockPeople.includes(me.id) && !(mine.lateJoin && !mine.checkedIn),
               checkinOpen: checkinOpen(hang.lock.slot, nowMs),
               tooLateToMove: isClosed(hang.lock.slot, nowMs),
               checkedIn: s.checkedIn.map(nameOf),

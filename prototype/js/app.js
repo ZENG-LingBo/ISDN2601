@@ -111,7 +111,7 @@ function toast(message, { error = false } = {}) {
   if (error) {
     alertEl.textContent = '';
     setTimeout(() => {
-      alertEl.textContent = message;
+      alertEl.textContent = spoken(message);
     }, 50);
   } else {
     announce(message, true);
@@ -126,6 +126,7 @@ function hideToast() {
 }
 
 function announce(message, force = false) {
+  message = spoken(message);
   if (message && (force || message !== lastAnnounced)) {
     lastAnnounced = message;
     liveEl.textContent = '';
@@ -139,6 +140,11 @@ function announce(message, force = false) {
 // group chat use L.slotLabel directly, so they never contain these characters.
 function slotText(id) {
   return L.slotLabel(id).replace(/(\d)–(\d)/g, '$1\u2060–\u2060$2');
+}
+
+// Some screen readers read "7–10pm" as "7 dash 10pm".
+function spoken(text) {
+  return String(text || '').replace(/(\d)\u2060?–\u2060?(\d)/g, '$1 to $2');
 }
 
 function currentHang() {
@@ -187,7 +193,7 @@ function invalidAttrs(id, helpId) {
 
 function isTyping() {
   const el = document.activeElement;
-  return Boolean(el && app.contains(el) && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') && el.type !== 'radio');
+  return Boolean(el && app.contains(el) && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && !['radio', 'checkbox'].includes(el.type));
 }
 
 // Keep focus and what someone is typing when the screen redraws.
@@ -316,15 +322,28 @@ async function refresh(fromOthers) {
   if (fromOthers && Date.now() - lastOwnActionAt > 2500) announceStatus();
 }
 
+let pointerDown = false;
+document.addEventListener('pointerdown', () => (pointerDown = true), true);
+document.addEventListener('pointercancel', () => (pointerDown = false), true);
+
+function catchUp() {
+  if (deferredRedraw && !isTyping()) {
+    deferredRedraw = false;
+    redraw();
+    announceStatus();
+  }
+}
+
 app.addEventListener('focusout', () => {
-  setTimeout(() => {
-    if (deferredRedraw && !isTyping()) {
-      deferredRedraw = false;
-      redraw();
-      announceStatus();
-    }
-  }, 0);
+  // If you left the field by pressing something, wait until the press is over, or the
+  // redraw would replace the button under your finger and the tap would be lost.
+  if (pointerDown) {
+    window.addEventListener('pointerup', () => setTimeout(catchUp, 0), { once: true, capture: true });
+  } else {
+    setTimeout(catchUp, 0);
+  }
 });
+document.addEventListener('pointerup', () => setTimeout(() => (pointerDown = false), 0), true);
 
 function announceStatus() {
   const hang = currentHang();
@@ -335,8 +354,13 @@ function announceStatus() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && route.crewId) refresh(false);
+  if (document.visibilityState === 'hidden') saveSeen();
+  if (document.visibilityState === 'visible' && route.crewId) {
+    ui.since = null; // look again at what changed while the tab was hidden
+    refresh(false);
+  }
 });
+window.addEventListener('pagehide', saveSeen);
 
 // ---------------------------------------------------------------- shared pieces
 
@@ -504,8 +528,7 @@ function gridBlock(hang) {
       // The name starts with what's shown on the button ("You", "3 free"), then adds the time,
       // with "to" instead of a dash, which some screen readers read out as "dash".
       const shown = [isMine ? "You're free" : '', countText].filter(Boolean).join('. ');
-      const spoken = L.slotLabel(id).replace(/(\d)–(\d)/g, '$1 to $2');
-      const aria = `${shown ? `${shown}. ` : ''}${spoken}.${id === highlight ? (hang.lock ? ' Confirmed time.' : ' Best time so far.') : ''}`;
+      const aria = `${shown ? `${shown}. ` : ''}${spoken(L.slotLabel(id))}.${id === highlight ? (hang.lock ? ' Confirmed time.' : ' Best time so far.') : ''}`;
       return `<button class="${cls.join(' ')}" type="button" id="slot-${esc(id)}" data-act="slot" data-slot="${esc(id)}" aria-pressed="${isMine}" aria-label="${esc(aria)}" ${(s.closed && !isMine) || notYet ? 'disabled' : ''}>
         <span class="cell-mark">${isMine ? 'You' : ''}</span><span class="cell-count">${esc(countText)}</span>
       </button>`;
@@ -630,7 +653,7 @@ function lockedStatus(hang) {
   const summary = `<p class="big">${esc(when)}</p>${whereLine}<p>Going: ${esc(hang.lock.people.join(', '))}</p>`;
 
   // You just said you can't come: show the message to send, before anything else.
-  if (ui.lateMessage && ui.lateMessage.hangId === hang.id) {
+  if (ui.lateMessage && ui.lateMessage.hangId === hang.id && view.me && ui.lateMessage.memberId === view.me.id) {
     return `<section class="status">
       ${statusTitle("You're no longer going")}
       <p>Send this to the group so nobody waits for you:</p>
@@ -704,7 +727,7 @@ function checkinBlock(hang) {
     <p>When you meet, one person shows the code and the others type it in. When ${L.CHECKINS_TO_MEET} people have checked in, the plan counts as met.</p>
     <p>${esc(who)}</p>
     ${shown
-      ? `<p class="code"><span aria-hidden="true">${esc(shown.code)}</span><span class="sr-only">Check-in code: ${esc(shown.code.split('').join(' '))}</span></p><p>This code changes every minute.</p>`
+      ? `<p class="code" id="checkin-code" tabindex="-1"><span aria-hidden="true">${esc(shown.code)}</span><span class="sr-only">Check-in code: ${esc(shown.code.split('').join(' '))}</span></p><p>This code changes every minute.</p>`
       : '<button class="btn primary" type="button" id="show-code" data-act="show-code">Show the code</button>'}
     ${hang.lock.iCheckedIn ? '' : `<form id="checkin-form" class="field" novalidate>
       <label for="ci-code">Enter the code</label>
@@ -746,7 +769,7 @@ function swapBlock(hang) {
 
 function afterStatus(hang) {
   if (hang.status === 'check') {
-    if (!hang.lock.imGoing) {
+    if (!hang.lock.canSayMet) {
       return `<section class="status">${statusTitle('Waiting to hear if they met')}<p>The people who went will say whether they met.</p></section>`;
     }
     return `<section class="status">
@@ -763,7 +786,7 @@ function afterStatus(hang) {
     <a class="btn" href="#newplan-${esc(view.crew.id)}">Start a different plan</a>
   </div>`;
   const answers = hang.outcome && !hang.outcome.checked ? `<p>${hang.outcome.yes} said you met, ${hang.outcome.no} said you didn't.</p>` : '';
-  const addMine = hang.outcome && !hang.outcome.checked && hang.lock.imGoing && hang.mine.met === null
+  const addMine = hang.outcome && !hang.outcome.checked && hang.lock.canSayMet && hang.mine.met === null
     ? `<div class="actions stack">
         <p>Did you meet? Your answer counts too.</p>
         <button class="btn" type="button" id="met-yes" data-act="outcome" data-met="1">Yes, we met</button>
@@ -932,22 +955,35 @@ function snapshotOf(hang) {
   return { status: hang.status, answered: hang.answered, slot: hang.lock ? hang.lock.slot : null };
 }
 
-function sinceBanner(hang) {
-  const key = `minibus-seen-${hang.id}`;
-  const firstLook = !(ui.since && ui.since.hangId === hang.id);
-  let before = null;
+// What you've seen is saved when you leave the plan or hide the tab, so updates that arrive
+// while the tab is in the background still count as new when you come back.
+let seenNow = null;
+function saveSeen() {
+  if (!seenNow) return;
   try {
-    if (firstLook) before = JSON.parse(localStorage.getItem(key) || 'null');
-    localStorage.setItem(key, JSON.stringify(snapshotOf(hang))); // keep it up to date for next time
+    localStorage.setItem(seenNow.key, JSON.stringify(seenNow.snap));
   } catch {
     /* no history on this device */
   }
+}
+
+function sinceBanner(hang) {
+  const key = `minibus-seen-${hang.id}-${view.me ? view.me.id : ''}`;
+  const firstLook = !(ui.since && ui.since.hangId === hang.id && ui.since.key === key);
+  seenNow = { key, snap: snapshotOf(hang) };
   if (!firstLook) return ui.since.html;
+  let before = null;
+  try {
+    before = JSON.parse(localStorage.getItem(key) || 'null');
+  } catch {
+    /* no history on this device */
+  }
+  if (!before) saveSeen(); // first visit: start from here
   const items = [];
   const movedNote = hang.note && hang.note.type === 'moved' && hang.lock && hang.note.to === hang.lock.slot;
   if (before) {
     const more = hang.answered - before.answered;
-    if (more > 0) items.push(`${people(more)} more ${more === 1 ? 'has' : 'have'} answered.`);
+    if (more > 0) items.push(`${more} more ${more === 1 ? 'person has' : 'people have'} answered.`);
     if (!before.slot && hang.lock) items.push(`The plan was confirmed for ${slotText(hang.lock.slot)}.`);
     else if (before.slot && hang.lock && before.slot !== hang.lock.slot && !movedNote) items.push(`The plan moved from ${slotText(before.slot)} to ${slotText(hang.lock.slot)}.`);
     else if (before.slot && !hang.lock && !hang.outcome) items.push('The plan is no longer confirmed. The group is choosing a new time.');
@@ -956,7 +992,7 @@ function sinceBanner(hang) {
   const html = items.length
     ? `<section class="since" aria-label="Since you last looked"><h2>Since you last looked</h2><ul>${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></section>`
     : '';
-  ui.since = { hangId: hang.id, html };
+  ui.since = { hangId: hang.id, key, html };
   return html;
 }
 
@@ -1106,7 +1142,7 @@ function statusWords(hang) {
 }
 
 function loadingOrMissing() {
-  if (loadError) return `<section class="block"><h1>Can't load this page</h1><p>${esc(loadError)}</p><button class="btn" type="button" id="retry" data-act="retry">Try again</button></section>`;
+  if (loadError) return `<section class="block"><h1 id="page-title" tabindex="-1">Can't load this page</h1><p>${esc(loadError)}</p><button class="btn" type="button" id="retry" data-act="retry">Try again</button></section>`;
   if (loaded) return missing();
   return '<p class="block">Loading...</p>';
 }
@@ -1114,7 +1150,7 @@ function loadingOrMissing() {
 function missing() {
   const local = store.kind === 'local';
   return `<section class="block">
-    <h1>Can't find this plan</h1>
+    <h1 id="page-title" tabindex="-1">Can't find this plan</h1>
     <p>${local ? "This demo keeps plans on the device that made them, so a link from someone else's phone won't open here." : 'The link might be wrong, or the group was deleted.'}</p>
     <a class="btn" href="#start">Go to the home page</a>
   </section>`;
@@ -1162,9 +1198,10 @@ function render() {
   if (html === lastHtml && !focusPageOnRender) return false; // nothing changed, so leave the page alone
   lastHtml = html;
   app.innerHTML = html;
-  if (focusPageOnRender && (view || !route.crewId)) {
-    focusPageOnRender = false;
-    document.getElementById('page-title')?.focus({ preventScroll: true });
+  const heading = focusPageOnRender && document.getElementById('page-title');
+  if (heading) {
+    focusPageOnRender = false; // still loading: try again on the next render
+    heading.focus({ preventScroll: true });
   }
   return true;
 }
@@ -1175,14 +1212,18 @@ let lastHtml = '';
 async function run(fn) {
   if (busy) return;
   busy = true;
+  // Safari doesn't focus a tapped button, so only step in when something in the app had focus.
+  const before = document.activeElement;
+  const beforeId = before && before !== app && app.contains(before) ? before.id : '';
   try {
     await fn();
   } catch (e) {
     toast(e && e.message ? e.message : 'Something went wrong. Try again.', { error: true });
   } finally {
     busy = false;
-    // If the button you pressed is gone, don't drop focus to the top of the page.
-    if (!document.activeElement || document.activeElement === document.body) focusStatus(true);
+    // If the button you pressed is gone, don't drop focus to the top of the page. Don't scroll for it either.
+    const now = document.activeElement;
+    if (beforeId && (!now || now === document.body) && !document.getElementById(beforeId)) focusStatus(false);
   }
 }
 
@@ -1331,8 +1372,9 @@ function focusStatus(scroll = true) {
   if (!el) return;
   el.focus({ preventScroll: true });
   if (scroll) {
+    // Only scrolls if the heading is off screen.
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    el.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+    el.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
   }
 }
 
@@ -1346,6 +1388,8 @@ app.addEventListener('change', (event) => {
   const target = event.target;
   if (target.dataset.act === 'play-as') {
     store.playAs(route.crewId, target.value);
+    Object.assign(ui, { lateMessage: null, code: null, since: null, swapOpen: false, swapPick: null });
+    refresh(false);
     toast(`You're now seeing the plan as ${target.options[target.selectedIndex].text.replace(' (you)', '')}.`);
   }
 });
@@ -1388,7 +1432,10 @@ app.addEventListener('click', (event) => {
     return;
   }
   if (a === 'show-code') {
-    return void run(() => showCode(currentHang()));
+    return void run(async () => {
+      await showCode(currentHang());
+      document.getElementById('checkin-code')?.focus({ preventScroll: true });
+    });
   }
   if (a === 'joined-close') {
     ui.justJoined = false;
@@ -1490,7 +1537,11 @@ app.addEventListener('click', (event) => {
         break;
       case 'add-place':
         await act({ type: 'addPlace', placeId: L.newId(), name: target.dataset.value, vote: false });
-        document.getElementById('p-name')?.focus();
+        {
+          // The chip is gone now. Put focus on the new place's vote button, right where it was.
+          const added = (currentHang()?.places || []).find((p) => p.name.toLowerCase() === target.dataset.value.toLowerCase());
+          if (added) document.getElementById(`vote-${added.id}`)?.focus({ preventScroll: true });
+        }
         break;
       case 'lock':
         await act({ type: 'lock' });
@@ -1505,7 +1556,7 @@ app.addEventListener('click', (event) => {
         const still = fresh.lock.people.length - 1;
         ui.swapOpen = false;
         await act({ type: 'respond', on: false, free: fresh.mine.free.filter((x) => x !== fresh.lock.slot), seq: nextSeq() });
-        ui.lateMessage = { hangId: fresh.id, text: `Sorry everyone, I can't make it to ${fresh.idea} anymore. ${still} ${still === 1 ? 'person is' : 'people are'} still going. Have fun!` };
+        ui.lateMessage = { hangId: fresh.id, memberId: view.me.id, text: `Sorry everyone, I can't make it to ${fresh.idea} anymore. ${still} ${still === 1 ? 'person is' : 'people are'} still going. Have fun!` };
         redraw();
         document.getElementById('copy-late')?.focus();
         break;
@@ -1623,6 +1674,8 @@ window.addEventListener('hashchange', () => {
   flushFree();
   route = parseRoute();
   focusPageOnRender = true; // also for the browser's back button
+  saveSeen();
+  seenNow = null;
   ui.since = null;
   ui.lateMessage = null;
   load();
