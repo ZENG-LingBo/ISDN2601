@@ -45,7 +45,7 @@ The pitch only covers the problem. For the next stage, [`prototype/`](prototype/
 
 ## Design-process deck
 
-A longer deck (27 slides) that shows the whole thinking process, not only the result: the brief, the research and its limits, how the target user and Mandy were built, the pain points and empathy map with a source for each item, the 4 versions of the problem statement, the new “it’s always dinner” insight, 6 possible solutions, the comparison, the chosen direction (Minibus 2030, a concept), and what was tested.
+A longer deck (27 slides) that shows each step of the process: the brief, the research and its limits, how the target user and Mandy were built, the pain points and empathy map with a source for each item, the 4 versions of the problem statement, the new “it’s always dinner” insight, 6 possible solutions, the comparison, the chosen direction (Minibus 2030, a concept), and what was tested.
 
 - The deck: https://claude.ai/artifact/KhSN9vcN4nD5KkXSsbDCuT. Download it as PowerPoint or PDF from Share › Export.
 - Its source files: [`pitch/process-deck/`](pitch/process-deck/)

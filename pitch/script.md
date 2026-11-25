@@ -52,6 +52,8 @@ The script is about 240 words when the numbers are read out in full. At a calm 1
 
 > My problem statement: university friend groups want to spend their free time together, but
 > their plans fall through in the group chat, and friends with food or money limits stay quiet.
+
+*The slide also shows “Instead, they spend it alone on their phones.” You don't need to say it: the time is better spent on the question.*
 >
 > **How might we turn “we should hang out” into real meetups for university friend groups,
 > in order to keep their friendships close?**
@@ -105,7 +107,7 @@ chat.” Use your real number, or leave the line out. If you add it, also make c
 Yes. The loneliness numbers are from Hong Kong: the HKFYG survey of 600 young people in 2026, and the Hong Kong Family Wellbeing Index 2026. The numbers on cancelled plans are from UK and US polls, because I couldn't find a Hong Kong survey on that. That gap is why my next step is to interview HKUST students.
 
 **“Why not just use a WhatsApp poll?”**
-This pitch is only about the problem. A poll could help people pick a time, but it doesn't fix the other two reasons: no one is in charge of the plan, and people are afraid of looking too eager. I want to keep the question open to many ideas.
+This pitch is only about the problem. A poll could help people pick a time, but it doesn't fix the other reasons: no one is in charge, people are afraid of looking too eager, and friends stay quiet about what they can't eat or afford. I want to keep the question open to many ideas.
 
 **“Isn't this just laziness?”**
 The research says no. People underestimate how much their friends like them (Boothby et al., 2018) and how much friends want to hear from them (Liu et al., 2023). People do care. They worry about how they'll look, and no one takes charge.

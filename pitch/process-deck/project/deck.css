@@ -129,7 +129,7 @@ h1, h2, h3 { font-family: 'DM Sans', Arial, sans-serif; }
 .s9-text { font-size: 28px; line-height: 1.35; color: var(--ink); }
 
 /* ---------- columns with a top rule ---------- */
-.cols { display: flex; flex-direction: row; gap: 56px; margin-top: 56px; }
+.cols { display: flex; flex-direction: row; gap: 56px; margin-top: 72px; }
 .col { flex: 1; display: flex; flex-direction: column; gap: 16px; border-top: 4px solid var(--ink); padding-top: 24px; }
 .col .text { color: var(--ink); }
 .col.key { border-top: 4px solid var(--green); }
@@ -198,11 +198,11 @@ h1, h2, h3 { font-family: 'DM Sans', Arial, sans-serif; }
 .ver.key { border-top: 4px solid var(--green); }
 .ver-label { font-size: 28px; font-weight: 700; line-height: 1.2; color: var(--ink); }
 .ver.key .ver-label { color: var(--green); }
-.ver-text { font-size: 24px; line-height: 1.35; color: var(--ink); }
+.ver-text { font-size: 26px; line-height: 1.35; color: var(--ink); }
 .ver-why { font-size: 24px; line-height: 1.35; color: var(--muted); border-top: 2px solid var(--line); padding-top: 14px; }
 
 /* ---------- HMW ---------- */
-.hmw-big { font-size: 44px; font-weight: 700; line-height: 1.2; letter-spacing: -0.5px; color: var(--ink); width: 1600px; margin-top: 32px; }
+.hmw-big { font-size: 40px; font-weight: 700; line-height: 1.2; letter-spacing: -0.5px; color: var(--green); width: 1600px; margin-top: 32px; }
 
 /* ---------- insight statement ---------- */
 .insight-grid { display: flex; flex-direction: row; align-items: center; gap: 96px; flex: 1; }

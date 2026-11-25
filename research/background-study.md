@@ -16,7 +16,7 @@ press-release title and a Bastille Post report. **Open the HKFYG PDF once before
 | Finding | Source | Notes |
 |---|---|---|
 | **83.7%** of Hong Kong youth reported moderate to high loneliness, up from **47.7%** in 2021. People in their first jobs were the most affected group. | HKFYG uTouch online youth outreach, press release, June 2026: [PDF (Chinese)](https://hkfyg.org.hk/wp-content/uploads/2026/06/青協新聞稿_八成三青年感到孤獨，初入職場佔最多.pdf) · [2021 baseline](https://hkfyg.org.hk/en/2021/03/23/utouch-2/) · [Bastille Post report](https://www.bastillepost.com/hongkong/article/15327183-%E9%9D%92%E5%8D%94%E6%8E%A8%E3%80%8C%E5%90%8C%E5%82%BE%E5%90%8C%E8%A1%8C%EF%BC%8E%E8%81%B7%E6%99%82%E5%82%BE%E3%80%8D%E6%94%AF%E6%8F%B4%E8%A8%88%E5%8A%83%E5%8A%A9%E9%9D%92%E5%B9%B4%E9%81%A9%E6%87%89) | Online survey, Apr–May 2026, 600 youth aged 12–24, UCLA 8-item loneliness scale. Not a random sample. Used on slide 3. |
-| About **1 in 5** Hong Kong adults (19.8%) are lonely; **students** are named as one of the groups with higher loneliness scores. | Hong Kong Family Welfare Society, [Family Wellbeing Index 2026, executive summary](https://www.hkfws.org.hk/assets/files/hkfwi/hkfws_family_wellbeing_index_2026_executive_summary_en.pdf) · [SCMP](https://www.scmp.com/news/hong-kong/society/article/3352522/20-hongkongers-feel-lonely-520000-self-isolating-survey-finds) | 2,112 adults, Jan–Feb 2026, UCLA-3 scale. Used on slide 3. |
+| About **1 in 5** Hong Kong adults (19.8%) are lonely; **students** are named as one of the groups with higher loneliness scores. | Hong Kong Family Welfare Society, [Family Wellbeing Index 2026, executive summary](https://www.hkfws.org.hk/assets/files/hkfwi/hkfws_family_wellbeing_index_2026_executive_summary_en.pdf) · [SCMP](https://www.scmp.com/news/hong-kong/society/article/3352522/20-hongkongers-feel-lonely-520000-self-isolating-survey-finds) | 2,112 adults, Jan–Feb 2026, UCLA-3 scale. Not on the pitch slides; used in the Q&A and the process deck. |
 | HK youth who use social media scored higher on loneliness (20.5/40) than non-users (17.7/40). | Hong Kong Christian Service poll of 572 people aged 11–24, via [SCMP](https://www.scmp.com/news/hong-kong/society/article/3359845/gen-z-underestimates-impact-social-media-loneliness-hong-kong-poll-finds) | Supports “connected online, alone offline”. Not on slides. |
 | People aged 15–24 spend **~70% less** time with friends in person than in 2003 (about 150 → 40 minutes a day by 2020). | US Surgeon General, [*Our Epidemic of Loneliness and Isolation*](https://www.hhs.gov/sites/default/files/surgeon-general-social-connection-advisory.pdf) (2023); minutes per day as reported by [Smithsonian](https://www.smithsonianmag.com/smart-news/an-epidemic-of-loneliness-threatenes-health-of-americans-surgeon-general-says-180982142/) | US time-use data. The advisory says the decline is “starkest for young people ages 15 to 24”. Used on slide 3. |
 | **27%** of 19–29-year-olds worldwide feel very or fairly lonely, the highest of any age group. | Meta-Gallup, [Global State of Social Connections](https://news.gallup.com/opinion/gallup/512618/almost-quarter-world-feels-lonely.aspx) (2023) | 142 countries. Backup figure. |
@@ -48,7 +48,7 @@ press-release title and a Bastille Post report. **Open the HKFYG PDF once before
 |---|---|---|
 | **No owner** | Diffusion of responsibility: the more people present, the less each one feels responsible to act. Darley & Latané (1968), *JPSP*, 8(4), 377–383, [doi:10.1037/h0025589](https://doi.org/10.1037/h0025589). | Five people “like” the idea; each assumes someone else will pick the date. |
 | **No time, no place** | A plan that says *when* and *where* (an “implementation intention”) makes people much more likely to follow through: d = 0.65 across 94 studies, 8,000+ people. Gollwitzer & Sheeran (2006), *Advances in Experimental Social Psychology*, 38, 69–119. Later reviews find smaller but still positive effects. | “Soon”, “after midterms” and “next week” are goals, not plans. |
-| **Fear of pushing** | Liking gap (Boothby et al., 2018); people undervalue reaching out (Liu et al., 2022); students think peers are more socially busy than they are (Whillans et al., 2017). | “If I chase everyone, I’ll look desperate.” |
+| **Fear of pushing** | Liking gap (Boothby et al., 2018); people undervalue reaching out (Liu et al., 2023); students think peers are more socially busy than they are (Whillans et al., 2017). | “If I chase everyone, I’ll look desperate.” |
 | **Cheap “yes”, easy relief** | 77% say yes to things they don’t want (Givi & Kirk, 2023); 56% of under-30s often regret plans (YouGov, 2022); 1 in 3 often feel relieved at a cancellation (YouGov, 2019). | Agreeing costs nothing, so it commits no one. |
 | **Friendships need time** | About 50 hours together to become casual friends, about 90 to become friends, 200+ to become close friends. Hall (2019), *Journal of Social and Personal Relationships*, 36(4), 1278–1296, [doi:10.1177/0265407518761225](https://doi.org/10.1177/0265407518761225). The university’s summary gives ranges of 40–60 and 80–100 hours. | Every dead plan is time the friendship never gets. |
 
@@ -66,7 +66,7 @@ default to a meal. Some friends can't eat spicy food, have allergies or other fo
 saving money, or don't want to eat at all. They often stay quiet so they won't seem difficult,
 and say 是但 ("whatever"). The group ends up at the same dinner, or doesn't meet.
 
-This started as an observation from the student's own friend groups. It hasn't been checked
+This started as something I noticed in my own friend groups. It hasn't been checked
 with interviews yet. The sources below support each part of it.
 
 | Finding | Source | Notes |
@@ -113,7 +113,7 @@ food, and money is tight. Quote: “We all want to meet. It just never happens.�
 2. Nobody wants to be the one who keeps asking.
 3. Five timetables, jobs and commutes never line up.
 4. Relief when the plan is cancelled, then guilt.
-5. It's always dinner. She stays quiet about what she can't eat or afford, and says “whatever”. (Added 26 Nov, section 5.)
+5. It's always dinner. She stays quiet about what she can't eat or afford. (Added 26 Nov, section 5.)
 
 ### Empathy map
 
@@ -140,8 +140,8 @@ How it changed:
 | Version | Text | Why it changed |
 |---|---|---|
 | 1. First draft | University friend groups want to spend time together, but their plans die in the group chat. No one owns the plan, it never gets a time or place, and cancelling feels like relief. So free time gets spent scrolling alone, and close friends drift apart. | Too long to say in one breath. “Die” and “drift apart” are metaphors. The causes belong on the earlier slides. |
-| 2. Cycle 0 (text and design review) | The problem: university friend groups want to spend time together, but their plans fall through in the group chat. Instead, they spend their free time alone on their phones. | The pitch coach (cycle 7) found the pitch never said “problem statement”, and “free time”, the link to the leisure theme, came at the end. |
-| 3. Cycle 7 (pitch coach) | Problem statement: university friend groups want to spend their free time together, but their plans fall through in the group chat. Instead, they spend it alone on their phones. | The new insight (section 5): even when plans move forward, friends with food or money limits stay quiet. |
+| 2. After the text review | The problem: university friend groups want to spend time together, but their plans fall through in the group chat. Instead, they spend their free time alone on their phones. | A pitch coach found the pitch never said “problem statement”, and “free time”, the link to the leisure theme, came at the end. |
+| 3. After the pitch coach | Problem statement: university friend groups want to spend their free time together, but their plans fall through in the group chat. Instead, they spend it alone on their phones. | The new insight (section 5): even when plans move forward, friends with food or money limits stay quiet. |
 | 4. Now | See above. | — |
 
 ### How might we
@@ -156,7 +156,7 @@ Check against the lecturers’ rules:
 | Specific user | Yes | University friend groups |
 | Specific problem | Yes | “We should hang out” not turning into a meetup |
 | No solution inside | Yes | No app, reminder, poll or feature is named |
-| Broad enough for many ideas | Yes | Could lead to campus spaces, group rituals, social norms, wearables, IoT, games, events and more |
+| Broad enough for many ideas | Yes | Could lead to campus spaces, group habits, events, games, wearables, connected devices or apps |
 | Focus on desired outcome | Yes | Real meetups; friendships kept close |
 | Positive wording | Yes | “keep their friendships close” (the draft’s “instead of fading” was negative) |
 | Not only “providing information” | Yes | The outcome is a behaviour (meeting), not knowledge |
@@ -181,7 +181,7 @@ friends turns into time scrolling alone. This problem sits exactly at that shift
 
 ---
 
-## 6. Optional 15-minute check before the pitch
+## 7. Optional 15-minute check before the pitch
 
 If you have time tonight, message 4–5 classmates:
 
