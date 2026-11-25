@@ -395,3 +395,9 @@ Round 1: FAIL on 11 short items. The slides had no errors, and every number in t
 Round 2: PASS. Its 3 optional suggestions were also taken.
 
 84 unit and server tests pass. The walkthrough passes.
+
+## Cycle 17: accessibility checks on the new screens (26 Nov, 04:40–04:38)
+
+Several screens were added or changed after the accessibility review in cycle 6, so a script checked 16 screens in light and dark mode: the home page, the start form with and without errors, join, the plan before and after "I'm in", ready, confirmed, the change-times panel, moved, "can't make this time", check-in, the code, "you met" and the group page. It looked for duplicate ids, buttons and links with no name, fields with no label, broken help links, heading jumps, more than one main heading, and touch targets under 44 px. It found no problems.
+
+A fuller automated scan with the axe-core library was planned, but a safety check blocked running the downloaded library, the same as the QR code library earlier. It needs your OK.
