@@ -832,8 +832,8 @@ function afterStatus(hang) {
     let title = 'The group met';
     if (hang.lock.iCheckedIn) title = 'You met';
     else if (hang.lock.imGoing && open) title = 'Your friends have checked in';
-    else if (hang.lock.imGoing && !(hang.outcome && !hang.outcome.checked && hang.mine.met === false)) title = 'You met';
-    else if (hang.outcome && !hang.outcome.checked) title = 'This plan counts as met';
+    else if (hang.lock.imGoing && hang.outcome && !hang.outcome.checked && hang.mine.met === true) title = 'You met';
+    else if (hang.outcome && !hang.outcome.checked && hang.mine.met === false) title = 'This plan counts as met';
     return `<section class="status done">
       ${statusTitle(title)}
       ${open && (hang.lock.imGoing || hang.lock.iCheckedIn) ? checkinBlock(hang) : ''}
@@ -1185,7 +1185,8 @@ function statusWords(hang) {
       return 'Did you meet?';
     case 'happened':
       if (hang.lock && hang.lock.iCheckedIn) return 'You met';
-      if (hang.lock && hang.lock.imGoing) return hang.lock.checkinOpen ? 'Your friends have checked in' : 'You met';
+      if (hang.lock && hang.lock.imGoing && hang.lock.checkinOpen) return 'Your friends have checked in';
+      if (hang.lock && hang.lock.imGoing && hang.outcome && !hang.outcome.checked && hang.mine.met === true) return 'You met';
       return 'The group met';
     case 'fizzled':
       return "Didn't meet";

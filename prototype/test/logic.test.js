@@ -744,6 +744,9 @@ test('after 48 hours with no time that works, the number needed can go down even
   assert.equal(L.summarize(state, H, later).stuck, true);
   state = L.reduce(state, { type: 'setSeats', hangId: H, memberId: MEI, seats: 2 }, later);
   assert.equal(state.hangs[H].lock && state.hangs[H].lock.slot, SAT_EVE, 'Saturday has 2 people, so it can be confirmed');
+  // The data for the user test shows the number was lowered, and from what.
+  assert.equal(state.hangs[H].seatsAtStart, 3);
+  assert.equal(state.hangs[H].stats.lowered, 1);
 });
 
 test('at the deadline, Minibus never confirms a different time from the one it has been showing', () => {

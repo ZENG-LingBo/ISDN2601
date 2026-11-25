@@ -69,7 +69,7 @@ Plans are saved in `prototype/data/store.json`. Delete that file to start over.
 Friends need to reach the server from their own phones, and the server needs to keep its data file between restarts. This guide uses Railway:
 
 1. Sign up at railway.com with GitHub, then verify your account at railway.com/verify. New or rarely used GitHub accounts may get a "Limited Trial" that can't deploy code until they're verified.
-2. Create a project from this GitHub repository and set the root folder to `prototype`.
+2. Create a project from this GitHub repository and set the root folder to `prototype`. The prototype is on the branch `claude/fervent-fermi-dph6xp`, not on `main`. In the service's Settings › Source, set the branch to `claude/fervent-fermi-dph6xp`, unless you've merged it into `main`.
 3. Add a volume mounted at `/data`.
 4. Set these variables:
    - `DATA_FILE` = `/data/store.json`
@@ -79,14 +79,14 @@ Friends need to reach the server from their own phones, and the server needs to 
    - `MINIBUS_CONTACT` = how people can reach you
    - `MINIBUS_DELETE_BY` = the date you'll delete everything, like `31 Dec 2026`
 5. Generate a public domain.
-6. Create a test plan. Then restart the service and redeploy it once, and check that the plan is still there.
+6. Create a test plan. Then restart the service and redeploy it once, and check that the plan is still there. Then delete the test group with the command under "Delete a whole group".
 7. Check that request limits count each visitor, not Railway. Run this command twice from a laptop: once on your phone's hotspot (mobile data) and once on Wi-Fi. Replace the token and address first:
 
    ```bash
    curl -H "Authorization: Bearer YOUR_ADMIN_TOKEN" https://YOUR-APP.up.railway.app/api/admin/ip
    ```
 
-   `countedAs` should be a different address each time, and it should be your own public address, not a Railway one. If it's the same on both networks, ask for help before the test.
+   `countedAs` should be a different address each time, and it should be your own public address, not a Railway one. To find your public address, search "what is my IP" on the same network. If it's the same on both networks, ask for help before the test.
 8. Put a reminder in your calendar for the deletion date. Nothing is deleted automatically.
 
 New accounts get a 30-day trial with US$5 of credit. After that, Railway's free plan gives US$1 of credit a month and a small volume, which may be enough for a one-week test. If not, the Hobby plan is US$5 a month. Prices change, so check railway.com/pricing before you start. Don't use hosts that delete files when they restart (like Render's free plan): you would lose the data file.
@@ -106,6 +106,7 @@ Do this every day of the test. The export has every group, plan and answer, incl
 - how many times each plan's link was opened
 - how many people copied the share, reminder and confirmed messages, and tapped "Add to Google Calendar" (each person counts once). Taps on Share… and "Open WhatsApp with this message" aren't counted.
 - how often a plan moved or went back to choosing a time
+- whether the number of people needed was lowered, and what it was at the start
 - check-in times, and whether "met" came from check-ins or from someone saying so
 - how many people left, were removed, or tried to join with a name that was taken (a sign they lost their name and answers on that phone)
 
@@ -117,7 +118,7 @@ The export is for reading, not for restoring. Also download a full backup every 
 curl -H "Authorization: Bearer YOUR_ADMIN_TOKEN" https://YOUR-APP.up.railway.app/api/admin/backup -o minibus-backup.json
 ```
 
-The backup has everything the server needs, including check-in secrets. Private links are kept only in a scrambled form, so nobody can read them from the file, but after a restore everyone's private links still work. Keep the backup as safe as the export. To restore it, stop the service, replace `/data/store.json` with the backup file (for example, with Railway's volume file browser or a one-off shell), and start the service again.
+The backup has everything the server needs, including check-in secrets. Private links are kept only in a scrambled form, so nobody can read them from the file, but after a restore everyone's private links still work. Keep the backup as safe as the export. To restore it, upload the backup to the volume as `/data/restore.json` (for example, with Railway's volume file browser or a one-off shell), then change the `DATA_FILE` variable to `/data/restore.json`. Railway restarts the service, and it starts from the backup. Don't replace `/data/store.json` while the service is running, because the server would write over it on its next save.
 
 If the server can't save (for example, the volume is full), it stops accepting changes, shows "The server can't save changes right now", and `/api/health` returns an error. It tries again every 30 seconds.
 
@@ -159,6 +160,7 @@ Before a test, give every participant a short consent form. It should say:
 - when everything will be deleted, and how to contact you
 - that the data is stored on a server that may be outside Hong Kong
 - that names aren't shown with answers before a plan is confirmed, but friends may still be able to guess who said yes from the totals
+- that you, the researcher, can see each person's answers with their name in the data download, and will report only group numbers
 - that Google Fonts sees each visitor's IP address, and that Google Calendar sees the plan details if they add it there
 
 Only include people aged 18 or over. Ask your instructor to approve the test in writing first. Don't collect screenshots of group chats, because they include messages from people who didn't agree to take part.

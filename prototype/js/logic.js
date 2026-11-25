@@ -583,6 +583,11 @@ export function reduce(prev, action, nowMs) {
       throw new ActionError('closed', "The number of people needed can't change once others have answered. It can only go down if no time works once everyone has answered or 48 hours have passed.");
     }
     if (othersAnswered && seats >= hang.seats) throw new ActionError('invalid', `Choose a number lower than ${hang.seats}.`);
+    // Kept for the user test, so the data shows the plan was confirmed after the number went down.
+    if (seats < hang.seats) {
+      if (typeof hang.seatsAtStart !== 'number') hang.seatsAtStart = hang.seats;
+      bump(hang, 'lowered');
+    }
     hang.seats = seats;
     return settle(state, nowMs);
   }

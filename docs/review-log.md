@@ -401,3 +401,17 @@ Round 2: PASS. Its 3 optional suggestions were also taken.
 Several screens were added or changed after the accessibility review in cycle 6, so a script checked 15 screens in light and dark mode: the home page, the start form with and without errors, join, the plan before and after "I'm in", ready, confirmed, the change-times panel, moved, "can't make this time", check-in, the code, "you met" and the group page. It looked for duplicate ids, buttons and links with no name, fields with no label, broken help links, heading jumps, more than one main heading, and touch targets under 44 px. It found no problems.
 
 A fuller automated scan with the axe-core library was planned, but a safety check blocked running the downloaded library, the same as the QR code library earlier. It needs your OK.
+
+## Cycle 18: final check before a class test (26 Nov, 04:40–04:52)
+
+A new reviewer re-ran the full week for a group of 5 on the latest code, with someone who never answers, the 48-hour deadline, lowering the number needed, a move, a drop-out in the last 2 hours, 3 check-ins (one arriving after the first 2), and "Did you meet?" without check-ins. Everything worked, with no errors. It also re-ran the cycle 15 privacy script (the numbers match the README), started the server with the README's settings, and read every code change since cycle 14.
+
+**Verdict: ready for the supervised class test**, after 2 fixes to the docs, which are now done:
+
+| Priority | Finding | Change |
+|---|---|---|
+| P2 | Following the README, Railway would deploy the `main` branch, which doesn't have the prototype. | Step 2 now says to set the branch to `claude/fervent-fermi-dph6xp`, unless you've merged it into `main`. |
+| P2 | The consent checklist didn't say that the researcher can see everyone's answers with their names in the data download. | Added to the checklist. |
+| P3 | Lowering the number needed wasn't recorded, so the data would show the wrong reason for the confirmation. A no-show saw "You met" after the plan. The restore steps could be overwritten by a running server. Step 6 left the test group in the data. Step 7 didn't say how to find your public address. Groups of 4 can see no totals if one person stays silent. | All fixed. The export now shows when the number was lowered, and from what. The restore uses a new file name. The study plan suggests groups of 5 or 6. |
+
+84 unit and server tests pass. The walkthrough passes.

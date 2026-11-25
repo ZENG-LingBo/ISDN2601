@@ -8,7 +8,7 @@ When a friend group says "we should hang out", does Minibus help them actually m
 
 ## Who takes part
 
-- 4 to 6 friend groups of 4 to 6 people each, aged 18 or over.
+- 4 to 6 friend groups of 4 to 6 people each, aged 18 or over. Groups of 5 or 6 work best: the number free at each time only shows once 3 other people have answered, so in a group of 4, one silent person can hide the numbers for everyone.
 - Each group talked about a plan in their group chat in the last month but never set a time.
 - At least 2 groups that aren't your own friends.
 - A mix of iPhone and Android.
