@@ -1,6 +1,6 @@
 # One-week study plan
 
-A simple plan for testing Minibus with real friend groups in the next stage of ISDN 1001. With a handful of groups, this is a qualitative study: it shows how groups use the app and where they get stuck. It can't prove that Minibus works better than other tools.
+A simple plan for testing Minibus with real friend groups in the next stage of ISDN 1001. With only 4 to 6 groups, this is a qualitative study: it shows how groups use the app and where they get stuck. It can't prove that Minibus works better than other tools.
 
 ## The question
 
@@ -9,7 +9,7 @@ When a friend group says "we should hang out", does Minibus help them actually m
 ## Who takes part
 
 - 4 to 6 friend groups of 4 to 6 people each, aged 18 or over.
-- Each group has a plan "stuck in the group chat" right now, or had one in the last month.
+- Each group has a plan they talked about in the group chat but never made, right now or in the last month.
 - At least 2 groups that aren't your own friends.
 - A mix of iPhone and Android.
 
@@ -34,14 +34,14 @@ Ask every participant 3 questions:
 
 ## During the week
 
-Each group starts one real plan in its own chat. Don't push them. What to measure:
+Each group starts one real plan in its own chat. Don't remind them to use the app. What to measure:
 
 | Step | Minibus (from the export) | WhatsApp group (ask the organiser) |
 |---|---|---|
 | Opened the link | link opens | — |
 | Answered | answers, time of each first answer | poll votes |
 | Picked a time | first confirmation and how it happened | did the group agree on a time? |
-| Changed plans | moves, "can't make it" notices | did anyone drop out? |
+| Changed plans | how often the plan moved or went back to choosing a time, each person's "can't make this time" answer, and the plan's last notice | did anyone drop out? |
 | Met | check-ins, "did you meet?" answers | did they meet? (confirm with 2 people) |
 
 Download the export every day ([how](../prototype/README.md#back-up-and-download-the-data)).
