@@ -337,3 +337,5 @@ A new reviewer who had seen none of the earlier rounds ran a full week for a gro
 | P3 | "Say you're in to confirm" shown to someone who said no. "You met" shown to people who didn't go. The seats form stayed open after saving. A group of 3 never saw totals. Demo wording and the "since you last looked" box in the demo. The last-2-hours group message still said "change your times". An out-of-date code comment. | All fixed. People who didn't go see "The group met". |
 
 80 unit and server tests pass. The walkthrough passes. The reviewer's stuck-plan and privacy scripts were run again after the fix.
+
+Text judge on the new wording: FAIL on 2 strings in round 1 ("friends may still be able to guess" didn't say what, and a "Cancel" button in the can't-make-it panel could be read as cancelling your place), then PASS in round 2. The panel's buttons now all use "make": "I can't make this time", "I can't make any time", "I can still make it".
