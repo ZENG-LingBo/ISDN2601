@@ -30,14 +30,14 @@ The script is about 240 words when the numbers are read out in full. At a calm 1
 
 ## Slide 4: Relieved when plans fall through (0:43–0:53)
 
-> We say yes because saying no feels rude. When a friend cancels, one in
-> three of us feels relieved… and then guilty.
+> We say yes because saying no feels worse. When a friend cancels, one in
+> three of us feels relieved. When we cancel, we feel guilty.
 
-*Smile a little on “relieved”. Most people in the room know this feeling.*
+*Smile a little on “relieved”, and pause after it. Most people in the room know this feeling.*
 
 ## Slide 5: Why plans fall through (0:53–1:10)
 
-> Why do plans fall through? No one is in charge. There’s no set time or place. We’re afraid of
+> No one is in charge. There’s no set time or place. We’re afraid of
 > looking too eager. And it’s always dinner. Friends who can’t eat spicy food, or are saving
 > money, just say “whatever”.
 
@@ -69,8 +69,8 @@ questions?” The last line is your ending.*
 
 Cut these, in this order. Each one saves 1 to 2 seconds, and the story still works:
 
-1. Slide 5: “Why do plans fall through?” The slide title already says it. Start with “No one is in charge.”
-2. Slide 2: “She misses them, but”. End with “No one ever picks a date.”
+1. Slide 2: “She misses them, but”. End with “No one ever picks a date.”
+2. Slide 7: “My problem statement:”. Start with “University friend groups…”.
 
 Don't cut the How Might We question, the new “always dinner” lines, or the last line.
 
@@ -80,7 +80,7 @@ A new reason was added: even when friends want to meet, choosing what to do stal
 a meal, and friends with food or money limits stay quiet and say “whatever” (Harvey, 1974). Slide 5
 now has 4 reasons, the empathy map has 2 new items, slide 2 has a fifth pain point, and the problem
 statement on slide 7 has one new phrase. The How Might We question didn't change. To keep the
-time, two lines were cut for good: “Here’s the strange part.” on slide 4 and “This year,” on slide 3.
+time, three lines were cut for good: “Here’s the strange part.” on slide 4, “This year,” on slide 3, and “Why do plans fall through?” on slide 5. Slide 4 now says “When we cancel, we feel guilty”, because the 86% guilt figure is about people who cancel, not people whose friend cancels.
 The research is in `research/background-study.md`, section 5.
 
 ## Optional line, only if it's true
@@ -130,7 +130,7 @@ In another poll, 36% said they're usually disappointed when plans are cancelled,
 **“How was the 83.7% measured?”**
 It's from an online survey of 600 people aged 12 to 24 by the Hong Kong Federation of Youth Groups, using the UCLA loneliness scale. It isn't a random sample.
 
-**If someone asks about the 86% guilt figure:** it's about people who cancel, not people who feel relieved when a friend cancels. “Relieved, then guilty” describes the persona's feelings. Say that.
+**If someone asks about the 86% guilt figure:** it’s about people who cancel, not people who feel relieved when a friend cancels. That’s why slide 4 says “When we cancel, we feel guilty.”
 
 **“Where does the ‘always dinner’ point come from?”**
 I noticed it in my own friend groups first, then looked for research. The Abilene paradox (Harvey, 1974) describes a group agreeing to a plan most of them don't want, because nobody says so. In a Scottish survey, 44% of people with a food allergy didn't always tell restaurant staff, and teenagers worried most about making a fuss (Food Standards Scotland, 2020). I haven't found Hong Kong data on this yet, so it's a question for my interviews.
