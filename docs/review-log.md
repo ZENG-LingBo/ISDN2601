@@ -470,4 +470,4 @@ The last fixes:
 - "Pick again" no longer shows after "Any of these is fine".
 - When the plan goes back to choosing a time, the notice adds "You can also pick what to do again".
 
-Text judge on these last changes: FAIL on 2 small items in round 1, then fixed.
+Text judge on these last changes: FAIL on 2 small items in round 1, then PASS in round 2.
