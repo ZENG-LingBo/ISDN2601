@@ -943,3 +943,13 @@ test('the share message for a plan without an idea explains the private limits',
   assert.match(msg, /tell Minibus privately what works for you/);
   assert.match(L.nudgeMessage({ ...hang, waiting: 2 }, 'https://x.test/#p'), /for our plan/);
 });
+
+test('food and spending limits only count once 3 people have joined', () => {
+  let two = L.createCrewState({ crewId: 'crew000001', hangId: H, memberId: MANDY, crewName: 'g', size: 4, creatorName: 'Mandy', idea: '', seats: 2, budget: '' }, NOW);
+  two = L.reduce(two, { type: 'join', memberId: JASON, name: 'Jason' }, NOW);
+  const before = L.suggestions(two, H).map((a) => a.id);
+  two = L.reduce(two, { type: 'setLimits', memberId: MANDY, diet: ['vegetarian'], spend: 50 }, NOW);
+  assert.deepEqual(L.suggestions(two, H).map((a) => a.id), before, 'with 2 people, a limit changes nothing');
+  const three = L.reduce(two, { type: 'join', memberId: MEI, name: 'Mei' }, NOW);
+  assert.ok(L.suggestions(three, H).every((a) => a.price <= 50), 'with 3, the $50 limit counts');
+});

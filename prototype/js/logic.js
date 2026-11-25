@@ -64,6 +64,8 @@ export const ENERGY = [
 ];
 // Moods only count once this many people have given one, so a single mood can't be spotted.
 export const MIN_MOODS = 3;
+// Food and spending limits only count once this many people have joined, for the same reason.
+export const MIN_FOR_LIMITS = 3;
 const BUDGET_CAPS = { 'Under $50': 50, '$50–100': 100, '$100–200': 200 };
 
 // Things to do in Hong Kong, so a plan doesn't have to start with an idea.
@@ -115,8 +117,9 @@ function moodScore(a, moods) {
 export function suggestions(state, hangId) {
   const hang = state.hangs[hangId];
   const group = Object.values(state.members);
-  const diets = new Set(group.flatMap((m) => (m.limits && Array.isArray(m.limits.diet) ? m.limits.diet : [])));
-  const caps = group.map((m) => m.limits && m.limits.spend).filter((x) => typeof x === 'number');
+  const limited = group.length >= MIN_FOR_LIMITS ? group : [];
+  const diets = new Set(limited.flatMap((m) => (m.limits && Array.isArray(m.limits.diet) ? m.limits.diet : [])));
+  const caps = limited.map((m) => m.limits && m.limits.spend).filter((x) => typeof x === 'number');
   if (BUDGET_CAPS[hang.budget]) caps.push(BUDGET_CAPS[hang.budget]);
   const cap = caps.length ? Math.min(...caps) : Infinity;
   const moodsBy = group.map((m) => [response(m, hangId).hunger, response(m, hangId).energy].filter(Boolean)).filter((x) => x.length);
@@ -593,6 +596,7 @@ export function settleChanged(state, nowMs) {
         if (hang.suggest && hang.chosen) {
           hang.chosen = null; // what to do is open again too
           hang.idea = '';
+          hang.places = []; // they were for the old activity
         }
         bump(hang, 'unlocked');
       }
@@ -1128,8 +1132,5 @@ export function createDemoState(ids, nowMs) {
   // Tom hasn't answered. When he does, he's free at the later shared time,
   // so if someone can't make the first time, the plan has somewhere to move to.
   state.demo.tomFree = pick(8, 11);
-  state = reduce(state, { type: 'addPlace', memberId: memberIds[0], hangId, placeId: ids.placeIds[0], name: 'Hang Hau' }, nowMs);
-  state = reduce(state, { type: 'addPlace', memberId: memberIds[1], hangId, placeId: ids.placeIds[1], name: 'Mong Kok' }, nowMs);
-  state = reduce(state, { type: 'like', memberId: memberIds[1], hangId, placeId: ids.placeIds[0], on: true }, nowMs);
   return state;
 }
