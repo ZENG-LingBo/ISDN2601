@@ -279,20 +279,20 @@ test('leaving deletes your name and answers, and the group gets smaller', () => 
   assert.equal(state.crew.size, 4);
 });
 
-test('only the group maker can remove someone, after 6 hours, if they never answered', () => {
+test('only the group maker can remove someone, after 6 hours, whether or not they answered', () => {
   let state = withFriends(crew({ size: 5 }));
   state = respond(state, JASON, true, [THU_EVE]);
   // Straight after joining, nobody can be removed, and nobody else even sees the option.
   assert.ok(L.buildView(state, MANDY, NOW).members.every((m) => !m.canRemove));
   const later = NOW + L.REMOVE_AFTER_MS + HOUR;
-  // The list offers everyone who joined 6 hours ago, so it doesn't show who has answered.
+  // Everyone who joined 6 hours ago can be removed, so neither the list nor a refusal shows who has answered.
   assert.deepEqual(L.buildView(state, MANDY, later).members.filter((m) => m.canRemove).map((m) => m.name).sort(), ['Jason', 'Mei', 'Tom']);
   assert.ok(L.buildView(state, JASON, later).members.every((m) => !m.canRemove), 'only the group maker sees it');
   // Every refusal has the same message, so it never tells you who has answered.
   const tries = [
-    { memberId: MANDY, targetId: JASON, at: later },
     { memberId: MANDY, targetId: TOM, at: NOW },
     { memberId: JASON, targetId: TOM, at: later },
+    { memberId: MANDY, targetId: MANDY, at: later },
   ];
   const messages = tries.map(({ memberId, targetId, at }) => {
     try {
@@ -308,6 +308,10 @@ test('only the group maker can remove someone, after 6 hours, if they never answ
   assert.equal(state.members[TOM], undefined);
   assert.equal(state.crew.size, 4);
   assert.equal(state.crew.stats.removed, 1);
+  // Jason answered, and he can be removed too. His answers go with him.
+  state = L.reduce(state, { type: 'remove', memberId: MANDY, targetId: JASON }, later);
+  assert.equal(state.members[JASON], undefined);
+  assert.equal(L.summarize(state, H, later).answeredIds.length, 0);
 });
 
 test('usage counts: once per person per kind, and members never see them', () => {
@@ -491,9 +495,9 @@ test('check-in: a code that changes every minute, only for people going, during 
   const before = L.slotTime(THU_EVE, 'start') - 2 * HOUR;
   assert.throws(() => L.reduce(state, { type: 'showCode', hangId: H, memberId: MANDY }, before), { code: 'checkin_closed' });
   const at = L.slotTime(THU_EVE, 'start') + 10 * 60 * 1000;
-  const code = L.checkinCode(state, H, at);
+  const code = L.checkinCode(state, H, at, 0, MANDY); // Mandy's code
   assert.match(code, /^\d{4}$/);
-  assert.notEqual(L.checkinCode(state, H, at + 60 * 1000), code, 'the code changes the next minute');
+  assert.notEqual(L.checkinCode(state, H, at + 60 * 1000, 0, MANDY), code, 'the code changes the next minute');
   assert.throws(() => L.reduce(state, { type: 'showCode', hangId: H, memberId: TOM }, at), { code: 'not_going' });
   state = L.reduce(state, { type: 'showCode', hangId: H, memberId: MANDY }, at);
   assert.equal(state.hangs[H].outcome, null, '1 check-in is not enough');
@@ -676,17 +680,35 @@ test('check-in needs a second person: typing a code counts only if someone else 
   // Mandy shows the code: she isn't checked in yet.
   state = L.reduce(state, { type: 'showCode', hangId: H, memberId: MANDY }, at);
   assert.deepEqual(L.summarize(state, H, at).checkedIn, []);
-  // Jason shows it to himself and types it: refused.
-  let jason = L.reduce(state, { type: 'showCode', hangId: H, memberId: JASON }, at + 3 * 60 * 1000);
-  assert.throws(
-    () => L.reduce(jason, { type: 'checkin', hangId: H, memberId: JASON, code: L.checkinCode(jason, H, at + 3 * 60 * 1000) }, at + 3 * 60 * 1000),
-    { code: 'no_shower' },
-  );
+  // Jason shows his own code and types it: refused.
+  const t2 = at + 3 * 60 * 1000;
+  let jason = L.reduce(state, { type: 'showCode', hangId: H, memberId: JASON }, t2);
+  assert.throws(() => L.reduce(jason, { type: 'checkin', hangId: H, memberId: JASON, code: L.checkinCode(jason, H, t2, 0, JASON) }, t2), { code: 'no_shower' });
+  // Mei and Jason both show their codes from different places, and Jason types his own: still refused,
+  // because each code belongs to the person who showed it.
+  jason = L.reduce(jason, { type: 'showCode', hangId: H, memberId: MEI }, t2);
+  assert.throws(() => L.reduce(jason, { type: 'checkin', hangId: H, memberId: JASON, code: L.checkinCode(jason, H, t2, 0, JASON) }, t2), { code: 'no_shower' });
+  // Mandy's code from 3 minutes ago is too old.
+  assert.throws(() => L.reduce(jason, { type: 'checkin', hangId: H, memberId: JASON, code: L.checkinCode(jason, H, at, 0, MANDY) }, t2), { code: 'wrong_code' });
   // Mei types the code Mandy just showed: both are checked in, and the plan counts as met.
-  state = L.reduce(state, { type: 'checkin', hangId: H, memberId: MEI, code: L.checkinCode(state, H, at) }, at + 30 * 1000);
+  state = L.reduce(state, { type: 'checkin', hangId: H, memberId: MEI, code: L.checkinCode(state, H, at, 0, MANDY) }, at + 30 * 1000);
   assert.deepEqual(L.summarize(state, H, at + 30 * 1000).checkedIn.sort(), [MANDY, MEI].sort());
   assert.equal(state.hangs[H].outcome.met, true);
   assert.throws(() => L.reduce(confirmedThursday(), { type: 'checkin', hangId: H, memberId: MEI, code: { toString: 'x' } }, at), { code: 'wrong_code' });
+});
+
+test('when no time works, the number needed can go down, but not up or to the same number', () => {
+  let state = withFriends(crew({ size: 4, seats: 3 }));
+  state = respond(state, MANDY, true, [THU_EVE]);
+  state = respond(state, JASON, true, [SAT_EVE]);
+  state = respond(state, MEI, true, [FRI_LUNCH]);
+  state = respond(state, TOM, false, []);
+  assert.equal(L.summarize(state, H, NOW).stuck, true);
+  assert.equal(L.buildView(state, null, NOW).hangs[0].stuck, false, 'signed-out viewers can\'t tell stuck from ready');
+  assert.throws(() => L.reduce(state, { type: 'setSeats', hangId: H, memberId: MEI, seats: 3 }, NOW), { code: 'invalid' });
+  assert.throws(() => L.reduce(state, { type: 'setSeats', hangId: H, memberId: MEI, seats: 4 }, NOW), { code: 'invalid' });
+  state = L.reduce(state, { type: 'setSeats', hangId: H, memberId: MEI, seats: 2 }, NOW);
+  assert.equal(state.hangs[H].seats, 2);
 });
 
 test('a save numbered from a clock far in the future cannot block later saves', () => {

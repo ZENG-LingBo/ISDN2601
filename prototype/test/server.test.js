@@ -376,3 +376,19 @@ test('when saving fails, changes are refused and the health check says so', asyn
   assert.equal(second.status, 503);
   await stop(broken.inst);
 });
+
+test('a malformed address gets a clear 400, and https hosts get HSTS', async () => {
+  const port = new URL(base).port;
+  const raw = await new Promise((resolve) => {
+    import('node:net').then(({ connect }) => {
+      const sock = connect(Number(port), '127.0.0.1', () => sock.write('GET http://[bad HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n'));
+      let data = '';
+      sock.on('data', (d) => (data += d));
+      sock.on('end', () => resolve(data));
+      sock.on('error', () => resolve(data));
+    });
+  });
+  assert.match(raw, /^HTTP\/1\.1 400/);
+  const res = await fetch(`${base}/api/health`, { headers: { 'x-forwarded-proto': 'https' } });
+  assert.match(res.headers.get('strict-transport-security') || '', /max-age=/);
+});

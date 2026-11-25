@@ -420,7 +420,8 @@ function demoBar(hang) {
   const swapper = locked && !checkinOpen ? store.demoSwapperName(view.crew.id, hang.id) : null;
   if (swapper) buttons.push(`<button class="btn small" type="button" id="demo-swap" data-act="demo" data-what="swap">${esc(swapper)} can't make it anymore</button>`);
   if (locked && !checkinOpen) buttons.push('<button class="btn small" type="button" id="demo-start" data-act="demo" data-what="start">Skip to the start of the plan</button>');
-  const checker = checkinOpen ? store.demoSwapperName(view.crew.id, hang.id, { notCheckedIn: true }) : null;
+  const codeShown = Boolean(checkinOpen && ui.code && ui.code.hangId === hang.id && hang.lock.imGoing);
+  const checker = checkinOpen && codeShown ? store.demoSwapperName(view.crew.id, hang.id, { notCheckedIn: true }) : null;
   if (checker) buttons.push(`<button class="btn small" type="button" id="demo-checkin" data-act="demo" data-what="checkin">${esc(checker)} types in the code</button>`);
   if (locked) buttons.push('<button class="btn small" type="button" id="demo-skip" data-act="demo" data-what="skip">Skip to after the plan</button>');
   return `<details class="demo-bar" id="demo-box" ${ui.demoOpen ? 'open' : ''}>
@@ -634,11 +635,11 @@ function openStatus(hang) {
         ? `<form id="seats-form" class="field" novalidate>
             <label for="h-seats">How many people need to be free?</label>
             <div class="inline-form">
-              <input id="h-seats" name="seats" type="number" inputmode="numeric" min="${L.LIMITS.seatsMin}" max="${L.LIMITS.seatsMax}" value="${Math.max(L.LIMITS.seatsMin, hang.seats - 1)}">
+              <input id="h-seats" name="seats" type="number" inputmode="numeric" min="${L.LIMITS.seatsMin}" max="${hang.seats - 1}" value="${hang.seats - 1}">
               <button class="btn primary" type="submit" id="seats-save">Save</button>
             </div>
           </form>`
-        : '<button class="btn" type="button" id="seats-edit" data-act="seats-edit">Lower the number needed</button>'}
+        : hang.seats > L.LIMITS.seatsMin ? '<button class="btn" type="button" id="seats-edit" data-act="seats-edit">Lower the number needed</button>' : ''}
     </section>`;
   }
   return `<section class="status">
@@ -1135,7 +1136,7 @@ function crewScreen() {
 
   ${view.members.some((m) => m.canRemove) ? `<details class="block manage" id="manage-box" ${ui.removeAsk ? 'open' : ''}>
     <summary id="manage-summary">Manage members</summary>
-    <p>You made this group, so you can remove someone who joined more than 6 hours ago and hasn't answered anything. This helps if someone lost their phone.</p>
+    <p>You made this group, so you can remove someone who joined more than 6 hours ago. This helps if someone lost their phone and joined again under a new name. Their answers are deleted.</p>
     ${membersList()}
   </details>` : ''}
 
@@ -1327,7 +1328,7 @@ function cueIfReady(wasReady, first = '') {
 async function showCode(hang) {
   if (!hang) return;
   const out = await store.showCode(route.crewId, hang.id);
-  ui.code = { hangId: hang.id, ...out };
+  ui.code = { hangId: hang.id, ...out, localExpiresAt: Date.now() + (out.expiresAt - (out.now || Date.now())) };
   await refresh(false);
   clearInterval(codeTimer);
   // Keep the code on screen up to date while it's shown.
@@ -1338,10 +1339,10 @@ async function showCode(hang) {
       ui.code = null;
       return;
     }
-    if (Date.now() >= ui.code.expiresAt - 5000) {
+    if (Date.now() >= ui.code.localExpiresAt - 5000) {
       try {
         const next = await store.showCode(route.crewId, h.id);
-        ui.code = { hangId: h.id, ...next };
+        ui.code = { hangId: h.id, ...next, localExpiresAt: Date.now() + (next.expiresAt - (next.now || Date.now())) };
         redraw();
       } catch {
         /* try again next time */

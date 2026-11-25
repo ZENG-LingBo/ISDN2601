@@ -182,7 +182,7 @@ class LocalStore {
     if (!state || !me) throw new L.ActionError('not_member', 'Join the group first.');
     const now = this.now(state);
     this.write(L.reduce(state, { type: 'showCode', hangId, memberId: me.memberId }, now));
-    return { code: L.checkinCode(state, hangId, now), expiresAt: L.codeExpiresAt(now) };
+    return { code: L.checkinCode(state, hangId, now, 0, me.memberId), expiresAt: L.codeExpiresAt(now), now };
   }
 
   opened() {
@@ -232,9 +232,12 @@ class LocalStore {
       state = L.settle(state, this.now(state));
     } else if (what === 'checkin' && hang.lock) {
       const friend = this.demoSwapper(state, hangId, { notCheckedIn: true });
-      if (!friend) return;
+      const me = identity.get(crewId);
+      if (!friend || !me || friend.id === me.memberId) return;
       const now = this.now(state);
-      state = L.reduce(state, { type: 'checkin', hangId, memberId: friend.id, code: L.checkinCode(state, hangId, now) }, now);
+      // You show the code (again, in case it's been a while), and the friend types in your code.
+      state = L.reduce(state, { type: 'showCode', hangId, memberId: me.memberId }, now);
+      state = L.reduce(state, { type: 'checkin', hangId, memberId: friend.id, code: L.checkinCode(state, hangId, now, 0, me.memberId) }, now);
     } else if (what === 'skip' && hang.lock) {
       const target = L.slotTime(hang.lock.slot, 'end') + L.HOUR_MS;
       state.demo.clockOffset = Math.max(state.demo.clockOffset || 0, target - Date.now());
@@ -363,18 +366,32 @@ class ServerStore {
       timer = null;
     };
     let source = null;
-    if ('EventSource' in window) {
+    let retry = null;
+    let closed = false;
+    const connect = () => {
+      if (closed) return;
       source = new EventSource(`/api/crews/${encodeURIComponent(crewId)}/events`);
       source.addEventListener('change', fn);
       source.addEventListener('open', () => {
         stopPolling();
         fn(); // catch up on anything missed while disconnected
       });
-      source.addEventListener('error', startPolling);
-    } else {
-      startPolling();
-    }
+      source.addEventListener('error', () => {
+        startPolling();
+        // If the server refused the connection (too busy), the browser gives up. Try again in a minute.
+        if (source.readyState === 2 && !retry) {
+          retry = setTimeout(() => {
+            retry = null;
+            connect();
+          }, 60_000);
+        }
+      });
+    };
+    if ('EventSource' in window) connect();
+    else startPolling();
     return () => {
+      closed = true;
+      clearTimeout(retry);
       if (source) source.close();
       stopPolling();
     };

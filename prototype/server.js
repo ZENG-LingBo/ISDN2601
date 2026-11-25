@@ -193,7 +193,6 @@ export async function createMinibusServer({
   const listeners = new Map(); // crewId -> Set<res>
   let openStreams = 0;
   const streamsByIp = new Map(); // ip -> open live-update connections
-  const openedSeen = new Set(); // "crew:plan:ip" already counted as an open
   function notify(crewId) {
     const set = listeners.get(crewId);
     if (!set) return;
@@ -210,6 +209,12 @@ export async function createMinibusServer({
 
   // ---------- rate limits ----------
   const buckets = new Map();
+  // How many times this key was counted in its current window, without counting this one.
+  function used(bucketKey) {
+    const b = buckets.get(bucketKey);
+    return b && now() <= b.reset ? b.count : 0;
+  }
+
   function allow(bucketKey, limit, windowMs = 60_000) {
     const t = now();
     const b = buckets.get(bucketKey) || { count: 0, reset: t + windowMs };
@@ -347,7 +352,7 @@ export async function createMinibusServer({
       return send(req, res, 200, await readFile(path.join(ROOT, file)), { 'content-type': type, 'cache-control': 'no-cache' });
     }
     if (reading && p === '/api/health') return lastSaveOk ? send(req, res, 200, { ok: true }) : send(req, res, 503, { ok: false, error: 'save_failed' });
-    if (!reading && !lastSaveOk) return fail(req, res, 503, 'save_failed', "The server can't save changes right now. Try again in a few minutes.");
+    if (!reading && !lastSaveOk && !p.startsWith('/api/admin/')) return fail(req, res, 503, 'save_failed', "The server can't save changes right now. Try again in a few minutes.");
 
     // ---------- admin (only when ADMIN_TOKEN is set) ----------
     if (p === '/api/admin/export' && reading) {
@@ -378,13 +383,14 @@ export async function createMinibusServer({
 
     if (p === '/api/crews' && req.method === 'POST') {
       if (!allow(`ip:${clientIp(req)}`, IP_CREATES_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
-      if (!allow(`ipday:${clientIp(req)}`, IP_CREATES_PER_DAY, 24 * 3600 * 1000)) return fail(req, res, 429, 'slow_down', 'Too many new groups from this network today. Try again tomorrow, or switch to mobile data.');
+      if (used(`ipday:${clientIp(req)}`) >= IP_CREATES_PER_DAY) return fail(req, res, 429, 'slow_down', 'Too many new groups from this network today. Try again tomorrow, or switch to mobile data.');
       if (Object.keys(db.crews).length >= MAX_CREWS) return fail(req, res, 507, 'full', 'This server is full.');
       const body = await readBody(req);
       const ids = { crewId: L.newId(), hangId: L.newId(), memberId: L.newId() };
       const state = L.createCrewState({ ...body, ...ids, demo: false }, now());
       const key = newKey();
       db.crews[ids.crewId] = { state, keys: { [ids.memberId]: hashKey(key).toString('hex') } };
+      allow(`ipday:${clientIp(req)}`, Infinity, 24 * 3600 * 1000); // count it now that it worked
       scheduleSave();
       return send(req, res, 201, { ...ids, key });
     }
@@ -409,7 +415,7 @@ export async function createMinibusServer({
       if (!listeners.has(crewId)) listeners.set(crewId, new Set());
       const set = listeners.get(crewId);
       if (set.size >= MAX_STREAMS_PER_CREW || openStreams >= MAX_STREAMS || (streamsByIp.get(ip) || 0) >= MAX_STREAMS_PER_IP) {
-        return fail(req, res, 503, 'busy', 'Too many open pages for this group.');
+        return fail(req, res, 503, 'busy', 'Too many open pages right now.');
       }
       openStreams += 1;
       streamsByIp.set(ip, (streamsByIp.get(ip) || 0) + 1);
@@ -452,10 +458,7 @@ export async function createMinibusServer({
       if (!allow(`opened:${clientIp(req)}`, IP_READS_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
       const body = await readBody(req);
       const hang = typeof body.hangId === 'string' && Object.prototype.hasOwnProperty.call(entry.state.hangs, body.hangId) ? entry.state.hangs[body.hangId] : null;
-      const seenKey = `${crewId}:${body.hangId}:${clientIp(req)}`;
-      if (hang && !openedSeen.has(seenKey)) {
-        if (openedSeen.size > 50_000) openedSeen.clear();
-        openedSeen.add(seenKey); // once per address while the server runs
+      if (hang) {
         hang.stats = hang.stats || {};
         hang.stats.opens = (hang.stats.opens || 0) + 1;
         scheduleSave();
@@ -513,7 +516,7 @@ export async function createMinibusServer({
       entry.state = L.reduce(entry.state, { type: 'showCode', hangId: codeHang, memberId: me }, now());
       scheduleSave();
       notify(crewId);
-      return send(req, res, 200, { code: L.checkinCode(entry.state, codeHang, now()), expiresAt: L.codeExpiresAt(now()) });
+      return send(req, res, 200, { code: L.checkinCode(entry.state, codeHang, now(), 0, me), expiresAt: L.codeExpiresAt(now()), now: now() });
     }
 
     // A new private link. The old one stops working.

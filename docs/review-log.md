@@ -303,3 +303,19 @@ Not done: anyone with the group link can still join until the group has 20 membe
 Text judge on the new wording: FAIL on 4 lines in round 1 (the check-in error didn't say what went wrong, the address check said to open a command on a phone, the backup text seemed to contradict itself, and the Google Calendar line left out the group name), then PASS in round 2.
 
 74 unit and server tests pass (up from 67). The walkthrough passes. All of the reviewer's repro scripts were run again after the fix.
+
+## Cycle 12: checking the cycle 11 changes (26 Nov, 03:00–03:20)
+
+A new reviewer checked the cycle 11 change with two real browsers, a fake clock and a full disk. The server version held up: a real check-in updates both phones within milliseconds, the server recovers on its own 30 seconds after the disk is fixed, and the live-update counters are released properly. The demo and a few rules had problems.
+
+| Priority | Finding | Change |
+|---|---|---|
+| P1 | In the demo, check-in stopped working once the code had been on screen for 2 minutes. The code timer used the phone's clock, but the demo runs on a clock moved forward to the plan. | The code refreshes by the phone's own clock in both versions. The demo's "types in the code" button shows the code again first, and only appears once you've shown it. |
+| P2 | With 2 people needed, "Lower the number needed" offered 2 and always failed. | The button is hidden when it can't go lower, the box starts one lower, and a number that isn't lower gets "Choose a number lower than 3." |
+| P2 | The member list offered "Remove" for everyone, but refused people who had answered. So the refusal itself showed who had answered. | The group maker can now remove anyone who joined more than 6 hours ago, whether or not they answered, and their answers are deleted. Nothing is refused, so nothing is shown. Test changed. |
+| P2 | Link opens were counted once per network, so friends on the same campus Wi-Fi counted as one. | Every open counts again. The browser already counts once per visit. |
+| P3 | Signed-out viewers could still tell "ready" from "stuck". Any two people who showed the code at home could check in with their own codes. Live updates never came back after the server refused one. Admin delete was blocked while saving failed. Failed create attempts used up the daily allowance. | All fixed. Each person who shows the code now gets their own code, so a typed code says whose phone it came from. Tests added. |
+
+Not done: tests for the rate limits themselves, and for the 30-second save retry (it would make the tests slow).
+
+76 unit and server tests pass. The walkthrough passes. The reviewer's repro scripts were run again after the fix.

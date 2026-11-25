@@ -282,12 +282,10 @@ export function managerId(state) {
   return first ? first.id : null;
 }
 
+// The group maker can remove anyone who joined more than 6 hours ago. It doesn't depend on whether they
+// answered, so neither the list nor a refusal can show who has answered. Their answers are deleted.
 function canRemoveMember(state, managerIdValue, target, nowMs) {
-  return (
-    target.id !== managerIdValue &&
-    nowMs - target.joinedAt >= REMOVE_AFTER_MS &&
-    !Object.values(target.r).some((x) => typeof x.on === 'boolean')
-  );
+  return target.id !== managerIdValue && nowMs - target.joinedAt >= REMOVE_AFTER_MS;
 }
 
 function bumpCrew(state, key) {
@@ -333,9 +331,10 @@ export function checkinOpen(slot, nowMs) {
 }
 
 // A 4-digit code that changes every minute.
-export function checkinCode(state, hangId, nowMs, minutesAgo = 0) {
+// Each person who shows the code gets their own code, so a typed code says whose phone it came from.
+export function checkinCode(state, hangId, nowMs, minutesAgo = 0, memberId = '') {
   const minute = Math.floor(nowMs / 60000) - minutesAgo;
-  const n = hash32(`${state.crew.secret}|${hangId}|${minute}`) % 10000;
+  const n = hash32(`${state.crew.secret}|${hangId}|${memberId}|${minute}`) % 10000;
   return String(n).padStart(4, '0');
 }
 
@@ -527,7 +526,7 @@ export function reduce(prev, action, nowMs) {
   // Anyone who has answered can only leave by themselves.
   if (type === 'remove') {
     // One message for every reason, so trying it never tells you whether someone has answered.
-    const refuse = () => new ActionError('cant_remove', "You can't remove this person. Only the person who made the group can remove someone, and only if they joined more than 6 hours ago and haven't answered.");
+    const refuse = () => new ActionError('cant_remove', "You can't remove this person. Only the person who made the group can remove someone, and only if they joined more than 6 hours ago.");
     const manager = managerId(state);
     if (member.id !== manager || !isId(action.targetId) || !has(state.members, action.targetId)) throw refuse();
     const target = state.members[action.targetId];
@@ -572,9 +571,10 @@ export function reduce(prev, action, nowMs) {
     // The one exception: everyone has answered and no time works, so the group can need fewer people.
     const s = summarize(state, hang.id, nowMs);
     const othersAnswered = s.answeredIds.some((id) => id !== member.id);
-    if (othersAnswered && !(s.stuck && seats < hang.seats)) {
+    if (othersAnswered && !s.stuck) {
       throw new ActionError('closed', "The number of people needed can't change once others have answered. It can only go down if everyone has answered and no time works.");
     }
+    if (othersAnswered && seats >= hang.seats) throw new ActionError('invalid', `Choose a number lower than ${hang.seats}.`);
     hang.seats = seats;
     return settle(state, nowMs);
   }
@@ -592,14 +592,14 @@ export function reduce(prev, action, nowMs) {
     }
     const raw = typeof action.code === 'string' || typeof action.code === 'number' ? String(action.code) : '';
     const code = raw.replace(/\D/g, '');
-    const ok = code === checkinCode(state, hang.id, nowMs) || code === checkinCode(state, hang.id, nowMs, 1);
-    if (!ok) throw new ActionError('wrong_code', "That code didn't work. Codes change every minute, so ask for the current one.");
+    const matches = (id) => code === checkinCode(state, hang.id, nowMs, 0, id) || code === checkinCode(state, hang.id, nowMs, 1, id);
     // The code has to come from someone else who showed it in the last 2 minutes. Both of you are checked in.
     const showers = summary.lockPeople.filter((id) => {
-      if (id === member.id) return false;
+      if (id === member.id || !matches(id)) return false;
       const theirs = response(state.members[id], hang.id);
       return typeof theirs.shownAt === 'number' && nowMs - theirs.shownAt <= SHOWN_CODE_MS;
     });
+    if (!showers.length && !matches(member.id)) throw new ActionError('wrong_code', "That code didn't work. Codes change every minute, so ask for the current one.");
     if (!showers.length) throw new ActionError('no_shower', 'That code has to come from a friend\'s phone. Ask a friend who is there to tap "Show the code", then type in their code.');
     if (!r.checkedIn) r.checkedIn = nowMs;
     member.r[hang.id] = r;
@@ -781,7 +781,7 @@ export function buildView(state, meId, nowMs) {
         showCounts,
         slots: s.slots.map((x) => ({ id: x.id, closed: x.closed, count: showCounts ? x.count : 0 })),
         best: showBest && s.best ? { id: s.best.id, count: s.best.count } : null,
-        stuck: s.stuck,
+        stuck: Boolean(me) && s.stuck,
         ready: Boolean(me) && s.ready,
         places: s.places.map((p) => ({ id: p.id, name: p.name, likes: p.likes, liked: mine.likes.includes(p.id) })),
         lock: hang.lock
@@ -815,9 +815,7 @@ export function buildView(state, meId, nowMs) {
     members: Object.values(state.members).map((m) => ({
       id: m.id,
       name: m.name,
-      // Shown for everyone who joined more than 6 hours ago, so the list doesn't reveal who has answered.
-      // The server still refuses to remove anyone who has answered, with the same message for every refusal.
-      canRemove: Boolean(me) && me.id === manager && m.id !== manager && nowMs - m.joinedAt >= REMOVE_AFTER_MS,
+      canRemove: Boolean(me) && me.id === manager && canRemoveMember(state, manager, m, nowMs),
     })),
     iManage: Boolean(me) && me.id === manager,
     hangs,

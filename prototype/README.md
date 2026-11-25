@@ -145,7 +145,7 @@ Minibus doesn't ask for a phone number, email or location.
 
 - The create and join screens show a short notice. With the variables above, it says who runs the test, why, when everything is deleted, and who to contact.
 - Each person can delete their name and answers with "Leave and delete my answers" on the group page. The group name and plan ideas stay until the group is deleted.
-- The person who made the group can remove someone who joined more than 6 hours ago and never answered anything, for example if they lost their phone and joined again under a new name.
+- The person who made the group can remove anyone who joined more than 6 hours ago, for example if they lost their phone and joined again under a new name. Their answers are deleted. This works whether or not the person answered, so it never shows who has answered.
 - The server may be outside Hong Kong. Say so in your consent form.
 - The app loads its fonts from Google Fonts, so Google sees each visitor's IP address. "Add to Google Calendar" opens Google Calendar with the plan's name, the group name, the time and the place, but not anyone's name. Say both in your consent form.
 
@@ -196,4 +196,4 @@ Screenshots go into `test/screenshots`. The walkthrough loads Playwright from `/
 - Times are in Hong Kong time.
 - Names that look the same but use different alphabets (like a Cyrillic "а") aren't treated as the same name yet.
 - The server keeps everything in one file. That's fine for a class test with a few dozen groups, not for a public launch. It holds at most 200 groups, and one network can make at most 20 new groups a day. Everyone on campus Wi-Fi may count as one network, so ask a class to make their groups on mobile data.
-- Anyone with the group link can join until the group has 20 members. The person who made the group can only remove people who never answered.
+- Anyone with the group link can join until the group has 20 members. The person who made the group can remove members only after they've been in the group for 6 hours.
