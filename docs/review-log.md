@@ -103,3 +103,44 @@ The same four reviewers checked their round 1 findings and looked for new proble
 ### Tests
 
 50 unit and server tests pass (up from 38). The walkthrough adds three checks: the page doesn't jump on a first answer, opening someone else's private link asks first, and the demo controls start folded.
+
+## Cycle 3: prototype round 3, plus check-in (26 Nov, 00:55–01:45)
+
+| Reviewer | Verdict before the fixes below |
+|---|---|
+| Design | Ready for a 5-student usability test. Three P2s about the privacy promise and a missing "ready" cue. |
+| Technical | Not yet: the new "Remove" flag showed who had answered, and a phone that hadn't joined took over someone's identity from their private link without asking. Everything else solid. |
+| Business | A strong direction. README almost honest. Momentum: the seats looked empty and a dead plan waited silently. Next: check-in with a typed code. |
+| Feasibility | Feasible. A few README steps a first-year would get stuck on, and a few missing counters. |
+| Text (app) | FAIL on 5 lines; README, rules and word list pass. |
+
+### Fixed
+
+| Priority | From | Finding | Change |
+|---|---|---|---|
+| P1 | Technical, design | "Remove" next to anyone who hadn't answered told everyone who had answered. | Only the person who made the group sees it, only for people who joined more than 2 days ago and never answered, inside "Manage members". Every refusal has the same message. Test added. |
+| P2 | Technical | A phone that hadn't joined became someone else, without asking, when it opened their private link. | Always asks first, unless it's already that person. "Stay as Jason" (or "This isn't my link") is the main button. |
+| P2 | Technical | With 2 people needed, a ready plan showed every total, so one person could read the other's times. | A ready plan shows only its best time. Test added. |
+| P2 | Design | No visible cue when your own tap made the plan ready. | A message pops up, and a "Go to confirm" box appears under the grid. |
+| P2 | Design | The private link banner came before the first answer and looked like the messages to paste in the chat. | It shows only after you answer, at the bottom, in a dashed box with only a copy button. |
+| P2 | Business | The seats looked empty when people had said yes. | "Your seat is saved" when you're in. |
+| P2 | Business | A plan where everyone answered and no time worked waited silently for 7 days. | "No time works yet", with a way to lower the number of people needed. |
+| P3 | Technical | Waiting taps could be lost if the tab closed during a save. | When the page closes, waiting taps are sent at once. Each save has a number, so an older save never overwrites a newer one. Test added. |
+| P3 | Technical | Usage counts could be inflated, and members could see them. | Each person counts once per kind per plan. Members never see the counts. |
+| P3 | Technical | "Make a new private link" had no limit; a lost reply could lock you out. | 5 per hour. The old link keeps working until the new one is used. Tests added. |
+| P3 | Technical | Admin token guesses weren't limited. | The server won't start with a token shorter than 32 characters. |
+| P3 | Feasibility | The export couldn't measure some things. | Adds: first confirmation (kept if the plan moves), link opens before joining, people who left or were removed, refused joins with a taken name. |
+| P3 | Feasibility | README steps a first-year would get stuck on. | `curl.exe` on Windows, a command to make the token, where the group id is in a plan link, a calendar reminder for deletion, a check that request limits work behind Railway. |
+| P3 | Design | Deadline could land at 01:00; no arrow on folded sections. | Deadlines move to 09:00 if they'd land at night. Arrows added. |
+| — | Text | 5 lines in the app. | All fixed, plus the optional ones. |
+| — | Business | Small README claims. | Fixed: browser (not phone) storage, what totals show, Gollwitzer & Sheeran is about individuals, the full export list. |
+
+### New: check-in
+
+Built to the scope the business reviewer set. When the plan is about to start (from 30 minutes before until it ends), someone who is going taps "Show the code". Others type the 4-digit code. It changes every minute; last minute's code still works. Once 2 people have checked in, the plan counts as met, and the result says it came from check-ins. Codes are made from a per-group secret that never leaves the server, and the server limits wrong guesses to 10 a minute. The demo has "Skip to the start of the plan" and "[friend] types in the code".
+
+A QR code for the same check-in was planned, but copying the downloaded QR library into the project was blocked by a safety check, so the typed code is the only path for now.
+
+### Tests
+
+57 unit and server tests pass (up from 50). The walkthrough now also covers the ready cue, the private link box after answering, the "Use this group as Mandy?" screen on a second phone, and the full demo check-in.

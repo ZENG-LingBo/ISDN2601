@@ -779,6 +779,44 @@ select {
   min-height: 44px;
 }
 
+.ready-cue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border: 2px solid var(--green);
+  border-radius: var(--radius);
+}
+
+/* The private link is NOT something to paste in the group chat, so it doesn't look like the chat messages. */
+.private-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border: 2px dashed var(--ink-2);
+  border-radius: var(--radius);
+}
+
+.checkin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border-top: 2px solid var(--line-soft);
+  padding-top: 0.9rem;
+}
+
+.code {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 3.5rem;
+  line-height: 1;
+  letter-spacing: 0.3em;
+  font-variant-numeric: tabular-nums;
+}
+
 #status-title:focus {
   outline: none;
 }
@@ -823,12 +861,42 @@ select {
   border-radius: var(--radius);
 }
 
-.demo-bar summary {
+.demo-bar summary,
+.manage summary {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
   min-height: 44px;
   font-weight: 600;
   cursor: pointer;
+  list-style: none;
+}
+
+.demo-bar summary::-webkit-details-marker,
+.manage summary::-webkit-details-marker {
+  display: none;
+}
+
+/* An arrow that points right when folded and down when open. */
+.demo-bar summary::before,
+.manage summary::before {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+
+.demo-bar[open] summary::before,
+.manage[open] summary::before {
+  transform: rotate(45deg);
+}
+
+.manage {
+  border-top: 2px solid var(--line-soft);
+  padding-top: 0.5rem;
 }
 
 .demo-body {

@@ -11,7 +11,11 @@ export const HOUR_MS = 60 * 60 * 1000;
 export const DAYS_AHEAD = 7;
 export const CLOSE_BEFORE_MS = 2 * HOUR_MS; // a time can't be picked less than 2 hours before it starts
 export const DECIDE_AFTER_MS = 48 * HOUR_MS; // after this, a plan with enough people is confirmed without waiting for everyone
-export const MIN_FOR_COUNTS = 2; // counts per time stay hidden until this many people are in
+export const MIN_FOR_COUNTS = 2; // counts per time stay hidden until this many OTHER people are in
+export const REMOVE_AFTER_MS = 48 * HOUR_MS; // someone who never answered can be removed after this
+export const CHECKIN_OPENS_BEFORE_MS = 30 * 60 * 1000; // check-in opens 30 minutes before the plan
+export const CHECKINS_TO_MEET = 2; // this many check-ins count as "we met"
+export const WAKING_HOUR = 9; // deadlines never land before 09:00 Hong Kong time
 
 export const SLOT_TYPES = [
   { key: 'lunch', label: 'lunch', start: '12:30', end: '14:00', hours: 1.5 },
@@ -186,6 +190,14 @@ function requireText(raw, max, message) {
   return text;
 }
 
+// 48 hours from now, rounded up to the hour, and moved to 09:00 if it would land in the night.
+export function decideByFor(nowMs) {
+  let t = Math.ceil((nowMs + DECIDE_AFTER_MS) / HOUR_MS) * HOUR_MS;
+  const hkHour = new Date(t + HK_OFFSET_MS).getUTCHours();
+  if (hkHour < WAKING_HOUR) t += (WAKING_HOUR - hkHour) * HOUR_MS;
+  return t;
+}
+
 function makeHang({ hangId, memberId, idea, seats, budget }, nowMs) {
   return {
     id: hangId,
@@ -195,7 +207,7 @@ function makeHang({ hangId, memberId, idea, seats, budget }, nowMs) {
     startDate: startDateFor(nowMs),
     createdBy: memberId,
     createdAt: nowMs,
-    decideBy: Math.ceil((nowMs + DECIDE_AFTER_MS) / HOUR_MS) * HOUR_MS, // a round hour is easier to read
+    decideBy: decideByFor(nowMs),
     places: [],
     lock: null,
     note: null,
@@ -216,11 +228,14 @@ export function createCrewState(input, nowMs) {
     name: requireText(crewName, LIMITS.crewName, 'Add a name for the group.'),
     size: clampInt(size, LIMITS.sizeMin, LIMITS.sizeMax, 5),
     createdAt: nowMs,
+    createdBy: memberId,
+    secret: newId(20), // only used to make check-in codes; never shown to anyone
+    stats: {},
     demo: Boolean(demo),
   };
   const member = makeMember(memberId, requireText(creatorName, LIMITS.name, 'Add your name.'), nowMs);
   const hang = makeHang({ hangId, memberId, idea, seats, budget }, nowMs);
-  const state = { v: 2, crew, hangs: { [hangId]: hang }, members: { [memberId]: member } };
+  const state = { v: 3, crew, hangs: { [hangId]: hang }, members: { [memberId]: member } };
   if (demo) state.demo = { clockOffset: 0, tomFree: [] };
   return state;
 }
@@ -239,6 +254,42 @@ export function migrate(state) {
     }
     state.v = 2;
   }
+  if (state.v === 2) {
+    const crew = state.crew || {};
+    if (!crew.secret) crew.secret = newId(20);
+    if (!crew.stats) crew.stats = {};
+    if (!crew.createdBy) {
+      const first = Object.values(state.members || {}).sort((a, b) => a.joinedAt - b.joinedAt)[0];
+      crew.createdBy = first ? first.id : null;
+    }
+    state.v = 3;
+  }
+  return state;
+}
+
+// The person who can remove members: whoever made the group, or the longest-standing member if they left.
+export function managerId(state) {
+  if (has(state.members, state.crew.createdBy)) return state.crew.createdBy;
+  const first = Object.values(state.members).sort((a, b) => a.joinedAt - b.joinedAt)[0];
+  return first ? first.id : null;
+}
+
+function canRemoveMember(state, managerIdValue, target, nowMs) {
+  return (
+    target.id !== managerIdValue &&
+    nowMs - target.joinedAt >= REMOVE_AFTER_MS &&
+    !Object.values(target.r).some((x) => typeof x.on === 'boolean')
+  );
+}
+
+function bumpCrew(state, key) {
+  if (!state.crew.stats) state.crew.stats = {};
+  state.crew.stats[key] = (state.crew.stats[key] || 0) + 1;
+}
+
+// Count something about the group that isn't tied to a plan, like a refused join. For the server only.
+export function countCrew(state, key) {
+  bumpCrew(state, key);
   return state;
 }
 
@@ -254,6 +305,34 @@ function getHang(state, hangId) {
 function getMember(state, memberId) {
   if (!isId(memberId) || !has(state.members, memberId)) throw new ActionError('not_member', "You're not in this group yet. Join first.");
   return state.members[memberId];
+}
+
+// ---------- check-in ----------
+
+// A small, fast string hash (FNV-1a). The group's secret never leaves the server, so the code
+// can't be worked out without it, and the server limits how many guesses each person gets.
+function hash32(text) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+
+export function checkinOpen(slot, nowMs) {
+  return nowMs >= slotTime(slot, 'start') - CHECKIN_OPENS_BEFORE_MS && nowMs <= slotTime(slot, 'end');
+}
+
+// A 4-digit code that changes every minute.
+export function checkinCode(state, hangId, nowMs, minutesAgo = 0) {
+  const minute = Math.floor(nowMs / 60000) - minutesAgo;
+  const n = hash32(`${state.crew.secret}|${hangId}|${minute}`) % 10000;
+  return String(n).padStart(4, '0');
+}
+
+export function codeExpiresAt(nowMs) {
+  return (Math.floor(nowMs / 60000) + 1) * 60000;
 }
 
 // ---------- summary ----------
@@ -285,6 +364,7 @@ export function summarize(state, hangId, nowMs) {
 
   const ready = onBoard.length >= hang.seats && Boolean(best) && best.count >= hang.seats;
   const everyoneAnswered = answered.length >= expected;
+  const checkedIn = hang.lock ? onBoard.filter((m) => response(m, hangId).checkedIn && response(m, hangId).free.includes(hang.lock.slot)).map((m) => m.id) : [];
   const deadlinePassed = nowMs >= hang.decideBy;
   const anyOpen = slots.some((s) => !s.closed);
 
@@ -314,6 +394,8 @@ export function summarize(state, hangId, nowMs) {
     places,
     topPlace: places[0] || null,
     lockPeople,
+    checkedIn,
+    stuck: !hang.lock && !hang.outcome && anyOpen && everyoneAnswered && !ready,
     status,
   };
 }
@@ -327,6 +409,7 @@ function bestSlotAtLeast(summary, seats) {
 function lockTo(hang, summary, slot, nowMs, reason) {
   const place = summary.topPlace;
   hang.lock = { slot: slot.id, placeId: place ? place.id : null, at: nowMs, reason };
+  if (!hang.firstLock) hang.firstLock = { slot: slot.id, at: nowMs, reason }; // kept for measuring, even if the plan moves
 }
 
 // Runs after every change, and when someone opens the plan. Keeps confirmed plans honest:
@@ -410,6 +493,7 @@ export function reduce(prev, action, nowMs) {
 
   if (type === 'leave') {
     delete state.members[member.id];
+    bumpCrew(state, 'left');
     const left = Object.keys(state.members).length;
     state.crew.size = Math.max(LIMITS.sizeMin, left, state.crew.size - 1);
     return settle(state, nowMs);
@@ -418,13 +502,14 @@ export function reduce(prev, action, nowMs) {
   // Remove someone who joined but never answered anything (for example, they lost their phone).
   // Anyone who has answered can only leave by themselves.
   if (type === 'remove') {
-    if (!isId(action.targetId) || !has(state.members, action.targetId) || action.targetId === member.id) {
-      throw new ActionError('not_found', "That person isn't in this group.");
-    }
+    // One message for every reason, so trying it never tells you whether someone has answered.
+    const refuse = () => new ActionError('cant_remove', 'The person who made the group can remove someone who joined more than 2 days ago and hasn\'t answered anything.');
+    const manager = managerId(state);
+    if (member.id !== manager || !isId(action.targetId) || !has(state.members, action.targetId)) throw refuse();
     const target = state.members[action.targetId];
-    const answeredSomething = Object.values(target.r).some((x) => typeof x.on === 'boolean');
-    if (answeredSomething) throw new ActionError('has_answers', `${target.name} has answered a plan, so only they can leave.`);
+    if (!canRemoveMember(state, manager, target, nowMs)) throw refuse();
     delete state.members[target.id];
+    bumpCrew(state, 'removed');
     state.crew.size = Math.max(LIMITS.sizeMin, Object.keys(state.members).length, state.crew.size - 1);
     return settle(state, nowMs);
   }
@@ -446,12 +531,46 @@ export function reduce(prev, action, nowMs) {
   const r = clone(response(member, hang.id));
 
   if (type === 'track') {
-    if (TRACKED.includes(action.what)) bump(hang, action.what);
+    if (!TRACKED.includes(action.what)) return state;
+    if (!hang.trackedBy) hang.trackedBy = {};
+    const who = hang.trackedBy[action.what] || [];
+    if (!who.includes(member.id)) {
+      hang.trackedBy[action.what] = [...who, member.id];
+      bump(hang, action.what);
+    }
+    return state;
+  }
+
+  if (type === 'setSeats') {
+    if (hang.lock || hang.outcome) throw new ActionError('closed', "This plan is already confirmed.");
+    hang.seats = clampInt(action.seats, LIMITS.seatsMin, LIMITS.seatsMax, hang.seats);
+    return settle(state, nowMs);
+  }
+
+  if (type === 'showCode' || type === 'checkin') {
+    if (!hang.lock || hang.outcome) throw new ActionError('not_locked', 'Check-in is only for confirmed plans.');
+    if (!checkinOpen(hang.lock.slot, nowMs)) throw new ActionError('checkin_closed', 'Check-in opens 30 minutes before the plan and closes when it ends.');
+    const summary = summarize(state, hang.id, nowMs);
+    if (!summary.lockPeople.includes(member.id)) throw new ActionError('not_going', 'Only people who are going can check in.');
+    if (type === 'checkin') {
+      const code = String(action.code || '').replace(/\D/g, '');
+      const ok = code === checkinCode(state, hang.id, nowMs) || code === checkinCode(state, hang.id, nowMs, 1);
+      if (!ok) throw new ActionError('wrong_code', "That code didn't work. Codes change every minute, so ask for the current one.");
+    }
+    if (!r.checkedIn) r.checkedIn = nowMs;
+    member.r[hang.id] = r;
+    const after = summarize(state, hang.id, nowMs);
+    if (after.checkedIn.length >= Math.min(CHECKINS_TO_MEET, after.lockPeople.length)) {
+      hang.outcome = { met: true, at: nowMs, by: member.id, checked: true };
+    }
     return state;
   }
 
   if (type === 'respond') {
     if (hang.outcome) throw new ActionError('closed', 'This plan is over. Start a new one.');
+    // A save that was sent before the last one we kept is out of date. Ignore it.
+    if (typeof action.seq === 'number' && typeof r.seq === 'number' && action.seq < r.seq) return state;
+    if (typeof action.seq === 'number') r.seq = action.seq;
     if (!r.at) r.at = nowMs; // first answer, for measuring how fast people reply
     r.updatedAt = nowMs;
     if (action.on !== undefined) {
@@ -535,6 +654,7 @@ export function crewHours(state) {
 // and (once at least 2 people are in) how many are free at each time. Never who.
 export function buildView(state, meId, nowMs) {
   const me = meId && has(state.members, meId) ? state.members[meId] : null;
+  const manager = managerId(state);
   const nameOf = (id) => (has(state.members, id) ? state.members[id].name : 'Someone');
   const hangs = Object.values(state.hangs)
     .sort((a, b) => b.createdAt - a.createdAt)
@@ -544,8 +664,9 @@ export function buildView(state, meId, nowMs) {
       const place = hang.lock && hang.lock.placeId ? hang.places.find((p) => p.id === hang.lock.placeId) : null;
       // Totals show only once at least 2 OTHER people are in, so nobody can work out a single person's answer.
       const othersIn = s.onBoardIds.filter((id) => !me || id !== me.id).length;
-      // Once a plan is ready, enough people share a time anyway, so totals give nothing more away.
-      const showCounts = Boolean(hang.lock) || othersIn >= MIN_FOR_COUNTS || s.ready;
+      const showCounts = Boolean(hang.lock) || othersIn >= MIN_FOR_COUNTS;
+      // A ready plan needs its best time shown, but not every other time's total.
+      const showBest = showCounts || s.ready;
       return {
         id: hang.id,
         idea: hang.idea,
@@ -566,7 +687,8 @@ export function buildView(state, meId, nowMs) {
         days: hangDays(hang),
         showCounts,
         slots: s.slots.map((x) => ({ id: x.id, closed: x.closed, count: showCounts ? x.count : 0 })),
-        best: showCounts && s.best ? { id: s.best.id, count: s.best.count } : null,
+        best: showBest && s.best ? { id: s.best.id, count: s.best.count } : null,
+        stuck: s.stuck,
         ready: s.ready,
         places: s.places.map((p) => ({ id: p.id, name: p.name, likes: p.likes, liked: mine.likes.includes(p.id) })),
         lock: hang.lock
@@ -576,27 +698,38 @@ export function buildView(state, meId, nowMs) {
               people: s.lockPeople.map(nameOf),
               reason: hang.lock.reason,
               imGoing: Boolean(me) && s.lockPeople.includes(me.id),
+              checkinOpen: checkinOpen(hang.lock.slot, nowMs),
+              checkedIn: s.checkedIn.map(nameOf),
+              iCheckedIn: Boolean(me) && s.checkedIn.includes(me.id),
             }
           : null,
         note: hang.note ? { type: hang.note.type, from: hang.note.from, to: hang.note.to, by: hang.note.by ? nameOf(hang.note.by) : undefined } : null,
-        outcome: hang.outcome ? { met: hang.outcome.met } : null,
-        stats: hang.stats || {},
+        outcome: hang.outcome ? { met: hang.outcome.met, checked: Boolean(hang.outcome.checked) } : null,
         mine: { on: mine.on, free: mine.free, likes: mine.likes },
       };
     });
   return {
     crew: { id: state.crew.id, name: state.crew.name, size: state.crew.size, demo: state.crew.demo },
     me: me ? { id: me.id, name: me.name } : null,
-    // canRemove: joined but never answered any plan (for example, they lost their phone).
+    // canRemove is only worked out for the person who made the group, and only for people who joined
+    // more than 2 days ago and never answered (for example, they lost their phone).
     members: Object.values(state.members).map((m) => ({
       id: m.id,
       name: m.name,
-      canRemove: Boolean(me) && m.id !== me.id && !Object.values(m.r).some((x) => typeof x.on === 'boolean'),
+      canRemove: Boolean(me) && me.id === manager && canRemoveMember(state, manager, m, nowMs),
     })),
+    iManage: Boolean(me) && me.id === manager,
     hangs,
     hours: crewHours(state),
     now: nowMs,
   };
+}
+
+// What the admin export contains: everything except the group's check-in secret.
+export function exportState(state) {
+  const copy = clone(state);
+  delete copy.crew.secret;
+  return copy;
 }
 
 // ---------- messages people paste into the group chat ----------

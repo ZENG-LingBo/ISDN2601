@@ -45,7 +45,10 @@ const SECURITY_HEADERS = {
   'referrer-policy': 'no-referrer',
 };
 
-const ACTIONS = ['createHang', 'respond', 'addPlace', 'like', 'lock', 'outcome', 'leave', 'setSize', 'remove', 'track'];
+const ACTIONS = ['createHang', 'respond', 'addPlace', 'like', 'lock', 'outcome', 'leave', 'setSize', 'remove', 'track', 'setSeats', 'checkin'];
+const CHECKIN_TRIES_PER_MINUTE = 10;
+const KEY_RESETS_PER_HOUR = 5;
+const MIN_ADMIN_TOKEN = 32;
 
 function hashKey(key) {
   return createHash('sha256').update(String(key)).digest();
@@ -80,6 +83,9 @@ export async function createMinibusServer({
   notice = {},
   log = console,
 } = {}) {
+  if (adminToken && adminToken.length < MIN_ADMIN_TOKEN) {
+    throw new Error(`ADMIN_TOKEN must be at least ${MIN_ADMIN_TOKEN} characters. Make one with: node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"`);
+  }
   // ---------- storage ----------
   let db = { crews: {} };
   try {
@@ -170,12 +176,12 @@ export async function createMinibusServer({
 
   // ---------- rate limits ----------
   const buckets = new Map();
-  function allow(bucketKey, limit) {
+  function allow(bucketKey, limit, windowMs = 60_000) {
     const t = now();
-    const b = buckets.get(bucketKey) || { count: 0, reset: t + 60_000 };
+    const b = buckets.get(bucketKey) || { count: 0, reset: t + windowMs };
     if (t > b.reset) {
       b.count = 0;
-      b.reset = t + 60_000;
+      b.reset = t + windowMs;
     }
     b.count += 1;
     buckets.set(bucketKey, b);
@@ -243,11 +249,21 @@ export async function createMinibusServer({
   }
 
   // The member id and key travel in headers, not the address, so they don't end up in logs.
+  // A new private link only replaces the old one once it has been used, so a lost reply
+  // never locks anyone out.
   function authMember(req, entry) {
     const memberId = String(req.headers['x-minibus-member'] || '');
     const key = String(req.headers['x-minibus-key'] || '');
     if (!L.isId(memberId) || !Object.prototype.hasOwnProperty.call(entry.keys, memberId)) return null;
-    return keyMatches(entry.keys[memberId], key) ? memberId : null;
+    if (keyMatches(entry.keys[memberId], key)) return memberId;
+    const pending = entry.pendingKeys && Object.prototype.hasOwnProperty.call(entry.pendingKeys, memberId) ? entry.pendingKeys[memberId] : null;
+    if (pending && keyMatches(pending, key)) {
+      entry.keys[memberId] = pending;
+      delete entry.pendingKeys[memberId];
+      scheduleSave();
+      return memberId;
+    }
+    return null;
   }
 
   let indexCache = null;
@@ -291,7 +307,7 @@ export async function createMinibusServer({
     // ---------- admin (only when ADMIN_TOKEN is set) ----------
     if (p === '/api/admin/export' && reading) {
       if (!isAdmin(req)) return fail(req, res, 404, 'not_found', 'Not found.');
-      const crews = Object.fromEntries(Object.entries(db.crews).map(([id, entry]) => [id, entry.state])); // no keys
+      const crews = Object.fromEntries(Object.entries(db.crews).map(([id, entry]) => [id, L.exportState(entry.state)])); // no keys or secrets
       return send(req, res, 200, { exportedAt: now(), crews }, { 'content-disposition': 'attachment; filename="minibus-export.json"' });
     }
     const adminDelete = /^\/api\/admin\/crews\/([a-z0-9]{6,40})$/.exec(p);
@@ -316,13 +332,15 @@ export async function createMinibusServer({
       return send(req, res, 201, { ...ids, key });
     }
 
-    const m = /^\/api\/crews\/([a-z0-9]{6,40})(?:\/(join|actions|events|reset-key)|\/hangs\/([a-z0-9]{6,40})\/calendar\.ics)?$/.exec(p);
+    const m = /^\/api\/crews\/([a-z0-9]{6,40})(?:\/(join|actions|events|reset-key|opened)|\/hangs\/([a-z0-9]{6,40})\/(calendar\.ics|code))?$/.exec(p);
     if (!m) return fail(req, res, 404, 'not_found', 'Not found.');
-    const [, crewId, sub, icsHang] = m;
+    const [, crewId, sub, hangPart, hangSub] = m;
+    const icsHang = hangSub === 'calendar.ics' ? hangPart : null;
+    const codeHang = hangSub === 'code' ? hangPart : null;
     if (!Object.prototype.hasOwnProperty.call(db.crews, crewId)) return fail(req, res, 404, 'not_found', "This group doesn't exist. Check the link.");
     const entry = db.crews[crewId];
 
-    if (!sub && !icsHang && reading) {
+    if (!sub && !hangPart && reading) {
       if (!allow(`read:${clientIp(req)}`, IP_READS_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
       settleCrew(crewId, entry);
       return send(req, res, 200, L.buildView(entry.state, authMember(req, entry), now()));
@@ -359,12 +377,34 @@ export async function createMinibusServer({
     }
 
     if (req.method !== 'POST') return fail(req, res, 405, 'method', 'Method not allowed.');
+    if (hangPart && !codeHang) return fail(req, res, 405, 'method', 'Method not allowed.');
+
+    // Someone opened a plan link (before or after joining). Counted for the user test only.
+    if (sub === 'opened') {
+      if (!allow(`opened:${clientIp(req)}`, IP_READS_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests.');
+      const body = await readBody(req);
+      const hang = typeof body.hangId === 'string' && Object.prototype.hasOwnProperty.call(entry.state.hangs, body.hangId) ? entry.state.hangs[body.hangId] : null;
+      if (hang) {
+        hang.stats = hang.stats || {};
+        hang.stats.opens = (hang.stats.opens || 0) + 1;
+        scheduleSave();
+      }
+      return send(req, res, 200, { ok: true });
+    }
 
     if (sub === 'join') {
       if (!allow(`join:${clientIp(req)}`, IP_JOINS_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
       const body = await readBody(req);
       const memberId = L.newId();
-      entry.state = L.reduce(entry.state, { type: 'join', memberId, name: body.name }, now());
+      try {
+        entry.state = L.reduce(entry.state, { type: 'join', memberId, name: body.name }, now());
+      } catch (e) {
+        if (e.code === 'name_taken') {
+          L.countCrew(entry.state, 'nameTaken'); // a sign that someone lost their place and tried again
+          scheduleSave();
+        }
+        throw e;
+      }
       const key = newKey();
       entry.keys[memberId] = hashKey(key).toString('hex');
       scheduleSave();
@@ -379,21 +419,39 @@ export async function createMinibusServer({
       const body = await readBody(req);
       const action = isPlainObject(body.action) ? { ...body.action } : {};
       if (!ACTIONS.includes(action.type)) return fail(req, res, 400, 'invalid', 'The server could not read that request.');
+      if (action.type === 'checkin' && !allow(`checkin:${me}`, CHECKIN_TRIES_PER_MINUTE)) {
+        return fail(req, res, 429, 'slow_down', 'Too many tries. Wait a minute and ask for the current code.');
+      }
       if (action.type === 'addPlace') action.placeId = L.newId(); // the server picks ids, not the client
       entry.state = L.reduce(entry.state, { ...action, memberId: me }, now());
-      if (action.type === 'leave') delete entry.keys[me];
-      if (action.type === 'remove') delete entry.keys[action.targetId];
+      const gone = action.type === 'leave' ? me : action.type === 'remove' ? action.targetId : null;
+      if (gone) {
+        delete entry.keys[gone];
+        if (entry.pendingKeys) delete entry.pendingKeys[gone];
+      }
       scheduleSave();
       if (action.type !== 'track') notify(crewId);
       return send(req, res, 200, { ok: true });
+    }
+
+    // Show the check-in code. Showing it also checks you in, since you're there.
+    if (codeHang) {
+      const me = authMember(req, entry);
+      if (!me) return fail(req, res, 403, 'not_member', "You're not in this group on this device.");
+      entry.state = L.reduce(entry.state, { type: 'showCode', hangId: codeHang, memberId: me }, now());
+      scheduleSave();
+      notify(crewId);
+      return send(req, res, 200, { code: L.checkinCode(entry.state, codeHang, now()), expiresAt: L.codeExpiresAt(now()) });
     }
 
     // A new private link. The old one stops working.
     if (sub === 'reset-key') {
       const me = authMember(req, entry);
       if (!me) return fail(req, res, 403, 'not_member', "You're not in this group on this device.");
+      if (!allow(`reset:${me}`, KEY_RESETS_PER_HOUR, 60 * 60 * 1000)) return fail(req, res, 429, 'slow_down', 'You made several new links already. Try again in an hour.');
       const key = newKey();
-      entry.keys[me] = hashKey(key).toString('hex');
+      if (!entry.pendingKeys) entry.pendingKeys = {};
+      entry.pendingKeys[me] = hashKey(key).toString('hex');
       scheduleSave();
       return send(req, res, 200, { key });
     }

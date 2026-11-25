@@ -175,6 +175,20 @@ class LocalStore {
     if (action.type === 'leave') identity.forget(crewId);
   }
 
+  // Show the check-in code (and check yourself in).
+  async showCode(crewId, hangId) {
+    const state = this.read(crewId);
+    const me = identity.get(crewId);
+    if (!state || !me) throw new L.ActionError('not_member', 'Join the group first.');
+    const now = this.now(state);
+    this.write(L.reduce(state, { type: 'showCode', hangId, memberId: me.memberId }, now));
+    return { code: L.checkinCode(state, hangId, now), expiresAt: L.codeExpiresAt(now) };
+  }
+
+  opened() {
+    /* only counted by the server version */
+  }
+
   // ---- demo only ----
 
   // Switch which person you're playing, to see what each friend sees.
@@ -196,6 +210,8 @@ class LocalStore {
   //   'tom'  : Tom finally answers
   //   'swap' : someone else who is going can't make the confirmed time anymore
   //   'skip' : jump to an hour after the plan
+  //   'start': jump to 5 minutes after the plan starts, so check-in is open
+  //   'checkin': someone else who is going types in the current code
   async demo(crewId, hangId, what) {
     let state = this.read(crewId);
     if (!state || !state.crew.demo || !Object.prototype.hasOwnProperty.call(state.hangs, hangId)) return;
@@ -210,6 +226,15 @@ class LocalStore {
       if (!friend) return;
       const free = friend.r[hangId].free.filter((s) => s !== hang.lock.slot);
       state = L.reduce(state, { type: 'respond', hangId, memberId: friend.id, free }, now);
+    } else if (what === 'start' && hang.lock) {
+      const target = L.slotTime(hang.lock.slot, 'start') + 5 * 60 * 1000;
+      state.demo.clockOffset = Math.max(state.demo.clockOffset || 0, target - Date.now());
+      state = L.settle(state, this.now(state));
+    } else if (what === 'checkin' && hang.lock) {
+      const friend = this.demoSwapper(state, hangId, { notCheckedIn: true });
+      if (!friend) return;
+      const now = this.now(state);
+      state = L.reduce(state, { type: 'checkin', hangId, memberId: friend.id, code: L.checkinCode(state, hangId, now) }, now);
     } else if (what === 'skip' && hang.lock) {
       const target = L.slotTime(hang.lock.slot, 'end') + L.HOUR_MS;
       state.demo.clockOffset = Math.max(state.demo.clockOffset || 0, target - Date.now());
@@ -220,7 +245,8 @@ class LocalStore {
     this.write(state);
   }
 
-  demoSwapper(state, hangId) {
+  // A pretend friend who is going to the confirmed plan.
+  demoSwapper(state, hangId, { notCheckedIn = false } = {}) {
     const hang = state.hangs[hangId];
     if (!hang || !hang.lock) return null;
     const me = identity.get(state.crew.id);
@@ -231,14 +257,15 @@ class LocalStore {
           m.id !== (me && me.demoSelf) &&
           m.r[hangId] &&
           m.r[hangId].on === true &&
-          m.r[hangId].free.includes(hang.lock.slot),
+          m.r[hangId].free.includes(hang.lock.slot) &&
+          (!notCheckedIn || !m.r[hangId].checkedIn),
       ) || null
     );
   }
 
-  demoSwapperName(crewId, hangId) {
+  demoSwapperName(crewId, hangId, opts) {
     const state = this.read(crewId);
-    const friend = state ? this.demoSwapper(state, hangId) : null;
+    const friend = state ? this.demoSwapper(state, hangId, opts) : null;
     return friend ? friend.name : null;
   }
 
@@ -302,6 +329,15 @@ class ServerStore {
   async act(crewId, action, { keepalive = false } = {}) {
     await this.request('POST', `/api/crews/${encodeURIComponent(crewId)}/actions`, { body: { action }, crewId, keepalive });
     if (action.type === 'leave') identity.forget(crewId);
+  }
+
+  async showCode(crewId, hangId) {
+    return this.request('POST', `/api/crews/${encodeURIComponent(crewId)}/hangs/${encodeURIComponent(hangId)}/code`, { body: {}, crewId });
+  }
+
+  // Count that a plan link was opened (for the user test). Errors don't matter here.
+  opened(crewId, hangId) {
+    this.request('POST', `/api/crews/${encodeURIComponent(crewId)}/opened`, { body: { hangId } }).catch(() => {});
   }
 
   // Look at a group as the person a private link belongs to, without switching yet.

@@ -14,23 +14,24 @@ This is a prototype for the next stage of an ISDN 1001 project at HKUST. It resp
 2. Each friend opens the link, types their name, and says whether they're in.
 3. Everyone taps the times they're free over the next 7 days: lunch, afternoon or evening.
 4. Anyone can suggest a place, and everyone can vote.
-5. The plan is confirmed when enough people are free at the same time and everyone has answered. If not everyone answers, Minibus confirms it after 48 hours, as long as enough people are free at the same time. Anyone who is in can also confirm it earlier.
+5. The plan is confirmed when enough people are free at the same time and everyone has answered. If not everyone answers, Minibus confirms it after about 48 hours (never during the night), as long as enough people are free at the same time. Once enough people share a time, anyone who is in can also confirm it earlier. If everyone has answered and no time works, the plan says so, and the group can lower the number of people needed.
 6. If someone can't make it anymore, they change their times instead of cancelling. If enough people can make another time, the plan moves there. If not, the group goes back to choosing a time.
-7. Afterwards, the people who went say whether they met. The group page counts the times the group says it met.
+7. When the group meets, one person shows a 4-digit check-in code and the others type it in. The code changes every minute. Once 2 people have checked in, the plan counts as met.
+8. If nobody checks in, the people who went can still say afterwards whether they met. That answer is self-reported.
 
 ## How it uses the research
 
 | What the research found | What the prototype does |
 |---|---|
 | In a group chat, no one is in charge of the plan (Darley & Latané, 1968). | Minibus collects answers, picks the time and writes the reminder message. Someone still has to paste the messages into the chat, but the reminder comes from Minibus, not from them. |
-| "Soon" is not a plan. Plans with a set time and place are much more likely to happen (Gollwitzer & Sheeran, 2006). | Every confirmed plan has one time. If there's no place yet, the confirmed plan asks for one. |
-| People are afraid of looking too eager (Boothby et al., 2018; Liu et al., 2023). | Names aren't shown with answers until the plan is confirmed. Before that, people only see totals, and only once 2 other people are in. In a small group, totals can still hint at who said yes. |
+| People who decide when and where they'll do something are more likely to follow through (Gollwitzer & Sheeran, 2006). That research is about individuals; Minibus applies the idea to groups. | Every confirmed plan has one time. If there's no place yet, the confirmed plan asks for one. |
+| People are afraid of looking too eager (Boothby et al., 2018; Liu et al., 2023). | Names aren't shown with answers until the plan is confirmed. Before that, people see how many have answered (not how many said yes). The number free at each time only shows once 2 other people are in. In a small group, totals can still hint at who said yes. |
 | People say yes too easily, then feel relieved when plans are cancelled (Givi & Kirk, 2023; YouGov, 2019). | If you can't make a confirmed plan, you're asked to pick other times first, and the plan moves if enough people can make one. |
-| 2 friends need about 200 hours together to become close friends (Hall, 2019). | The group page shows how many times the group says it met, and about how many hours that was. |
+| 2 friends need about 200 hours together to become close friends (Hall, 2019). | The group page shows how many times the group met, and about how many hours that was. Plans count as met when 2 people check in, or when someone who went says so. |
 
 ## Two versions
 
-**The demo** runs entirely in your browser. It keeps everything on your device and has pretend friends. Open "Demo controls" to see the plan as a different friend, make a friend answer or say they can't make it, or skip to after the plan. Links don't work on other phones in this version.
+**The demo** runs entirely in your browser. It keeps everything on your device and has pretend friends. Open "Demo controls" to see the plan as a different friend, make a friend answer or say they can't make it, skip to the start of the plan to try check-in, or skip to after the plan. Links don't work on other phones in this version.
 
 **The server version** lets real friends use it on their own phones. It's one small Node.js program with no other software to install.
 
@@ -60,7 +61,7 @@ Plans are saved in `prototype/data/store.json`. Delete that file to start over.
 
 ## Run a class test
 
-Friends need to reach the server from their own phones, and the server needs to keep its data file between restarts. We used Railway as the example:
+Friends need to reach the server from their own phones, and the server needs to keep its data file between restarts. This guide uses Railway:
 
 1. Sign up at railway.com with GitHub, then verify your account at railway.com/verify. New or quiet GitHub accounts may get a "Limited Trial" that can't deploy code until they're verified.
 2. Create a project from this GitHub repository and set the root folder to `prototype`.
@@ -68,12 +69,14 @@ Friends need to reach the server from their own phones, and the server needs to 
 4. Set these variables:
    - `DATA_FILE` = `/data/store.json`
    - `TRUST_PROXY` = `1`, so each person gets their own request limit
-   - `ADMIN_TOKEN` = a long random password, for downloading the data
+   - `ADMIN_TOKEN` = a long random password for downloading the data. It must be at least 32 characters. To make one, run `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"` and copy the result.
    - `MINIBUS_OPERATOR` = your name and course, like `Mandy Chan, HKUST ISDN 1001`
    - `MINIBUS_CONTACT` = how people can reach you
    - `MINIBUS_DELETE_BY` = the date you'll delete everything, like `31 Dec 2026`
 5. Generate a public domain.
 6. Create a test plan. Then restart the service and redeploy it once, and check that the plan is still there.
+7. Check the request limits work behind Railway: on one phone, create 31 test groups within a minute. The 31st should say "Too many requests". If it doesn't, ask for help before the test.
+8. Put a reminder in your calendar for the deletion date. Nothing is deleted automatically.
 
 New accounts get a 30-day trial with US$5 of credit. After that, Railway's free plan gives US$1 of credit a month and a small volume, which may be enough for a one-week test. If not, the Hobby plan is US$5 a month. Prices change, so check railway.com/pricing before you start. Don't use hosts without a lasting disk (like Render's free plan): they delete the data file on every restart.
 
@@ -83,7 +86,19 @@ New accounts get a 30-day trial with US$5 of credit. After that, Railway's free 
 curl -H "Authorization: Bearer YOUR_ADMIN_TOKEN" https://YOUR-APP.up.railway.app/api/admin/export -o minibus-export.json
 ```
 
-Do this every day of the test. The export has every group, plan and answer, with the time of each person's first answer and simple counts (how often the share, reminder and confirmed messages were copied, and how often a plan moved). It doesn't include anyone's private key.
+On Windows PowerShell, type `curl.exe` instead of `curl`.
+
+Do this every day of the test. The export has every group, plan and answer, including private answers, so keep it safe and say so in your consent form. It includes:
+
+- when each person first answered and last changed their answer
+- when each plan was first confirmed, and why (everyone answered, the 48 hours were up, or someone confirmed it), even if it moved later
+- how many times each plan's link was opened
+- how many people copied the share, reminder and confirmed messages, and tapped "Add to Google Calendar" (each person counts once)
+- how often a plan moved or went back to choosing a time
+- check-in times, and whether "met" came from check-ins or from someone saying so
+- how many people left, were removed, or tried to join with a name that was taken (a sign they lost their place)
+
+It doesn't include anyone's private link or the check-in secret. A copied message is only a sign that it was posted, not proof.
 
 ### Delete a whole group
 
@@ -93,7 +108,7 @@ If someone asks you to delete their group:
 curl -X DELETE -H "Authorization: Bearer YOUR_ADMIN_TOKEN" https://YOUR-APP.up.railway.app/api/admin/crews/GROUP_ID
 ```
 
-The group id is the part after `#crew-` in the group's link. Reply within 2 days. When the test ends, download a final export, delete the Railway project, and delete any copies on your own computer by the date you promised.
+The group id is the part after `#crew-` in the group's link. In a plan link (`#plan-...`), it's the first part after `#plan-`, before the next `-`. Reply within 2 days. When the test ends, download a final export, delete the Railway project, and delete any copies on your own computer by the date you promised.
 
 ## Privacy
 
@@ -101,7 +116,7 @@ Minibus stores the name you type, the group name, the plan ideas, your answers, 
 
 - The create and join screens show a short notice. With the variables above, it says who runs the test, why, when everything is deleted, and who to contact.
 - Each person can delete their name and answers with "Leave and delete my answers" on the group page. The group name and plan ideas stay until the group is deleted.
-- Someone who joined but never answered can be removed by others, for example if they lost their phone.
+- The person who made the group can remove someone who joined more than 2 days ago and never answered anything, for example if they lost their phone.
 - The server may be outside Hong Kong. Say so in your consent form.
 
 ### Consent for a user test
@@ -141,9 +156,10 @@ node test/e2e.mjs screenshots
 
 ## Limits
 
-- No accounts. Your place in a group is tied to the phone you joined from. To use another phone, copy your private link from the group page. If you lose it, join again with a slightly different name.
+- No accounts. Your place in a group is saved in the browser you joined from. Apps like Instagram open links in their own browser, which keeps separate data, so the same phone can lose your place. To use another phone or browser, copy your private link from the group page. If you lose it, join again with a slightly different name.
 - No notifications. Reminders go through your group chat, by copying a message Minibus writes. If Minibus confirms a plan on its own after 48 hours, people only see it when they open the plan.
-- "Did you meet?" is self-reported.
+- Check-in shows a number code, not a QR code. A QR code would need an extra library.
+- If nobody checks in, "Did you meet?" is self-reported.
 - Times are in Hong Kong time.
-- Names that look the same but use different alphabets (like a Cyrillic "а") aren't caught yet.
+- Names that look the same but use different alphabets (like a Cyrillic "а") aren't treated as the same name yet.
 - The server keeps everything in one file. That's fine for a class test with a few dozen groups, not for a public launch.

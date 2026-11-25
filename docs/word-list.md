@@ -14,11 +14,11 @@ One word for each thing, used the same way everywhere: in the app, the messages 
 | private link | personal link, magic link | The link that lets you use the group on another phone. |
 | too late | closed, past | A time that starts in less than 2 hours. |
 | confirm, confirmed | lock, lock in, it leaves, it's happening | "The plan is confirmed." |
-| people who are in | people on board, seats taken | |
 | change your times | swap | "Can't make it? Change your times instead of cancelling." |
 | cancel | bail, flake, drop | |
 | remind | nudge | "Copy reminder" |
 | did you meet? | did it happen? | |
+| check in, check-in code | scan, verify | "Show the code", "Enter the code", "You're checked in." |
 | hours together | friendship hours | |
 | this device | this browser | People think of their phone, not their browser. |
 

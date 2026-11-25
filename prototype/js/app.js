@@ -28,8 +28,17 @@ const ui = {
   orderFor: null, // the plan whose screen order was decided
   answerFirst: false, // keep the screen order the same for the whole visit, so nothing jumps
   privateLink: null, // a private link waiting for "are you sure?"
+  code: null, // the check-in code being shown: { hangId, code, expiresAt }
+  seatsEdit: false,
   errors: {},
 };
+let codeTimer = null;
+let seqCounter = 0;
+// Every save of your answer carries an increasing number, so an old save can't overwrite a newer one.
+function nextSeq() {
+  seqCounter += 1;
+  return Date.now() * 1000 + (seqCounter % 1000);
+}
 
 // Taps on the time grid show at once and are sent together a moment later.
 const pendingFree = new Map(); // hangId -> Set of times
@@ -170,20 +179,22 @@ async function openPrivateLink() {
     return go('start');
   }
   if (!theirs.me) {
-    toast("This private link doesn't work anymore. Ask for a new one, or join the group again.");
+    toast("This private link doesn't work anymore. Make a new one on the group page of your other phone, or join the group again.");
     return go(`crew-${crewId}`);
   }
   const current = identity.get(crewId);
-  if (!current || current.memberId === memberId) {
+  if (current && current.memberId === memberId) {
     store.claim(crewId, memberId, key, theirs.crew.name);
     return go(`crew-${crewId}`);
   }
-  let currentName = 'someone else';
-  try {
-    const mine = await store.view(crewId);
-    if (mine && mine.me) currentName = mine.me.name;
-  } catch {
-    /* keep the default */
+  let currentName = '';
+  if (current) {
+    try {
+      const mine = await store.view(crewId);
+      if (mine && mine.me) currentName = mine.me.name;
+    } catch {
+      /* keep it empty */
+    }
   }
   ui.privateLink = { crewId, memberId, key, name: theirs.me.name, crewName: theirs.crew.name, currentName };
   view = null;
@@ -194,13 +205,17 @@ async function openPrivateLink() {
 function switchScreen() {
   const s = ui.privateLink;
   if (!s) return startScreen();
+  const where = s.currentName
+    ? `On this phone, you use the name ${esc(s.currentName)} in that group.`
+    : "You haven't joined that group on this phone.";
+  const stay = s.currentName ? `Stay as ${esc(s.currentName)}` : "This isn't my link";
   return `<section class="block">
-    <h1>Switch to ${esc(s.name)}?</h1>
-    <p>This private link is for ${esc(s.name)} in ${esc(s.crewName)}. On this phone, you're ${esc(s.currentName)} in that group.</p>
-    <p>If you switch, this phone answers as ${esc(s.name)}. Only switch if this is your own link.</p>
+    <h1>Use this group as ${esc(s.name)}?</h1>
+    <p>This private link is for ${esc(s.name)} in ${esc(s.crewName)}. ${where}</p>
+    <p>If you continue, this phone answers as ${esc(s.name)}. Only continue if this is your own link.</p>
     <div class="actions stack">
-      <button class="btn primary" type="button" id="switch-yes" data-act="switch-yes">Switch to ${esc(s.name)}</button>
-      <button class="btn" type="button" id="switch-no" data-act="switch-no">Stay as ${esc(s.currentName)}</button>
+      <button class="btn primary" type="button" id="switch-no" data-act="switch-no">${stay}</button>
+      <button class="btn" type="button" id="switch-yes" data-act="switch-yes">Use the group as ${esc(s.name)}</button>
     </div>
   </section>`;
 }
@@ -244,12 +259,12 @@ function privacyNote() {
   const n = noticeDetails();
   const parts = [];
   if (n.operator) parts.push(`Minibus is a student project run by ${n.operator}.`);
-  parts.push(`Minibus saves your name, your answers and the times you're free. It uses them only for your group's plans${n.operator ? ' and to check whether the app works' : ''}.`);
+  parts.push(`${n.operator ? 'It' : 'Minibus'} saves your name, your answers and the times you're free. It uses them only for your group's plans${n.operator ? ' and to check whether the app works' : ''}.`);
   parts.push('Use a first name or a nickname.');
   if (store.kind === 'server') {
-    if (n.deleteBy) parts.push(`Everything is deleted by ${n.deleteBy}.`);
+    if (n.deleteBy) parts.push(`Everything will be deleted by ${n.deleteBy}.`);
     parts.push('You can delete your answers at any time from the group page.');
-    if (n.contact) parts.push(`Questions: ${n.contact}.`);
+    if (n.contact) parts.push(`Questions: ${n.contact}`);
   } else {
     parts.push('In this demo, everything stays on this device.');
   }
@@ -266,9 +281,14 @@ function demoBar(hang) {
   if (hang && !hang.outcome && hang.status !== 'expired' && view.members.some((m) => m.name === 'Tom') && hang.status !== 'locked' && hang.status !== 'check') {
     buttons.push('<button class="btn small" type="button" id="demo-tom" data-act="demo" data-what="tom">Make Tom answer</button>');
   }
-  const swapper = hang && hang.status === 'locked' ? store.demoSwapperName(view.crew.id, hang.id) : null;
+  const locked = hang && hang.status === 'locked';
+  const checkinOpen = locked && hang.lock.checkinOpen;
+  const swapper = locked && !checkinOpen ? store.demoSwapperName(view.crew.id, hang.id) : null;
   if (swapper) buttons.push(`<button class="btn small" type="button" id="demo-swap" data-act="demo" data-what="swap">${esc(swapper)} can't make it anymore</button>`);
-  if (hang && hang.status === 'locked') buttons.push('<button class="btn small" type="button" id="demo-skip" data-act="demo" data-what="skip">Skip to after the plan</button>');
+  if (locked && !checkinOpen) buttons.push('<button class="btn small" type="button" id="demo-start" data-act="demo" data-what="start">Skip to the start of the plan</button>');
+  const checker = checkinOpen ? store.demoSwapperName(view.crew.id, hang.id, { notCheckedIn: true }) : null;
+  if (checker) buttons.push(`<button class="btn small" type="button" id="demo-checkin" data-act="demo" data-what="checkin">${esc(checker)} types in the code</button>`);
+  if (locked) buttons.push('<button class="btn small" type="button" id="demo-skip" data-act="demo" data-what="skip">Skip to after the plan</button>');
   return `<details class="demo-bar" id="demo-box" ${ui.demoOpen ? 'open' : ''}>
     <summary>Demo controls</summary>
     <div class="demo-body">
@@ -332,8 +352,11 @@ function seats(hang) {
   } else if (hang.best) {
     filled = hang.best.count;
     text = `${people(filled)} can make the same time. The plan needs ${hang.seats}.`;
+  } else if (hang.mine.on === true) {
+    filled = 1;
+    text = `Your seat is saved. The plan needs ${hang.seats} people free at the same time.`;
   } else {
-    text = `${hang.answered} of ${hang.expected} people have answered. The plan needs ${hang.seats} people free at the same time.`;
+    text = `The plan needs ${hang.seats} people free at the same time.`;
   }
   const cells = Array.from({ length: total }, (_, i) => {
     const cls = ['seat'];
@@ -365,7 +388,7 @@ function answerBlock(hang) {
   const on = hang.mine.on;
   return `<section class="block">
     <h2>Are you in?</h2>
-    <p>Your name isn't shown with your answer. Before the plan is confirmed, people only see totals, like 3 people free on Friday evening.</p>
+    <p>Until the plan is confirmed, nobody sees your name with your answer. People only see totals, like "3 free".</p>
     <div class="choice" role="group" aria-label="Are you in?">
       <button class="btn toggle" type="button" id="on-yes" data-act="on" data-on="1" aria-pressed="${on === true}">I'm in</button>
       <button class="btn toggle" type="button" id="on-no" data-act="on" data-on="0" aria-pressed="${on === false}">Not this time</button>
@@ -399,6 +422,9 @@ function gridBlock(hang) {
   if (hang.lock) bestLine = `Confirmed: ${L.slotLabel(hang.lock.slot)}. Adding other times helps if someone can't make it.`;
   else if (!hang.showCounts) bestLine = "You'll see how many people are free at each time once 2 other people are in.";
   else if (hang.best) bestLine = `Best time so far: ${L.slotLabel(hang.best.id)} (${people(hang.best.count)}).`;
+  const readyCue = hang.status === 'ready' && ui.answerFirst
+    ? `<div class="ready-cue"><p><b>Enough people are free on ${esc(L.slotLabel(hang.best.id))}.</b></p><button class="btn small" type="button" id="go-status" data-act="go-status">Go to confirm</button></div>`
+    : '';
   return `<section class="block">
     <h2>When are you free?</h2>
     <p>Tap all the times you're free in the next 7 days.</p>
@@ -407,6 +433,7 @@ function gridBlock(hang) {
       ${rows}
     </div>
     <p class="grid-note">${esc(bestLine)}</p>
+    ${readyCue}
   </section>`;
 }
 
@@ -454,6 +481,21 @@ function statusTitle(text) {
 }
 
 function openStatus(hang) {
+  if (hang.stuck) {
+    return `<section class="status ask">
+      ${statusTitle('No time works yet')}
+      <p>Everyone has answered, but no time has ${people(hang.seats)} free. Add more times you could make, or lower the number of people needed.</p>
+      ${ui.seatsEdit
+        ? `<form id="seats-form" class="field" novalidate>
+            <label for="h-seats">How many people need to be free?</label>
+            <div class="inline-form">
+              <input id="h-seats" name="seats" type="number" inputmode="numeric" min="${L.LIMITS.seatsMin}" max="${L.LIMITS.seatsMax}" value="${Math.max(L.LIMITS.seatsMin, hang.seats - 1)}">
+              <button class="btn primary" type="submit" id="seats-save">Save</button>
+            </div>
+          </form>`
+        : '<button class="btn" type="button" id="seats-edit" data-act="seats-edit">Lower the number needed</button>'}
+    </section>`;
+  }
   return `<section class="status">
     ${statusTitle('Waiting for more people')}
     <p>${esc(waitingLine(hang))}</p>
@@ -516,8 +558,30 @@ function lockedStatus(hang) {
       <a class="btn" id="calendar" href="${esc(calendar)}" target="_blank" rel="noopener" data-track="calendar">Add to Google Calendar</a>
       ${file ? `<a class="btn" id="ics" href="${esc(file)}" download>Download calendar file</a>` : ''}
     </div>
-    ${me ? swapBlock(hang) : ''}
+    ${hang.lock.checkinOpen ? checkinBlock(hang) : ''}
+    ${me && !hang.lock.checkinOpen ? swapBlock(hang) : ''}
   </section>`;
+}
+
+function checkinBlock(hang) {
+  const who = hang.lock.checkedIn.length ? `Checked in: ${hang.lock.checkedIn.join(', ')}.` : 'Nobody has checked in yet.';
+  const shown = ui.code && ui.code.hangId === hang.id ? ui.code : null;
+  return `<div class="checkin">
+    <h3>Check in</h3>
+    <p>When you meet, one person shows the code and the others type it in. When ${L.CHECKINS_TO_MEET} people have checked in, the plan counts as met.</p>
+    <p>${esc(who)}${hang.lock.iCheckedIn ? " You're checked in." : ''}</p>
+    ${shown
+      ? `<p class="code" aria-label="${esc(`Check-in code ${shown.code.split('').join(' ')}`)}">${esc(shown.code)}</p><p>This code changes every minute.</p>`
+      : '<button class="btn primary" type="button" id="show-code" data-act="show-code">Show the code</button>'}
+    ${hang.lock.iCheckedIn ? '' : `<form id="checkin-form" class="field" novalidate>
+      <label for="ci-code">Enter the code</label>
+      <div class="inline-form">
+        <input id="ci-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="4"${invalidAttrs('ci-code')}>
+        <button class="btn" type="submit" id="checkin-submit">Check in</button>
+      </div>
+      ${fieldError('ci-code')}
+    </form>`}
+  </div>`;
 }
 
 function swapBlock(hang) {
@@ -553,7 +617,7 @@ function afterStatus(hang) {
     }
     return `<section class="status">
       ${statusTitle('Did you meet?')}
-      <p>${esc(L.slotLabel(hang.lock.slot))}${hang.lock.placeName ? `, ${esc(hang.lock.placeName)}` : ''}. Only plans where you met count toward your group's hours together.</p>
+      <p>${esc(L.slotLabel(hang.lock.slot))}${hang.lock.placeName ? `, ${esc(hang.lock.placeName)}` : ''}. Nobody checked in, so tell us yourself. Only plans where you met count toward your group's hours together.</p>
       <div class="actions stack">
         <button class="btn primary" type="button" id="met-yes" data-act="outcome" data-met="1">Yes, we met</button>
         <button class="btn" type="button" id="met-no" data-act="outcome" data-met="0">No, we didn't</button>
@@ -567,7 +631,7 @@ function afterStatus(hang) {
   if (hang.status === 'happened') {
     return `<section class="status done">
       ${statusTitle('You met')}
-      <p>That's ${L.slotHours(hang.lock.slot)} more hours together. Your group has met ${view.hours.times} ${view.hours.times === 1 ? 'time' : 'times'} so far.</p>
+      <p>${hang.outcome && hang.outcome.checked ? `${esc(hang.lock.checkedIn.join(', '))} checked in. ` : ''}That's ${L.slotHours(hang.lock.slot)} more hours together. Your group has met ${view.hours.times} ${view.hours.times === 1 ? 'time' : 'times'} so far.</p>
       ${again}
     </section>`;
   }
@@ -582,27 +646,31 @@ function planScreen() {
   if (!view) return loadingOrMissing();
   const hang = currentHang();
   if (!hang) return missing();
-  if (!view.me) return joinScreen(hang);
+  if (!view.me) {
+    if (store.kind === 'server') countOpen(hang.id);
+    return joinScreen(hang);
+  }
 
   if (ui.orderFor !== hang.id) {
     ui.orderFor = hang.id;
     ui.answerFirst = hang.mine.on === null;
   }
-  const top = `${demoBar(hang)}${placard(hang)}${seats(hang)}${noteBanner(hang)}${joinedBanner()}`;
+  if (store.kind === 'server') countOpen(hang.id);
+  const top = `${demoBar(hang)}${placard(hang)}${seats(hang)}${noteBanner(hang)}`;
   const back = `<p class="back"><a href="#crew-${esc(view.crew.id)}">All plans in ${esc(view.crew.name)}</a></p>`;
 
   if (['check', 'happened', 'fizzled', 'expired'].includes(hang.status)) return `${top}${afterStatus(hang)}${back}`;
 
   if (hang.lock) {
     // Times change through "Change my times". Votes on the place stay open until the plan.
-    return `${top}${lockedStatus(hang)}${hang.lock.imGoing ? placesBlock(hang) : ''}${back}`;
+    return `${top}${lockedStatus(hang)}${hang.lock.imGoing && !hang.lock.checkinOpen ? placesBlock(hang) : ''}${joinedBanner(hang)}${back}`;
   }
 
   const status = hang.status === 'ready' ? readyStatus(hang) : openStatus(hang);
   // Someone who hadn't answered when they opened the page sees their own question first,
   // and the order stays the same while they answer.
-  if (ui.answerFirst) return `${top}${answerBlock(hang)}${gridBlock(hang)}${placesBlock(hang)}${status}${back}`;
-  return `${top}${status}${answerBlock(hang)}${gridBlock(hang)}${placesBlock(hang)}${back}`;
+  if (ui.answerFirst) return `${top}${answerBlock(hang)}${gridBlock(hang)}${placesBlock(hang)}${status}${joinedBanner(hang)}${back}`;
+  return `${top}${status}${answerBlock(hang)}${gridBlock(hang)}${placesBlock(hang)}${joinedBanner(hang)}${back}`;
 }
 
 // ---------------------------------------------------------------- other screens
@@ -639,7 +707,7 @@ function startScreen() {
 
   ${local ? `<section class="block notice">
     <h2>About this demo</h2>
-    <p>This demo saves everything on this device only. Pretend friends answer too, and you can switch between them to see what each person sees. To use Minibus with real friends on their own phones, someone needs to run it on a server. The project's instructions explain how.</p>
+    <p>This demo saves everything on this device only. Pretend friends answer too, and you can switch between them to see what each person sees. To use Minibus with real friends on their own phones, someone needs to run it on a server. The README file in the project explains how.</p>
   </section>` : ''}`;
 }
 
@@ -701,18 +769,30 @@ function sharedScreen() {
   </section>`;
 }
 
-function joinedBanner() {
-  if (!ui.justJoined || store.kind !== 'server') return '';
+function joinedBanner(hang) {
+  if (!ui.justJoined || store.kind !== 'server' || hang.mine.on === null) return '';
   const link = store.personalLink(view.crew.id);
   if (!link) return '';
-  return `<section class="banner joined">
-    <p>You're in. To use this group on another phone later, save your private link. Don't share it: anyone with it can answer as you.</p>
-    <pre class="message" id="joined-link">${esc(link)}</pre>
+  return `<section class="private-box">
+    <h2>Save your private link</h2>
+    <p>You joined ${esc(view.crew.name)}. To use it on another phone later, copy your private link and keep it to yourself. Anyone with it can answer as you, so don't paste it in the group chat.</p>
     <div class="actions">
-      <button class="btn" type="button" id="copy-joined" data-act="copy" data-source="joined-link" data-private="1">Copy my private link</button>
+      <button class="btn" type="button" id="copy-joined" data-act="copy-text" data-text="${esc(link)}" data-private="1">Copy my private link</button>
       <button class="btn quiet" type="button" id="joined-close" data-act="joined-close">Not now</button>
     </div>
   </section>`;
+}
+
+// Count that this plan link was opened, once per visit (for the user test).
+function countOpen(hangId) {
+  const key = `minibus-opened-${hangId}`;
+  try {
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+  } catch {
+    return;
+  }
+  store.opened(route.crewId, hangId);
 }
 
 function joinScreen(hang) {
@@ -748,7 +828,7 @@ function crewScreen() {
   ${demoBar(null)}
   <section class="block">
     <h1>${esc(view.crew.name)}</h1>
-    ${membersList()}
+    <p>${esc(view.members.map((m) => (m.id === view.me.id ? `${m.name} (you)` : m.name)).join(', '))}</p>
   </section>
 
   <section class="block">
@@ -787,13 +867,19 @@ function crewScreen() {
 
   ${personal ? `<section class="block">
     <h2>Use this group on another phone</h2>
-    <p>Open this private link on your other phone to keep your name and answers. Anyone with this link can answer as you, so don't share it.</p>
-    <pre class="message" id="personal-text">${esc(personal)}</pre>
+    <p>Copy your private link and open it on your other phone to keep your name and answers. Anyone with this link can answer as you, so don't share it.</p>
     <div class="actions stack">
-      <button class="btn" type="button" id="copy-personal" data-act="copy" data-source="personal-text" data-private="1">Copy my private link</button>
-      <button class="btn quiet" type="button" id="reset-key" data-act="reset-key">Make a new private link (the old one stops working)</button>
+      <button class="btn" type="button" id="copy-personal" data-act="copy-text" data-text="${esc(personal)}" data-private="1">Copy my private link</button>
+      <button class="btn quiet" type="button" id="reset-key" data-act="reset-key">Make a new private link</button>
     </div>
+    <p>If you make a new link, your old link will stop working.</p>
   </section>` : ''}
+
+  ${view.members.some((m) => m.canRemove) ? `<details class="block manage" id="manage-box" ${ui.removeAsk ? 'open' : ''}>
+    <summary>Manage members</summary>
+    <p>You made this group, so you can remove someone who joined more than 2 days ago and hasn't answered anything, for example if they lost their phone.</p>
+    ${membersList()}
+  </details>` : ''}
 
   <section class="block">
     <h2>Leave this group</h2>
@@ -808,12 +894,11 @@ function crewScreen() {
 }
 
 function membersList() {
-  const items = view.members.map((m) => {
-    if (!m.canRemove) return `<li>${esc(m.name)}${m.id === view.me.id ? ' (you)' : ''}</li>`;
+  const items = view.members.filter((m) => m.canRemove).map((m) => {
     if (ui.removeAsk === m.id) {
-      return `<li class="member-ask"><span>Remove ${esc(m.name)}? They joined but haven't answered anything.</span>
-        <span class="actions"><button class="btn small danger" type="button" id="remove-yes" data-act="remove" data-member="${esc(m.id)}">Remove</button>
-        <button class="btn small quiet" type="button" id="remove-no" data-act="remove-cancel">Cancel</button></span></li>`;
+      return `<li class="member-ask"><span>Remove ${esc(m.name)} from the group?</span>
+        <span class="actions"><button class="btn small danger" type="button" id="remove-yes" data-act="remove" data-member="${esc(m.id)}" data-name="${esc(m.name)}">Remove</button>
+        <button class="btn small quiet" type="button" id="remove-no" data-act="remove-cancel">Keep ${esc(m.name)}</button></span></li>`;
     }
     return `<li><span>${esc(m.name)}</span> <button class="btn small quiet" type="button" id="remove-${esc(m.id)}" data-act="remove-ask" data-member="${esc(m.id)}">Remove</button></li>`;
   });
@@ -907,33 +992,76 @@ async function act(action, hangId = route.hangId) {
 
 // Saves go one after another, so a slow save can never overwrite a newer one.
 let saveChain = Promise.resolve();
-function flushFree({ keepalive = false } = {}) {
+function flushFree({ leaving = false } = {}) {
   clearTimeout(flushTimer);
   flushTimer = null;
   const entries = [...pendingFree.entries()];
   if (!entries.length) return saveChain;
   const crewId = route.crewId;
+  const actions = entries.map(([hangId, set]) => {
+    const hang = view && view.hangs.find((h) => h.id === hangId);
+    const action = { type: 'respond', hangId, free: [...set], seq: nextSeq() };
+    if (hang && hang.mine.on === null && set.size) action.on = true; // picking times means you're in
+    return { hangId, set, action, wasReady: hang && hang.status === 'ready' };
+  });
+  if (leaving) {
+    // The page is closing: send now, without waiting for earlier saves. The numbers keep the order right.
+    for (const { action } of actions) store.act(crewId, action, { keepalive: true }).catch(() => {});
+    return saveChain;
+  }
   saveChain = saveChain.then(async () => {
-    for (const [hangId, set] of entries) {
-      const hang = view && view.hangs.find((h) => h.id === hangId);
-      const action = { type: 'respond', free: [...set] };
-      if (hang && hang.mine.on === null && set.size) action.on = true; // picking times means you're in
+    let wasReady = true;
+    for (const { hangId, set, action, wasReady: r } of actions) {
+      wasReady = wasReady && r;
       try {
-        await store.act(crewId, { hangId, ...action }, { keepalive });
+        await store.act(crewId, action, { keepalive: true });
       } catch (e) {
         toast(e.message || "Your times weren't saved. Try again.");
       }
       if (pendingFree.get(hangId) === set) pendingFree.delete(hangId);
     }
-    if (!keepalive) await refresh(false);
+    await refresh(false);
+    cueIfReady(wasReady);
   });
   return saveChain;
 }
 
+// When your own answer makes the plan ready, say so, even if the confirm button is further down.
+function cueIfReady(wasReady) {
+  const hang = currentHang();
+  if (!wasReady && hang && hang.status === 'ready') toast(`Enough people are free on ${L.slotLabel(hang.best.id)}. You can confirm the plan now.`);
+}
+
+async function showCode(hang) {
+  if (!hang) return;
+  const out = await store.showCode(route.crewId, hang.id);
+  ui.code = { hangId: hang.id, ...out };
+  await refresh(false);
+  clearInterval(codeTimer);
+  // Keep the code on screen up to date while it's shown.
+  codeTimer = setInterval(async () => {
+    const h = currentHang();
+    if (!h || !h.lock || !h.lock.checkinOpen || document.visibilityState !== 'visible') {
+      clearInterval(codeTimer);
+      ui.code = null;
+      return;
+    }
+    if (Date.now() >= ui.code.expiresAt - 5000) {
+      try {
+        const next = await store.showCode(route.crewId, h.id);
+        ui.code = { hangId: h.id, ...next };
+        redraw();
+      } catch {
+        /* try again next time */
+      }
+    }
+  }, 5000);
+}
+
 // Send any waiting taps before the page is closed or hidden.
-window.addEventListener('pagehide', () => flushFree({ keepalive: true }));
+window.addEventListener('pagehide', () => flushFree({ leaving: true }));
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') flushFree({ keepalive: true });
+  if (document.visibilityState === 'hidden') flushFree({ leaving: true });
 });
 
 function toggleSlot(hang, slot) {
@@ -944,6 +1072,16 @@ function toggleSlot(hang, slot) {
   redraw();
   clearTimeout(flushTimer);
   flushTimer = setTimeout(flushFree, 400);
+}
+
+async function copyText(text, button) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(button && button.dataset.private ? 'Copied. Open it on your other phone.' : 'Copied. Now paste it into your group chat.');
+    if (button) button.textContent = 'Copied';
+  } catch {
+    toast("Couldn't copy. Your browser may not allow it here.");
+  }
 }
 
 async function copyFrom(sourceId, button) {
@@ -987,9 +1125,11 @@ function showFieldError(id, message) {
 }
 
 // When the button you pressed goes away, move focus to the new heading instead of the top of the page.
-function focusStatus() {
+function focusStatus(scroll = false) {
   const el = document.getElementById('status-title');
-  if (el) el.focus();
+  if (!el) return;
+  el.focus({ preventScroll: !scroll });
+  if (scroll) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
 // Count calendar clicks for the user test (server version only).
@@ -1024,6 +1164,23 @@ app.addEventListener('click', (event) => {
     if (s && a === 'switch-yes') store.claim(s.crewId, s.memberId, s.key, s.crewName);
     return void go(s ? `crew-${s.crewId}` : 'start');
   }
+  if (a === 'copy-text') {
+    copyText(target.dataset.text, target);
+    return;
+  }
+  if (a === 'go-status') {
+    focusStatus(true);
+    return;
+  }
+  if (a === 'seats-edit') {
+    ui.seatsEdit = true;
+    redraw();
+    document.getElementById('h-seats')?.focus();
+    return;
+  }
+  if (a === 'show-code') {
+    return void run(() => showCode(currentHang()));
+  }
   if (a === 'joined-close') {
     ui.justJoined = false;
     redraw();
@@ -1040,7 +1197,7 @@ app.addEventListener('click', (event) => {
       ui.removeAsk = null;
       await store.act(route.crewId, { type: 'remove', targetId: target.dataset.member });
       await refresh(false);
-      toast('Removed from the group.');
+      toast(`${target.dataset.name} was removed from the group.`);
     });
   }
   if (a === 'reset-key') {
@@ -1113,10 +1270,13 @@ app.addEventListener('click', (event) => {
     await flushFree();
     const fresh = currentHang() || hang;
     switch (a) {
-      case 'on':
+      case 'on': {
         ui.swapOpen = false;
-        await act({ type: 'respond', on: target.dataset.on === '1' });
+        const wasReady = fresh.status === 'ready';
+        await act({ type: 'respond', on: target.dataset.on === '1', seq: nextSeq() });
+        cueIfReady(wasReady);
         break;
+      }
       case 'like':
         await act({ type: 'like', placeId: target.dataset.place, on: target.getAttribute('aria-pressed') !== 'true' });
         break;
@@ -1129,14 +1289,14 @@ app.addEventListener('click', (event) => {
         focusStatus();
         break;
       case 'join-time':
-        await act({ type: 'respond', on: true, free: [...new Set([...fresh.mine.free, fresh.lock.slot])] });
+        await act({ type: 'respond', on: true, free: [...new Set([...fresh.mine.free, fresh.lock.slot])], seq: nextSeq() });
         focusStatus();
         break;
       case 'swap-save': {
         const free = [...ui.swapPick].filter((s) => s !== fresh.lock.slot);
         ui.swapOpen = false;
         ui.swapPick = null;
-        await act({ type: 'respond', free });
+        await act({ type: 'respond', free, seq: nextSeq() });
         focusStatus();
         break;
       }
@@ -1206,6 +1366,25 @@ app.addEventListener('submit', (event) => {
       await act({ type: 'addPlace', placeId: L.newId(), name: data.name });
       const input = document.getElementById('p-name');
       if (input) input.value = '';
+    });
+  } else if (form.id === 'seats-form') {
+    run(async () => {
+      await act({ type: 'setSeats', seats: data.seats });
+      ui.seatsEdit = false;
+      toast('Saved. The plan now needs fewer people.');
+    });
+  } else if (form.id === 'checkin-form') {
+    if (!requireFields(form, [['ci-code', 'Type the 4-digit code.']])) return;
+    run(async () => {
+      try {
+        await act({ type: 'checkin', code: data.code });
+      } catch (e) {
+        if (['wrong_code', 'slow_down'].includes(e.code)) return showFieldError('ci-code', e.message);
+        throw e;
+      }
+      ui.errors = {};
+      toast("You're checked in.");
+      focusStatus();
     });
   } else if (form.id === 'size-form') {
     run(async () => {

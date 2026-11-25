@@ -125,11 +125,13 @@ async function context(opts = {}) {
   await jason.click('#on-yes');
   await jason.click(cell);
   await jason.waitForSelector('text=Enough people are free', { timeout: 8000 });
+  await jason.waitForSelector('#go-status');
   const yAfter = await pageY(jason, cell);
   check(Math.abs(yAfter - yBefore) < 60, `the grid jumped by ${Math.round(yAfter - yBefore)}px after the first answer`);
   step('server: the page did not jump when Jason answered for the first time');
+  check(await jason.locator('#copy-joined').count(), 'after answering, the private link box should show');
   await shot(jason, '06-ready-dark');
-  step('server: Jason said yes and picked the same time, so the plan is ready');
+  step('server: Jason said yes and picked the same time; the plan is ready, with a "Go to confirm" cue and the private link box below');
 
   await mandy.waitForSelector('text=Enough people are free', { timeout: 8000 });
   step('server: Mandy saw it update live');
@@ -154,13 +156,14 @@ async function context(opts = {}) {
   await shot(mandy, '10-group-page');
   step('server: the group page offers a private link for other devices');
 
-  const mandysLink = (await mandy.textContent('#personal-text')).trim();
+  check(!(await mandy.locator('#manage-box').count()), 'nobody can be removed straight after joining');
+  const mandysLink = await mandy.getAttribute('#copy-personal', 'data-text');
   await jason.goto(mandysLink);
-  await jason.waitForSelector('text=Switch to Mandy?');
+  await jason.waitForSelector('text=Use this group as Mandy?');
   await shot(jason, '10b-switch-prompt-dark');
   await jason.click('#switch-no');
-  await jason.waitForSelector('.members');
-  check(/Jason \(you\)/.test(await jason.textContent('.members')), 'Jason should still be Jason after saying no');
+  await jason.waitForSelector('text=Plans');
+  check(/Jason \(you\)/.test(await jason.textContent('main')), 'Jason should still be Jason after saying no');
   step("server: opening Mandy's private link on Jason's phone asks first, and Jason stayed Jason");
 
   await mandyCtx.close();
@@ -212,18 +215,26 @@ async function context(opts = {}) {
 
   if (await page.locator('text=Can you make it?').count()) {
     await page.click('#join-time');
-    await page.waitForSelector('#demo-skip');
+    await page.waitForSelector('#demo-start');
     step('demo: Mandy was asked about the new time and said yes');
   }
-  await page.click('#demo-skip');
-  await page.waitForSelector('text=Did you meet?');
-  await page.click('#met-yes');
+  await page.click('#demo-start');
+  await page.waitForSelector('#show-code');
+  await page.click('#show-code');
+  await page.waitForSelector('.code');
+  const code = (await page.textContent('.code')).trim();
+  check(/^\d{4}$/.test(code), `expected a 4-digit code, saw "${code}"`);
+  await shot(page, '15-demo-checkin');
+  step(`demo: at the start of the plan, Mandy shows the check-in code (${code})`);
+  await page.click('#demo-checkin');
   await page.waitForSelector('h2:has-text("You met")');
-  await shot(page, '15-demo-met');
+  check(/checked in/.test(await page.textContent('.status')), 'the plan should say who checked in');
+  await shot(page, '16-demo-met');
+  step('demo: a friend typed in the code, so the plan counts as met (checked in)');
   await page.click('.bar-link');
   await page.waitForSelector("text=You've met 1 time");
-  await shot(page, '16-demo-group');
-  step('demo: marked as met, and the group page counts it');
+  await shot(page, '16b-demo-group');
+  step('demo: the group page counts it');
 
   await ctx.close();
   await new Promise((r) => inst.server.close(r));

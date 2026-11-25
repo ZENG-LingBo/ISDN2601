@@ -53,7 +53,7 @@ async function newCrew(extra = {}) {
 before(async () => {
   dir = await mkdtemp(path.join(tmpdir(), 'minibus-'));
   ({ inst: instance, base } = await start(path.join(dir, 'store.json'), {
-    adminToken: 'admin-secret-for-tests',
+    adminToken: 'admin-secret-for-tests-0123456789abcdef',
     trustProxy: true,
     notice: { operator: 'Mandy <Chan>', contact: 'mandy@example.com', deleteBy: '31 Dec 2026' },
   }));
@@ -228,7 +228,7 @@ test('the privacy notice details are filled in from settings, safely', async () 
 test('admin export and delete need the admin token', async () => {
   const a = await newCrew({ crewName: 'export me' });
   assert.equal((await call('GET', '/api/admin/export')).status, 404);
-  const res = await fetch(`${base}/api/admin/export`, { headers: { authorization: 'Bearer admin-secret-for-tests' } });
+  const res = await fetch(`${base}/api/admin/export`, { headers: { authorization: 'Bearer admin-secret-for-tests-0123456789abcdef' } });
   assert.equal(res.status, 200);
   const data = await res.json();
   assert.equal(data.crews[a.crewId].crew.name, 'export me');
@@ -236,18 +236,9 @@ test('admin export and delete need the admin token', async () => {
   assert.ok(!JSON.stringify(data).includes('"keys"'));
   let del = await fetch(`${base}/api/admin/crews/${a.crewId}`, { method: 'DELETE', headers: { authorization: 'Bearer wrong' } });
   assert.equal(del.status, 404);
-  del = await fetch(`${base}/api/admin/crews/${a.crewId}`, { method: 'DELETE', headers: { authorization: 'Bearer admin-secret-for-tests' } });
+  del = await fetch(`${base}/api/admin/crews/${a.crewId}`, { method: 'DELETE', headers: { authorization: 'Bearer admin-secret-for-tests-0123456789abcdef' } });
   assert.equal(del.status, 200);
   assert.equal((await call('GET', `/api/crews/${a.crewId}`)).status, 404);
-});
-
-test('a new private link replaces the old one', async () => {
-  const a = await newCrew();
-  const res = await call('POST', `/api/crews/${a.crewId}/reset-key`, {}, a);
-  assert.equal(res.status, 200);
-  const fresh = { memberId: a.memberId, key: res.data.key };
-  assert.equal((await call('GET', `/api/crews/${a.crewId}`, undefined, a)).data.me, null, 'old key no longer works');
-  assert.equal((await call('GET', `/api/crews/${a.crewId}`, undefined, fresh)).data.me.name, 'A');
 });
 
 test('behind a proxy, only the last forwarded address counts', async () => {
@@ -289,4 +280,52 @@ test('one damaged group is set aside and the rest still load', async () => {
   assert.equal(errors.length, 1);
   assert.ok((await readdir(sub)).some((f) => f.startsWith('store.json.unreadable-groups-')));
   await new Promise((r) => again.server.close(r));
+});
+
+test('a weak admin token stops the server from starting', async () => {
+  await assert.rejects(() => createMinibusServer({ dataFile: path.join(dir, 'weak.json'), adminToken: 'short', log: quiet }), /at least 32/);
+});
+
+test('a new private link only replaces the old one once it is used, and resets are limited', async () => {
+  const a = await newCrew();
+  const res = await call('POST', `/api/crews/${a.crewId}/reset-key`, {}, a);
+  const fresh = { memberId: a.memberId, key: res.data.key };
+  assert.equal((await call('GET', `/api/crews/${a.crewId}`, undefined, a)).data.me.name, 'A', 'old link still works until the new one is used');
+  assert.equal((await call('GET', `/api/crews/${a.crewId}`, undefined, fresh)).data.me.name, 'A');
+  assert.equal((await call('GET', `/api/crews/${a.crewId}`, undefined, a)).data.me, null, 'now the old link has stopped working');
+  let who = fresh;
+  const statuses = [];
+  for (let i = 0; i < 6; i++) {
+    const r = await call('POST', `/api/crews/${a.crewId}/reset-key`, {}, who);
+    statuses.push(r.status);
+    if (r.status === 200) {
+      who = { memberId: a.memberId, key: r.data.key };
+      await call('GET', `/api/crews/${a.crewId}`, undefined, who);
+    }
+  }
+  assert.ok(statuses.includes(429));
+});
+
+test('check-in through the server: show the code, type it in, too many wrong tries are stopped', async () => {
+  const a = await newCrew();
+  const b = (await call('POST', `/api/crews/${a.crewId}/join`, { name: 'B' })).data;
+  const codeRes = await call('POST', `/api/crews/${a.crewId}/hangs/${a.hangId}/code`, {}, a);
+  assert.equal(codeRes.status, 400, 'no code before the plan is confirmed');
+  const wrong = [];
+  for (let i = 0; i < 11; i++) {
+    wrong.push((await call('POST', `/api/crews/${a.crewId}/actions`, { action: { type: 'checkin', hangId: a.hangId, code: '0000' } }, b)).status);
+  }
+  assert.equal(wrong.at(-1), 429, 'guessing is limited');
+});
+
+test('link opens and refused rejoins are counted for the user test', async () => {
+  const a = await newCrew();
+  await call('POST', `/api/crews/${a.crewId}/opened`, { hangId: a.hangId });
+  await call('POST', `/api/crews/${a.crewId}/opened`, { hangId: '__proto__' });
+  assert.equal((await call('POST', `/api/crews/${a.crewId}/join`, { name: 'A' })).status, 400);
+  const res = await fetch(`${base}/api/admin/export`, { headers: { authorization: 'Bearer admin-secret-for-tests-0123456789abcdef' } });
+  const data = await res.json();
+  assert.equal(data.crews[a.crewId].hangs[a.hangId].stats.opens, 1);
+  assert.equal(data.crews[a.crewId].crew.stats.nameTaken, 1);
+  assert.equal(data.crews[a.crewId].crew.secret, undefined);
 });
