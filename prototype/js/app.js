@@ -355,7 +355,7 @@ function seats(hang) {
   let text = '';
   if (hang.lock) {
     filled = hang.lock.people.length;
-    text = hang.outcome ? `${people(filled)} went.` : `${people(filled)} going.`;
+    text = hang.outcome ? `${people(filled)} were going.` : `${people(filled)} going.`;
   } else if (hang.best) {
     filled = hang.best.count;
     text = `${people(filled)} can make the same time. The plan needs ${hang.seats}.`;
