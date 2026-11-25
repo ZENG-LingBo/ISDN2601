@@ -468,7 +468,7 @@ function placard(hang, asHeading = true) {
   let when = 'Not decided yet';
   if (hang.lock) when = slotText(hang.lock.slot);
   else if (hang.best) when = `Best so far: ${slotText(hang.best.id)}`;
-  let where = hang.suggest ? 'After the activity is chosen' : 'Not decided yet';
+  let where = hang.suggest ? 'Once you know what to do' : 'Not decided yet';
   if (hang.lock && hang.lock.placeName) where = hang.lock.placeName;
   else if (hang.places.length) where = `Most votes: ${hang.places[0].name}`;
   return `
@@ -516,7 +516,7 @@ function noteText(hang) {
   if (!n || hang.outcome || ['check', 'expired'].includes(hang.status)) return '';
   let text = '';
   if (n.type === 'moved') text = `The plan moved from ${slotText(n.from)} to ${slotText(n.to)}, because someone can't make the old time.`;
-  else if (n.type === 'unlocked') text = `Not enough people can make the old time anymore, so the group is choosing a new time. Add any other times you can make.${hang.suggest ? ' What to do is open again too.' : ''}`;
+  else if (n.type === 'unlocked') text = `Not enough people can make the old time anymore, so the group is choosing a new time. Add any other times you can make.${hang.suggest ? ' You can also pick what to do again.' : ''}`;
   else if (n.type === 'auto') text = 'Everyone answered, so Minibus confirmed the best time.';
   else if (n.type === 'deadline') text = 'After 48 hours, enough people could make it, so Minibus confirmed the best time.';
   else if (n.type === 'sent' && n.by) text = `${n.by} confirmed the plan once enough people were free.`;
@@ -599,7 +599,7 @@ function suggestionsBlock(hang) {
     <h2>What to do</h2>
     <p>Minibus suggests 3 things that suit everyone in the group, based on what people told it privately. ${canPick ? "Tap the ones you'd go to." : "Say you're in to pick the ones you'd go to."}${hang.suggestionsShared ? '' : " You'll see how many people would go once enough people have answered."}</p>
     ${canPick && !hang.mine.anyOk && hang.mine.picks.length && !hang.suggestions.some((a) => hang.mine.picks.includes(a.id)) ? '<p class="banner">The suggestions changed. Pick again.</p>' : ''}
-    ${view.members.length < L.MIN_FOR_LIMITS ? `<p>Until ${L.MIN_FOR_LIMITS} people have joined, Minibus doesn't use anyone's food or spending limits, so they stay private.</p>` : ''}
+    ${view.members.length < L.MIN_FOR_LIMITS ? `<p>Until ${L.MIN_FOR_LIMITS} people have joined, Minibus doesn't use anyone's food or spending limits, so they stay private. Until then, the suggestions may not suit everyone.</p>` : ''}
     <ul class="ideas">${items}</ul>
     ${canPick ? `<button type="button" class="btn toggle" id="any-ok" data-act="any-ok" aria-pressed="${hang.mine.anyOk}">Any of these is fine</button>` : ''}
     <p class="help">When the plan is confirmed, the one most people would go to becomes the plan.</p>

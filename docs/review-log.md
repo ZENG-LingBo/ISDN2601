@@ -460,4 +460,14 @@ What changed:
 
 Text judge on the 2030 version: FAIL in round 1 (the privacy promise and 3 smaller items), FAIL in round 2 ("right after someone answers" sounded like saying yes could give a limit away), then PASS in round 3.
 
-**Re-check.** The reviewer confirmed the fixes. A friend saying yes changed the 3 suggestions in 0% of 2,000 random cases (before the fix, 37–61%). No suggestion broke anyone's limits in 6,400 combinations. Setting a limit changes the list in 4–29% of cases, depending on group size, and a mood change does so in 32–45% once moods count. Three last fixes: the privacy text now says "limit or mood"; food and spending limits only count once 3 people have joined, because with only 2, the list showed the other person's spending limit about half the time; and the top box says "Where: After the activity is chosen", "Pick again" hides after "Any of these is fine", and the notice says "What to do is open again too" when the plan goes back to choosing.
+**Re-check.** The reviewer confirmed the fixes. A friend saying yes changed the 3 suggestions in 0% of 2,000 random cases (before the fix, 37–61%). In groups of 3 or more, no suggestion broke anyone's limits in 6,400 combinations. Setting a limit changes the list in 4–29% of cases, depending on group size, and a mood change does so in 32–45% once moods count.
+
+The last fixes:
+
+- The privacy text now says "limit or mood".
+- Food and spending limits only count once 3 people have joined. With only 2, the list showed the other person's spending limit about half the time. Until 3 have joined, the app says the suggestions may not suit everyone.
+- The top box says "Where: Once you know what to do".
+- "Pick again" no longer shows after "Any of these is fine".
+- When the plan goes back to choosing a time, the notice adds "You can also pick what to do again".
+
+Text judge on these last changes: FAIL on 2 small items in round 1, then fixed.
