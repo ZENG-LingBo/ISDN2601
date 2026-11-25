@@ -48,6 +48,7 @@ The cycles ran faster than first planned, so the schedule below shows what actua
 | 02:30–02:45 | 10 | A new reviewer checked the cycle 9 change. 1 P1 and 5 P2s from the new screens, all fixed. |
 | 02:45–03:00 | 11 | Docs checked against the code (all fixed, text judge PASS) and a security review of the server (2 privacy leaks and 6 P2s fixed). |
 | 03:00–03:20 | 12 | A new reviewer checked the cycle 11 change. 1 P1 in the demo and 3 P2s fixed. |
-| until about 06:15 | 13+ | More find, rank, fix, check cycles on whatever ranks highest. Push after every cycle. |
+| 03:20–03:36 | 13 | A new reviewer ran a full week for a group of 5. 2 P1s (privacy promise, stuck plans) and 4 P2s fixed. |
+| until about 06:15 | 14+ | More find, rank, fix, check cycles on whatever ranks highest. Push after every cycle. |
 
 The deck and script for 9:00 are frozen once they pass. Only the prototype keeps changing after that.

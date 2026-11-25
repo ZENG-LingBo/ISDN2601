@@ -418,7 +418,7 @@ function demoBar(hang) {
   const locked = hang && hang.status === 'locked';
   const checkinOpen = locked && hang.lock.checkinOpen;
   const swapper = locked && !checkinOpen ? store.demoSwapperName(view.crew.id, hang.id) : null;
-  if (swapper) buttons.push(`<button class="btn small" type="button" id="demo-swap" data-act="demo" data-what="swap">${esc(swapper)} can't make it anymore</button>`);
+  if (swapper) buttons.push(`<button class="btn small" type="button" id="demo-swap" data-act="demo" data-what="swap">${esc(swapper)} can't make this time</button>`);
   if (locked && !checkinOpen) buttons.push('<button class="btn small" type="button" id="demo-start" data-act="demo" data-what="start">Skip to the start of the plan</button>');
   const codeShown = Boolean(checkinOpen && ui.code && ui.code.hangId === hang.id && hang.lock.imGoing);
   const checker = checkinOpen && codeShown ? store.demoSwapperName(view.crew.id, hang.id, { notCheckedIn: true }) : null;
@@ -521,7 +521,7 @@ function answerBlock(hang) {
   const on = hang.mine.on;
   return `<section class="block">
     <h2>Are you in?</h2>
-    <p>Until the plan is confirmed, nobody sees your name with your answer. People only see totals, like "3 free".</p>
+    <p>Until the plan is confirmed, nobody sees your name with your answer. People only see totals, like "3 free". In a small group, friends may still be able to guess.</p>
     <div class="choice" role="group" aria-label="Are you in?">
       <button class="btn toggle" type="button" id="on-yes" data-act="on" data-on="1" aria-pressed="${on === true}">I'm in</button>
       <button class="btn toggle" type="button" id="on-no" data-act="on" data-on="0" aria-pressed="${on === false}">Not this time</button>
@@ -630,7 +630,7 @@ function openStatus(hang) {
   if (hang.stuck) {
     return `<section class="status ask">
       ${statusTitle('No time works yet')}
-      <p>Everyone has answered, but no time has ${people(hang.seats)} free. Add more times you could make, or lower the number of people needed.</p>
+      <p>${hang.waiting ? '48 hours have passed' : 'Everyone has answered'}, but no time has ${people(hang.seats)} free. Add more times you could make, or lower the number of people needed.</p>
       ${ui.seatsEdit
         ? `<form id="seats-form" class="field" novalidate>
             <label for="h-seats">How many people need to be free?</label>
@@ -658,7 +658,7 @@ function readyStatus(hang) {
     ${isSoon(hang.best.id) ? '<p>This time is less than 12 hours away, so Minibus won\'t confirm it on its own.</p>' : ''}
     ${onBoard
       ? '<button class="btn primary wide" type="button" id="confirm" data-act="lock">Confirm this time now</button><p>Anyone who is in can confirm it.</p>'
-      : '<p>Say you\'re in to confirm the plan now.</p>'}
+      : hang.mine.on === null ? '<p>Say you\'re in to confirm the plan now.</p>' : ''}
     ${remindBlock(hang)}
   </section>`;
 }
@@ -780,18 +780,17 @@ function swapBlock(hang) {
   const open = hang.slots
     .filter((s) => !s.closed && s.id !== lockSlot)
     .sort((a, b) => b.count - a.count || L.slotTime(a.id) - L.slotTime(b.id));
-  let options = open.filter((s, i) => (s.count > 0 && i < 6) || ui.swapPick.has(s.id));
-  if (options.length < 3) options = open.filter((s, i) => i < 4 || ui.swapPick.has(s.id));
+  const options = open;
   return `<div class="swap">
-    <h3>Change your times instead of cancelling</h3>
-    <p>Pick any other times you can make. If enough people can make one of them, the plan moves there.</p>
+    <h3>Can't make ${esc(slotText(lockSlot))}?</h3>
+    <p>Pick any other times you can make, then tap "I can't make this time". If enough people can make one of your times, the plan moves there.</p>
     <div class="swap-list" role="group" aria-label="Other times you can make">
       ${options.map((s) => `<button class="btn toggle" type="button" id="pick-${esc(s.id)}" data-act="swap-pick" data-slot="${esc(s.id)}" aria-pressed="${ui.swapPick.has(s.id)}">${esc(slotText(s.id))}${others(s) ? ` (${people(others(s))} free)` : ''}</button>`).join('')}
     </div>
     <div class="actions stack">
-      <button class="btn primary" type="button" id="swap-save" data-act="swap-save">Save my times</button>
+      <button class="btn primary" type="button" id="swap-save" data-act="swap-save">I can't make this time</button>
       <button class="btn" type="button" id="swap-out" data-act="on" data-on="0">I can't go at all</button>
-      <button class="btn quiet" type="button" id="swap-close" data-act="swap-close">Keep my times</button>
+      <button class="btn quiet" type="button" id="swap-close" data-act="swap-close">Cancel</button>
     </div>
   </div>`;
 }
@@ -823,8 +822,10 @@ function afterStatus(hang) {
       </div>`
     : '';
   if (hang.status === 'happened') {
+    const wentOrGoing = hang.lock.imGoing || hang.lock.iCheckedIn;
     return `<section class="status done">
-      ${statusTitle('You met')}
+      ${statusTitle(wentOrGoing ? 'You met' : 'The group met')}
+      ${hang.lock.checkinOpen && hang.lock.imGoing && !hang.lock.iCheckedIn ? checkinBlock(hang) : ''}
       <p>${hang.outcome && hang.outcome.checked ? `${esc(joinNames(hang.lock.checkedIn))} checked in. ` : ''}That's ${L.slotHours(hang.lock.slot)} more hours together. Your group has met ${view.hours.times} ${view.hours.times === 1 ? 'time' : 'times'} so far.</p>
       ${answers}${addMine}
       ${again}
@@ -1000,6 +1001,7 @@ function saveSeen() {
 }
 
 function sinceItems(hang) {
+  if (view.crew.demo) return []; // in the demo, everything changes on purpose
   const key = `minibus-seen-${hang.id}-${view.me ? view.me.id : ''}`;
   const firstLook = !(ui.since && ui.since.hangId === hang.id && ui.since.key === key);
   seenNow = { key, snap: snapshotOf(hang) };
@@ -1067,7 +1069,6 @@ function joinScreen(hang) {
         <p class="help" id="j-name-help">Your friends will see this name.</p>
       </form>
       ${privacyNote()}
-      ${names.length >= 2 ? `<p>Already in this group: ${esc(names.join(', '))}.</p>` : ''}
       ${hang ? "<p>Minibus is named after Hong Kong's red minibuses, which leave once enough people get on.</p>" : ''}
       ${store.kind === 'server' ? `<details class="manage">
         <summary>Joined before on another phone or browser?</summary>
@@ -1702,6 +1703,7 @@ app.addEventListener('submit', (event) => {
     run(async () => {
       await act({ type: 'setSeats', seats: data.seats });
       ui.seatsEdit = false;
+      redraw();
       toast('Saved. The plan now needs fewer people.');
     });
   } else if (form.id === 'checkin-form') {

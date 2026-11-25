@@ -321,3 +321,19 @@ Not done: tests for the rate limits themselves, and for the 30-second save retry
 Text judge on the new wording: FAIL in rounds 1 and 2, then PASS in round 3. It found that the removal text said "only the person who made the group", but if the maker leaves, the member who joined earliest takes over. All 3 places that describe the rule now say so. It also asked for "Removing someone deletes their answers" instead of "Their answers are deleted".
 
 76 unit and server tests pass. The walkthrough passes. The reviewer's repro scripts were run again after the fix.
+
+## Cycle 13: fresh-eyes review of the whole prototype (26 Nov, 03:20–03:36)
+
+A new reviewer who had seen none of the earlier rounds ran a full week for a group of 5 on the server version with a fake clock (Monday to Saturday), the demo 3 ways, and read the code. Verdict: not ready for a class test yet, because of 2 P1s. Both are fixed now.
+
+| Priority | Finding | Change |
+|---|---|---|
+| P1 | People could work out who said yes or no before a plan was confirmed. The join screen listed who had joined, the totals matched the number of answers, and "1 more person has answered" with unchanged totals showed a no. | The join screen no longer lists members, and signed-out viewers get no member names. Fully hiding answers isn't possible in a group of 5 while any totals are shown, so the app now says so: "In a small group, friends may still be able to guess." The README and consent form say the same. |
+| P1 | If one person never answered and no time worked, the plan was stuck after 48 hours: "Lower the number needed" only appeared once everyone had answered. Setting a smaller group size said "Group size saved" but didn't change it. | After 48 hours, a plan where no time works counts as stuck, so the number needed can go down. A group size that's too low gets "This group already has 5 members…". Tests added. |
+| P2 | At the deadline, Minibus confirmed a different time from the one it had shown for 2 days, because the shown time was less than 12 hours away. | Minibus only confirms on its own the time it has been showing. If that time is too soon, someone who is in confirms it. Test added. |
+| P2 | Two check-ins closed check-in for everyone, even before the plan started, so the data couldn't show who came. | Check-in stays open until the plan ends. Test added. |
+| P2 | "Save my times" took you off the confirmed time even if you tapped nothing, "Save" and "Keep" sounded the same, and only 4 of 11 times were offered. | The panel says "Can't make Thu 26 Nov, evening (7–10pm)?", the button says "I can't make this time", the other button says "Cancel", and every open time is listed. |
+| P2 | The README said removing someone never shows who answered, but the number of answers goes down. | The README and consent form now say so. |
+| P3 | "Say you're in to confirm" shown to someone who said no. "You met" shown to people who didn't go. The seats form stayed open after saving. A group of 3 never saw totals. Demo wording and the "since you last looked" box in the demo. The last-2-hours group message still said "change your times". An out-of-date code comment. | All fixed. People who didn't go see "The group met". |
+
+80 unit and server tests pass. The walkthrough passes. The reviewer's stuck-plan and privacy scripts were run again after the fix.

@@ -406,7 +406,8 @@ export function summarize(state, hangId, nowMs) {
     checkedIn,
     metYes,
     metNo,
-    stuck: !hang.lock && !hang.outcome && anyOpen && everyoneAnswered && !ready,
+    // No time works, and either everyone has answered or 48 hours have passed.
+    stuck: !hang.lock && !hang.outcome && anyOpen && (everyoneAnswered || deadlinePassed) && answered.length > 0 && !ready,
     status,
   };
 }
@@ -480,7 +481,9 @@ export function settleChanged(state, nowMs) {
 
     if (summary.ready && (summary.everyoneAnswered || summary.deadlinePassed)) {
       const slot = bestAutoSlot(summary, hang.seats, nowMs);
-      if (slot) {
+      // Only confirm the time people have been seeing as the best. If that one is too soon, someone
+      // has to confirm it, so nobody turns up at a time Minibus quietly swapped.
+      if (slot && (!summary.best || slot.id === summary.best.id)) {
         const reason = summary.everyoneAnswered ? 'auto' : 'deadline';
         lockTo(hang, summary, slot, nowMs, reason);
         hang.note = { type: reason, to: slot.id, at: nowMs };
@@ -522,8 +525,8 @@ export function reduce(prev, action, nowMs) {
     return settle(state, nowMs);
   }
 
-  // Remove someone who joined but never answered anything (for example, they lost their phone).
-  // Anyone who has answered can only leave by themselves.
+  // Remove someone who joined more than 6 hours ago (for example, they lost their phone and joined again).
+  // Their answers are deleted.
   if (type === 'remove') {
     // One message for every reason, so trying it never tells you whether someone has answered.
     const refuse = () => new ActionError('cant_remove', "You can't remove this person. Only the person who made the group can remove members, or the earliest member if the maker has left. Members can be removed only after 6 hours in the group.");
@@ -538,7 +541,10 @@ export function reduce(prev, action, nowMs) {
   }
 
   if (type === 'setSize') {
-    const min = Math.max(LIMITS.sizeMin, Object.keys(state.members).length);
+    const count = Object.keys(state.members).length;
+    const min = Math.max(LIMITS.sizeMin, count);
+    const asked = clampInt(action.size, 0, LIMITS.sizeMax, state.crew.size);
+    if (asked < min) throw new ActionError('invalid', count > LIMITS.sizeMin ? `This group already has ${count} members, so its size can't be lower than that.` : `A group needs at least ${LIMITS.sizeMin} people.`);
     state.crew.size = clampInt(action.size, min, LIMITS.sizeMax, state.crew.size);
     return settle(state, nowMs);
   }
@@ -580,7 +586,7 @@ export function reduce(prev, action, nowMs) {
   }
 
   if (type === 'showCode' || type === 'checkin') {
-    if (!hang.lock || hang.outcome) throw new ActionError('not_locked', 'Check-in is only for confirmed plans.');
+    if (!hang.lock || (hang.outcome && !hang.outcome.checked)) throw new ActionError('not_locked', 'Check-in is only for confirmed plans.');
     if (!checkinOpen(hang.lock.slot, nowMs)) throw new ActionError('checkin_closed', 'Check-in opens 30 minutes before the plan and closes when it ends.');
     const summary = summarize(state, hang.id, nowMs);
     if (!summary.lockPeople.includes(member.id)) throw new ActionError('not_going', 'Only people who are going can check in.');
@@ -608,7 +614,7 @@ export function reduce(prev, action, nowMs) {
       if (!theirs.checkedIn) theirs.checkedIn = nowMs;
     }
     const after = summarize(state, hang.id, nowMs);
-    if (after.checkedIn.length >= CHECKINS_TO_MEET) {
+    if (after.checkedIn.length >= CHECKINS_TO_MEET && !hang.outcome) {
       hang.outcome = { met: true, at: nowMs, by: member.id, checked: true };
     }
     return state;
@@ -757,7 +763,9 @@ export function buildView(state, meId, nowMs) {
       // Someone who isn't signed in (or hasn't joined) sees no totals at all before the plan is
       // confirmed, so a member can't open the plan signed out and compare. Members see totals once
       // at least 2 others are in and at least 3 others have answered, so no one yes stands out.
-      const showCounts = Boolean(hang.lock) || (Boolean(me) && othersIn >= MIN_FOR_COUNTS && othersAnswered >= MIN_ANSWERED_FOR_COUNTS);
+      const othersInGroup = Object.keys(state.members).length - (me ? 1 : 0);
+      const needAnswered = Math.min(MIN_ANSWERED_FOR_COUNTS, othersInGroup); // a group of 3 has only 2 others
+      const showCounts = Boolean(hang.lock) || (Boolean(me) && othersIn >= MIN_FOR_COUNTS && othersAnswered >= needAnswered);
       // A ready plan needs its best time shown, but not every other time's total.
       const showBest = showCounts || (Boolean(me) && s.ready);
       return {
@@ -812,7 +820,7 @@ export function buildView(state, meId, nowMs) {
   return {
     crew: { id: state.crew.id, name: state.crew.name, size: state.crew.size, demo: state.crew.demo },
     me: me ? { id: me.id, name: me.name } : null,
-    members: Object.values(state.members).map((m) => ({
+    members: (me ? Object.values(state.members) : []).map((m) => ({
       id: m.id,
       name: m.name,
       canRemove: Boolean(me) && me.id === manager && canRemoveMember(state, manager, m, nowMs),
@@ -857,7 +865,7 @@ export function lockedMessage(view, link) {
     ...(moved ? [`Old time: ${slotLabel(view.note.from)}`] : []),
     `Going: ${view.lock.people.join(', ')}`,
     ``,
-    `If something comes up, change your times in the app instead of cancelling: ${link}`,
+    view.lock.tooLateToMove ? `Open the plan here: ${link}` : `If something comes up, change your times in the app instead of cancelling: ${link}`,
   ].join('\n');
 }
 

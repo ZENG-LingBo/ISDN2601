@@ -162,8 +162,9 @@ test('leaving deletes the member and their key', async () => {
   const a = await newCrew();
   const b = (await call('POST', `/api/crews/${a.crewId}/join`, { name: 'B' })).data;
   assert.equal((await call('POST', `/api/crews/${a.crewId}/actions`, { action: { type: 'leave' } }, b)).status, 200);
-  const view = await call('GET', `/api/crews/${a.crewId}`);
+  const view = await call('GET', `/api/crews/${a.crewId}`, undefined, a);
   assert.deepEqual(view.data.members.map((m) => m.name), ['A']);
+  assert.deepEqual((await call('GET', `/api/crews/${a.crewId}`)).data.members, [], 'people who are not signed in see no member names');
   assert.equal((await call('POST', `/api/crews/${a.crewId}/actions`, { action: { type: 'respond', hangId: a.hangId, on: true } }, b)).status, 403);
 });
 

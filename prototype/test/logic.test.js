@@ -351,7 +351,9 @@ test('a confirmed plan that nobody was going to in the end counts as not met', (
 
 test('group size can be changed, but not below the number of people in it', () => {
   let state = withFriends(crew({ size: 8 }));
-  state = L.reduce(state, { type: 'setSize', memberId: MANDY, size: 2 }, NOW);
+  // Too low is refused with a message, not quietly changed.
+  assert.throws(() => L.reduce(state, { type: 'setSize', memberId: MANDY, size: 2 }, NOW), { code: 'invalid', message: /already has 4 members/ });
+  state = L.reduce(state, { type: 'setSize', memberId: MANDY, size: 4 }, NOW);
   assert.equal(state.crew.size, 4);
   state = L.reduce(state, { type: 'setSize', memberId: MANDY, size: 6 }, NOW);
   assert.equal(state.crew.size, 6);
@@ -729,4 +731,53 @@ test('people who are not signed in see no names and cannot tell if a plan is rea
   assert.equal(outside.createdBy, '');
   assert.equal(outside.ready, false);
   assert.notEqual(outside.status, 'ready');
+});
+
+test('after 48 hours with no time that works, the number needed can go down even if someone never answered', () => {
+  let state = withFriends(crew({ size: 4, seats: 3 }));
+  state = respond(state, MANDY, true, [THU_EVE]);
+  state = respond(state, JASON, true, [SAT_EVE]);
+  state = respond(state, MEI, true, [SAT_EVE]);
+  // Tom never answers.
+  const later = state.hangs[H].decideBy + HOUR;
+  assert.equal(L.summarize(state, H, NOW).stuck, false, 'before the deadline, wait for Tom');
+  assert.equal(L.summarize(state, H, later).stuck, true);
+  state = L.reduce(state, { type: 'setSeats', hangId: H, memberId: MEI, seats: 2 }, later);
+  assert.equal(state.hangs[H].lock && state.hangs[H].lock.slot, SAT_EVE, 'Saturday has 2 people, so it can be confirmed');
+});
+
+test('at the deadline, Minibus never confirms a different time from the one it has been showing', () => {
+  let state = withFriends(crew({ size: 5, seats: 2 }));
+  const thuNoon = '2026-11-26_lunch';
+  state = respond(state, MANDY, true, [thuNoon, SAT_EVE]);
+  state = respond(state, JASON, true, [thuNoon, SAT_EVE]);
+  state = respond(state, MEI, true, [thuNoon]);
+  // 3 people can make Thursday lunch, so it's the best time. At the deadline it's too soon to confirm on its own.
+  const atDeadline = L.slotTime(thuNoon) - 6 * HOUR;
+  state.hangs[H].decideBy = atDeadline - 1;
+  const settled = L.settle(JSON.parse(JSON.stringify(state)), atDeadline);
+  assert.equal(settled.hangs[H].lock, null, 'Saturday has enough people, but the best time shown is Thursday');
+  assert.equal(L.summarize(settled, H, atDeadline).status, 'ready');
+  // Control: once Thursday lunch has passed, Saturday is the best time and Minibus confirms it.
+  const later = L.slotTime(thuNoon, 'end') + HOUR;
+  const after = L.settle(JSON.parse(JSON.stringify(state)), later);
+  assert.equal(after.hangs[H].lock && after.hangs[H].lock.slot, SAT_EVE);
+});
+
+test('after 2 people check in, others who are going can still check in until the plan ends', () => {
+  let state = confirmedThursday();
+  const at = L.slotTime(THU_EVE, 'start') - 10 * 60 * 1000;
+  state = L.reduce(state, { type: 'showCode', hangId: H, memberId: MANDY }, at);
+  state = L.reduce(state, { type: 'checkin', hangId: H, memberId: MEI, code: L.checkinCode(state, H, at, 0, MANDY) }, at);
+  assert.equal(state.hangs[H].outcome.met, true);
+  state = L.reduce(state, { type: 'checkin', hangId: H, memberId: JASON, code: L.checkinCode(state, H, at, 0, MANDY) }, at + 60 * 1000);
+  assert.deepEqual(L.summarize(state, H, at + 60 * 1000).checkedIn.sort(), [JASON, MANDY, MEI].sort());
+  assert.equal(L.buildView(state, TOM, at).hangs[0].lock.imGoing, false);
+});
+
+test('a group of 3 sees totals once both others have answered and are in', () => {
+  let state = withFriends(crew({ size: 3 }), ['Jason', 'Mei']);
+  state = respond(state, JASON, true, [THU_EVE]);
+  state = respond(state, MEI, true, [THU_EVE, SAT_EVE]);
+  assert.equal(L.buildView(state, MANDY, NOW).hangs[0].showCounts, true);
 });
