@@ -1071,7 +1071,7 @@ function joinScreen(hang) {
       ${hang ? "<p>Minibus is named after Hong Kong's red minibuses, which leave once enough people get on.</p>" : ''}
       ${store.kind === 'server' ? `<details class="manage">
         <summary>Joined before on another phone or browser?</summary>
-        <p>Open your private link if you saved it. If you didn't, join again with a slightly different name, like "Mei C". The person who made the group (or the earliest member, if they've left) can remove your old name after 6 hours.</p>
+        <p>Open your private link if you saved it. If you didn't, join again with a slightly different name, like "Mei C". The person who made the group (or the earliest member, if the maker has left) can remove your old name after 6 hours.</p>
       </details>` : ''}
       ${view.crew.demo ? '<p>This is the demo group. Join as yourself and answer like you normally would.</p>' : ''}
     </section>`;

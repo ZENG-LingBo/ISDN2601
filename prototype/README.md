@@ -196,4 +196,4 @@ Screenshots go into `test/screenshots`. The walkthrough loads Playwright from `/
 - Times are in Hong Kong time.
 - Names that look the same but use different alphabets (like a Cyrillic "а") aren't treated as the same name yet.
 - The server keeps everything in one file. That's fine for a class test with a few dozen groups, not for a public launch. It holds at most 200 groups, and one network can make at most 20 new groups a day. Everyone on campus Wi-Fi may count as one network, so ask a class to make their groups on mobile data.
-- Anyone with the group link can join until the group has 20 members. The person who made the group (or the earliest member, if they've left) can remove members only after they've been in the group for 6 hours.
+- Anyone with the group link can join until the group has 20 members. The person who made the group (or the earliest member, if the maker has left) can remove a member who has been in the group for at least 6 hours.
