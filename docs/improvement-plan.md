@@ -31,13 +31,18 @@ A separate agent, which has not seen how the text was written, reads all the tex
 
 ## Schedule (Hong Kong time)
 
-| Time | Work |
-|---|---|
-| 00:15–01:00 | Prototype v1 done. Review round 1: design, technical, business and feasibility, in parallel. Meanwhile: fix the deck (fine print, coloured labels, generic look). |
-| 01:00–01:45 | Fix round 1 findings. Rewrite all text to the writing rules. |
-| 01:45–02:30 | Review round 2 (same four angles) plus the first text verdict. Fix. |
-| 02:30–03:15 | Review round 3 plus the text verdict again. Fix. |
-| 03:15–04:00 | Final review by a new agent that has seen nothing before. Fix. Publish the demo. |
-| 04:00–06:15 | More cycles on whatever the last reviews rank highest. Keep the text verdict passing. Push after every cycle. |
+The cycles ran faster than first planned, so the schedule below shows what actually happened and what comes next.
 
-The pitch is at 9:00. The deck and script are frozen once they pass, and only the prototype keeps changing after that.
+| Time | Cycle | What happened |
+|---|---|---|
+| 00:15–00:35 | 0 | Pitch deck: generic look, coloured labels and fine print removed. Text judge on deck, script and README: FAIL, FAIL, PASS. |
+| 00:15–00:40 | 1 | Prototype v1 reviewed by design, technical, business and feasibility. 22 findings fixed. |
+| 00:40–00:55 | 2 | Same reviewers again, plus the first text judge on the app. 21 findings fixed. |
+| 00:55–01:05 | 3 | Same reviewers again. 16 findings fixed. Check-in added. |
+| 01:05– | 4 | A new reviewer who has seen nothing before reviews the whole prototype. Text judge on the app again. |
+| next | 5 | Simulated usability test: an agent plays 5 different first-time students doing real tasks and reports where each gets stuck. |
+| next | 6 | Accessibility check: keyboard only, screen reader labels, contrast, zoom to 200%. |
+| next | 7 | Last look at the pitch deck and script before 9:00, by a reviewer who hasn't seen them. |
+| until about 06:15 | 8+ | More find, rank, fix, check cycles on whatever ranks highest. Push after every cycle. |
+
+The deck and script for 9:00 are frozen once they pass. Only the prototype keeps changing after that.
