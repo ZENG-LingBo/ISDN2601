@@ -361,7 +361,7 @@ Text judge on the new wording: FAIL on 2 strings in round 1 (both left out the 1
 
 Cycles 13 and 14 both found privacy problems by hand, so this time a reviewer used a script to test every possible case. It tried every mix of who has joined and what each person answered, in groups of 3 to 6 with 2 to 4 people needed: 146,000 situations, 950,000 screens, and 2 million moments when one more person answers. For each screen, it checked whether the person looking could work out one particular friend's answer.
 
-What worked: when totals are hidden, the screen shows nothing else about anyone's times (0 problems in 224,000 screens), and people who haven't joined never see more than members.
+What worked: when totals are hidden, the screen shows nothing else about anyone's times (0 problems in 224,000 screens), and people who haven't joined never see more than members do.
 
 | Priority | Finding | Change |
 |---|---|---|

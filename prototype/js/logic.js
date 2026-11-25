@@ -580,7 +580,7 @@ export function reduce(prev, action, nowMs) {
     const s = summarize(state, hang.id, nowMs);
     const othersAnswered = s.answeredIds.some((id) => id !== member.id);
     if (othersAnswered && !s.stuck) {
-      throw new ActionError('closed', "The number of people needed can't change once others have answered. It can only go down if everyone has answered and no time works.");
+      throw new ActionError('closed', "The number of people needed can't change once others have answered. It can only go down if no time works once everyone has answered or 48 hours have passed.");
     }
     if (othersAnswered && seats >= hang.seats) throw new ActionError('invalid', `Choose a number lower than ${hang.seats}.`);
     hang.seats = seats;

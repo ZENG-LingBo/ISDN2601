@@ -41,7 +41,7 @@ Each group starts one real plan in its own chat. Don't remind the Minibus groups
 | Opened the link | link opens | — |
 | Answered | answers, time of each first answer | poll votes |
 | Picked a time | first confirmation and how it happened | did the group agree on a time? |
-| Changed plans | how often the plan moved or went back to choosing a time, each person's "can't make this time" answer, and the notice the plan showed last | did anyone cancel? |
+| Changed plans | how often the plan moved or went back to choosing a time, each person's "No, I can't" or "I can't make this time" answer, and the notice the plan showed last | did anyone cancel? |
 | Met | check-ins, "did you meet?" answers | did they meet? (confirm with 2 people) |
 
 Download the export every day ([how](../prototype/README.md#back-up-and-download-the-data)).

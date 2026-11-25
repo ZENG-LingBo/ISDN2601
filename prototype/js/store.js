@@ -266,6 +266,13 @@ class LocalStore {
     );
   }
 
+  // Whether the demo's Tom has answered, so "Make Tom answer" only shows when it does something.
+  demoTomAnswered(crewId, hangId) {
+    const state = this.read(crewId);
+    const tom = state ? Object.values(state.members).find((m) => m.name === 'Tom') : null;
+    return Boolean(tom && tom.r[hangId] && typeof tom.r[hangId].on === 'boolean');
+  }
+
   demoSwapperName(crewId, hangId, opts) {
     const state = this.read(crewId);
     const friend = state ? this.demoSwapper(state, hangId, opts) : null;

@@ -278,14 +278,14 @@ export async function createMinibusServer({
       });
       req.on('end', () => {
         // Read the whole body before answering, so the client gets a clean 413.
-        if (size > MAX_BODY) return reject(new L.ActionError('too_big', 'That request is too big.'));
+        if (size > MAX_BODY) return reject(new L.ActionError('too_big', 'That request is too big. Reload the page and try again.'));
         let parsed;
         try {
           parsed = chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {};
         } catch {
-          return reject(new L.ActionError('invalid', 'The server could not read that request.'));
+          return reject(new L.ActionError('invalid', 'The server could not read that request. Reload the page and try again.'));
         }
-        if (!isPlainObject(parsed)) return reject(new L.ActionError('invalid', 'The server could not read that request.'));
+        if (!isPlainObject(parsed)) return reject(new L.ActionError('invalid', 'The server could not read that request. Reload the page and try again.'));
         resolve(parsed);
       });
       req.on('error', reject);
@@ -339,7 +339,7 @@ export async function createMinibusServer({
     try {
       url = new URL(req.url, 'http://local');
     } catch {
-      return fail(req, res, 400, 'invalid', 'The server could not read that request.');
+      return fail(req, res, 400, 'invalid', 'The server could not read that request. Reload the page and try again.');
     }
     const p = url.pathname;
     const reading = req.method === 'GET' || req.method === 'HEAD';
@@ -384,7 +384,7 @@ export async function createMinibusServer({
     if (p === '/api/crews' && req.method === 'POST') {
       if (!allow(`ip:${clientIp(req)}`, IP_CREATES_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
       if (used(`ipday:${clientIp(req)}`) >= IP_CREATES_PER_DAY) return fail(req, res, 429, 'slow_down', 'Too many new groups from this network today. Try again tomorrow, or switch to mobile data.');
-      if (Object.keys(db.crews).length >= MAX_CREWS) return fail(req, res, 507, 'full', 'This server is full.');
+      if (Object.keys(db.crews).length >= MAX_CREWS) return fail(req, res, 507, 'full', "This server can't take any more groups. Ask the person who runs the server to delete old ones.");
       const body = await readBody(req);
       const ids = { crewId: L.newId(), hangId: L.newId(), memberId: L.newId() };
       const state = L.createCrewState({ ...body, ...ids, demo: false }, now());
@@ -492,7 +492,7 @@ export async function createMinibusServer({
       if (!allow(`member:${me}`, MEMBER_WRITES_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many changes at once. Wait a minute and try again.');
       const body = await readBody(req);
       const action = isPlainObject(body.action) ? { ...body.action } : {};
-      if (!ACTIONS.includes(action.type)) return fail(req, res, 400, 'invalid', 'The server could not read that request.');
+      if (!ACTIONS.includes(action.type)) return fail(req, res, 400, 'invalid', 'The server could not read that request. Reload the page and try again.');
       if (action.type === 'checkin' && !allow(`checkin:${me}`, CHECKIN_TRIES_PER_MINUTE)) {
         return fail(req, res, 429, 'slow_down', 'Too many tries. Wait a minute and ask for the current code.');
       }

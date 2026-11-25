@@ -163,7 +163,7 @@ function joinNames(names) {
 
 function inAppHint() {
   if (!IN_APP_BROWSER) return '';
-  return `<p class="banner">You opened this inside another app. So Minibus remembers you, open it in Safari or Chrome instead: tap the menu (often ••• or ⋮) and choose "Open in browser".</p>`;
+  return `<p class="banner">You opened this inside another app, which may forget your name and answers. Open it in Safari or Chrome instead: tap the menu (often ••• or ⋮) and choose "Open in browser".</p>`;
 }
 
 // Buttons to send a message: the phone's share sheet when there is one, WhatsApp, and copy.
@@ -412,7 +412,7 @@ function demoBar(hang) {
     .map((m) => `<option value="${esc(m.id)}" ${m.id === view.me.id ? 'selected' : ''}>${esc(m.name)}${m.id === self ? ' (you)' : ''}</option>`)
     .join('');
   const buttons = [];
-  if (hang && !hang.outcome && hang.status !== 'expired' && view.members.some((m) => m.name === 'Tom') && hang.status !== 'locked' && hang.status !== 'check') {
+  if (hang && !hang.outcome && hang.status !== 'expired' && view.members.some((m) => m.name === 'Tom') && !store.demoTomAnswered(view.crew.id, hang.id) && hang.status !== 'locked' && hang.status !== 'check') {
     buttons.push('<button class="btn small" type="button" id="demo-tom" data-act="demo" data-what="tom">Make Tom answer</button>');
   }
   const locked = hang && hang.status === 'locked';
@@ -557,8 +557,8 @@ function gridBlock(hang) {
   let bestLine = 'Nobody has picked a time yet.';
   if (notYet) bestLine = '';
   else if (hang.lock) bestLine = `Confirmed: ${slotText(hang.lock.slot)}. Add other times you could make, in case the plan needs to move.`;
-  else if (hang.best) bestLine = `Best time so far: ${slotText(hang.best.id)} (${people(hang.best.count)}).`;
-  else if (!hang.showCounts) bestLine = "You'll see how many people are free at each time once a few more people have answered.";
+  else if (hang.best) bestLine = `Best time so far: ${slotText(hang.best.id)}, with ${people(hang.best.count)} free.`;
+  else if (!hang.showCounts) bestLine = 'To keep answers private, Minibus shows how many people are free at each time only once enough people have answered. In a small group, that may not happen before the plan is confirmed.';
   return `<section class="block">
     <h2>When are you free?</h2>
     <p>${notYet ? "Say you're in first. Then tap all the times you're free in the next 7 days." : "Tap all the times you're free in the next 7 days."}</p>
@@ -819,7 +819,7 @@ function afterStatus(hang) {
     <button class="btn primary" type="button" id="again" data-act="again">Plan the same thing again</button>
     <a class="btn" href="#newplan-${esc(view.crew.id)}">Start a different plan</a>
   </div>`;
-  const answers = hang.outcome && !hang.outcome.checked ? `<p>${hang.outcome.yes} said you met, ${hang.outcome.no} said you didn't.</p>` : '';
+  const answers = hang.outcome && !hang.outcome.checked ? `<p>${hang.outcome.yes} said "Yes, we met". ${hang.outcome.no} said "No, we didn't".</p>` : '';
   const addMine = hang.outcome && !hang.outcome.checked && hang.lock.canSayMet && hang.mine.met === null
     ? `<div class="actions stack">
         <p>Did you meet? Your answer counts too.</p>
@@ -1081,7 +1081,7 @@ function joinScreen(hang) {
         <p class="help" id="j-name-help">Your friends will see this name.</p>
       </form>
       ${privacyNote()}
-      ${hang ? "<p>Minibus is named after Hong Kong's red minibuses, which leave once enough people get on.</p>" : ''}
+      ${hang ? "<p>Minibus is named after Hong Kong's red minibuses, which leave once enough seats are filled.</p>" : ''}
       ${store.kind === 'server' ? `<details class="manage">
         <summary>Joined before on another phone or browser?</summary>
         <p>Open your private link if you saved it. If you didn't, join again with a slightly different name, like "Mei C". The person who made the group (or the earliest member, if the maker has left) can remove your old name after 6 hours.</p>
@@ -1623,7 +1623,7 @@ app.addEventListener('click', (event) => {
         const still = fresh.lock.people.length - 1;
         ui.swapOpen = false;
         await act({ type: 'respond', on: false, free: fresh.mine.free.filter((x) => x !== fresh.lock.slot), seq: nextSeq() });
-        ui.lateMessage = { hangId: fresh.id, memberId: view.me.id, text: `Sorry everyone, I can't make it to ${fresh.idea} anymore. ${still} ${still === 1 ? 'person is' : 'people are'} still going. Have fun!` };
+        ui.lateMessage = { hangId: fresh.id, memberId: view.me.id, text: `Sorry everyone, I can't make "${fresh.idea}" anymore. ${still} ${still === 1 ? 'person is' : 'people are'} still going.${still > 0 ? ' Have fun!' : ''}` };
         redraw();
         document.getElementById('copy-late')?.focus();
         break;

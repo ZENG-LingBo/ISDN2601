@@ -113,7 +113,7 @@ Yes. Their study shows diffusion of responsibility: the more people who could ac
 Today is only about the problem. I kept the question open on purpose, so the answer could be a place, an event or a group habit, not only an app. *(Don't show or mention any prototype.)*
 
 **“Maybe people just don't want to meet?”**
-In another poll, 36% said they're usually disappointed when plans are cancelled, and only 17% pleased (YouGov, 2023). So relief is common, but most people still want to meet.
+In another poll, 36% said they're usually disappointed when plans are cancelled, and only 17% pleased (YouGov, 2023). So relief is common, but twice as many people are disappointed as pleased.
 
 **“How was the 83.7% measured?”**
 It's from an online survey of 600 people aged 12 to 24 by the Hong Kong Federation of Youth Groups, using the UCLA loneliness scale. It isn't a random sample.

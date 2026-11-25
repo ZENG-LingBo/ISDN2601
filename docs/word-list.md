@@ -20,7 +20,7 @@ One word for each thing, used the same way everywhere: in the app, the messages 
 | did you meet? | did it happen? | |
 | check in, check-in code | scan, verify | "Show the code", "Enter the code", "You're checked in." |
 | hours together | friendship hours | |
-| this device | this browser | People think of their phone, not their browser. |
+| this phone (moving to another phone), this device (where data is kept) | this browser | People think of their phone, not their browser. Use "browser" only when it matters, like apps that open links in their own browser. |
 
 ## Style
 

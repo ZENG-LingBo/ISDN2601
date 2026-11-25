@@ -14,7 +14,7 @@ This pitch covers the problem and background study only. It does not pitch a sol
 
 | File | What it is |
 |---|---|
-| [`pitch/script.md`](pitch/script.md) | Timed speaking script (~250 words, ~1:50), lines to cut if you go over time, rehearsal checklist, likely questions |
+| [`pitch/script.md`](pitch/script.md) | Timed speaking script (about 240 words, about 1:50), lines to cut if you go over time, rehearsal checklist, likely questions |
 | [`research/background-study.md`](research/background-study.md) | Evidence tables with sources and caveats, target user, persona, pain points, empathy map, problem statement, HMW rule check, optional interview questions |
 
 The slide deck (8 slides: 7 presented plus a references appendix) is a Claude Slides artifact:
@@ -23,7 +23,7 @@ deck’s Share › Export menu. The speaker notes on each slide match the script
 
 ## Prototype (next stage, not for the 26 Nov pitch)
 
-The pitch only covers the problem. For the next stage, [`prototype/`](prototype/) has **Minibus**, a working prototype that responds to the How Might We question. Friends say privately if they're in and tap the times they're free, and the plan is confirmed once enough people can make the same time.
+The pitch only covers the problem. For the next stage, [`prototype/`](prototype/) has **Minibus**, a working prototype that responds to the How Might We question. Friends say if they're in and tap the times they're free. Names aren't shown with answers until the plan is confirmed. The plan is confirmed once enough people can make the same time.
 
 - Try the demo (one device, pretend friends): https://claude.ai/artifact/Rk1gLXmtPHwNFv97aH3E8E
 - How it works, how to run it for real friends, privacy and consent: [`prototype/README.md`](prototype/README.md)

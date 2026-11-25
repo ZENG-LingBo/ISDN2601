@@ -21,11 +21,13 @@ These apply to the app, the messages it writes for the group chat, the README, t
 - Talk to the reader as "you". Use active voice and present tense.
 - Keep it short. Put the most important words first.
 - Use sentence case for headings and buttons.
-- Buttons say exactly what happens ("Lock in this time", "Copy message").
+- Buttons say exactly what happens ("Confirm this time now", "Copy message").
 - Error messages say what went wrong and what to do next.
 - No slang, no in-jokes, no clever metaphors in instructions. The minibus idea can stay as the name and one short explanation, not as the wording of every control.
 - No tiny grey "fine print". Secondary text is the same size as body text, or close to it, and easy to read.
 - Avoid emoji in the interface.
+- No odd grammar or rare words that make the reader stop and think.
+- No "AI slop": no puffed-up words (seamless, effortless, unlock, elevate, delve, journey, empower, leverage), no "not just X, but Y" patterns, and no filler or hype.
 
 A separate agent, which has not seen how the text was written, reads all the text and gives a pass or fail verdict against these rules. Text is rewritten and re-checked until it passes.
 
