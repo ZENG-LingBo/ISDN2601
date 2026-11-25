@@ -91,7 +91,7 @@ On Windows PowerShell, type `curl.exe` instead of `curl`.
 Do this every day of the test. The export has every group, plan and answer, including private answers, so keep it safe and say so in your consent form. It includes:
 
 - when each person first answered and last changed their answer
-- when each plan was first confirmed, and why (everyone answered, the 48 hours were up, or someone confirmed it), even if it moved later
+- when each plan was first confirmed, and why (everyone answered, 48 hours passed, or someone confirmed it), even if it moved later
 - how many times each plan's link was opened
 - how many people copied the share, reminder and confirmed messages, and tapped "Add to Google Calendar" (each person counts once)
 - how often a plan moved or went back to choosing a time

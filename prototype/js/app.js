@@ -77,6 +77,7 @@ function parseRoute() {
 
 function go(hash) {
   ui.errors = {};
+  toastEl.hidden = true; // a message from the last screen doesn't belong on the next one
   if (location.hash.slice(1) === hash) {
     route = parseRoute();
     load();
@@ -109,6 +110,12 @@ function announce(message) {
 
 function currentHang() {
   return view && route.hangId ? view.hangs.find((h) => h.id === route.hangId) : null;
+}
+
+// "Mandy", "Mandy and Jason", "Mandy, Jason and Mei"
+function joinNames(names) {
+  if (names.length <= 1) return names.join('');
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
 function people(n) {
@@ -212,10 +219,10 @@ function switchScreen() {
   return `<section class="block">
     <h1>Use this group as ${esc(s.name)}?</h1>
     <p>This private link is for ${esc(s.name)} in ${esc(s.crewName)}. ${where}</p>
-    <p>If you continue, this phone answers as ${esc(s.name)}. Only continue if this is your own link.</p>
+    <p>If you use this group as ${esc(s.name)}, this phone answers as ${esc(s.name)}. Do this only if it's your own link.</p>
     <div class="actions stack">
       <button class="btn primary" type="button" id="switch-no" data-act="switch-no">${stay}</button>
-      <button class="btn" type="button" id="switch-yes" data-act="switch-yes">Use the group as ${esc(s.name)}</button>
+      <button class="btn" type="button" id="switch-yes" data-act="switch-yes">Use this group as ${esc(s.name)}</button>
     </div>
   </section>`;
 }
@@ -348,13 +355,13 @@ function seats(hang) {
   let text = '';
   if (hang.lock) {
     filled = hang.lock.people.length;
-    text = `${people(filled)} going.`;
+    text = hang.outcome ? `${people(filled)} went.` : `${people(filled)} going.`;
   } else if (hang.best) {
     filled = hang.best.count;
     text = `${people(filled)} can make the same time. The plan needs ${hang.seats}.`;
   } else if (hang.mine.on === true) {
     filled = 1;
-    text = `Your seat is saved. The plan needs ${hang.seats} people free at the same time.`;
+    text = `You're in. The plan needs ${hang.seats} people free at the same time.`;
   } else {
     text = `The plan needs ${hang.seats} people free at the same time.`;
   }
@@ -423,7 +430,7 @@ function gridBlock(hang) {
   else if (!hang.showCounts) bestLine = "You'll see how many people are free at each time once 2 other people are in.";
   else if (hang.best) bestLine = `Best time so far: ${L.slotLabel(hang.best.id)} (${people(hang.best.count)}).`;
   const readyCue = hang.status === 'ready' && ui.answerFirst
-    ? `<div class="ready-cue"><p><b>Enough people are free on ${esc(L.slotLabel(hang.best.id))}.</b></p><button class="btn small" type="button" id="go-status" data-act="go-status">Go to confirm</button></div>`
+    ? `<div class="ready-cue"><p><b>Enough people are free on ${esc(L.slotLabel(hang.best.id))}.</b></p><button class="btn small" type="button" id="go-status" data-act="go-status">Go to the confirm button</button></div>`
     : '';
   return `<section class="block">
     <h2>When are you free?</h2>
@@ -564,12 +571,13 @@ function lockedStatus(hang) {
 }
 
 function checkinBlock(hang) {
-  const who = hang.lock.checkedIn.length ? `Checked in: ${hang.lock.checkedIn.join(', ')}.` : 'Nobody has checked in yet.';
+  const names = hang.lock.checkedIn.map((n) => (view.me && n === view.me.name ? `${n} (you)` : n));
+  const who = names.length ? `Checked in: ${names.join(', ')}.` : 'Nobody has checked in yet.';
   const shown = ui.code && ui.code.hangId === hang.id ? ui.code : null;
   return `<div class="checkin">
     <h3>Check in</h3>
     <p>When you meet, one person shows the code and the others type it in. When ${L.CHECKINS_TO_MEET} people have checked in, the plan counts as met.</p>
-    <p>${esc(who)}${hang.lock.iCheckedIn ? " You're checked in." : ''}</p>
+    <p>${esc(who)}</p>
     ${shown
       ? `<p class="code" aria-label="${esc(`Check-in code ${shown.code.split('').join(' ')}`)}">${esc(shown.code)}</p><p>This code changes every minute.</p>`
       : '<button class="btn primary" type="button" id="show-code" data-act="show-code">Show the code</button>'}
@@ -617,7 +625,7 @@ function afterStatus(hang) {
     }
     return `<section class="status">
       ${statusTitle('Did you meet?')}
-      <p>${esc(L.slotLabel(hang.lock.slot))}${hang.lock.placeName ? `, ${esc(hang.lock.placeName)}` : ''}. Nobody checked in, so tell us yourself. Only plans where you met count toward your group's hours together.</p>
+      <p>${esc(L.slotLabel(hang.lock.slot))}${hang.lock.placeName ? `, ${esc(hang.lock.placeName)}` : ''}. Nobody checked in, so answer here. Only plans where you met count toward your group's hours together.</p>
       <div class="actions stack">
         <button class="btn primary" type="button" id="met-yes" data-act="outcome" data-met="1">Yes, we met</button>
         <button class="btn" type="button" id="met-no" data-act="outcome" data-met="0">No, we didn't</button>
@@ -631,7 +639,7 @@ function afterStatus(hang) {
   if (hang.status === 'happened') {
     return `<section class="status done">
       ${statusTitle('You met')}
-      <p>${hang.outcome && hang.outcome.checked ? `${esc(hang.lock.checkedIn.join(', '))} checked in. ` : ''}That's ${L.slotHours(hang.lock.slot)} more hours together. Your group has met ${view.hours.times} ${view.hours.times === 1 ? 'time' : 'times'} so far.</p>
+      <p>${hang.outcome && hang.outcome.checked ? `${esc(joinNames(hang.lock.checkedIn))} checked in. ` : ''}That's ${L.slotHours(hang.lock.slot)} more hours together. Your group has met ${view.hours.times} ${view.hours.times === 1 ? 'time' : 'times'} so far.</p>
       ${again}
     </section>`;
   }
@@ -877,7 +885,7 @@ function crewScreen() {
 
   ${view.members.some((m) => m.canRemove) ? `<details class="block manage" id="manage-box" ${ui.removeAsk ? 'open' : ''}>
     <summary>Manage members</summary>
-    <p>You made this group, so you can remove someone who joined more than 2 days ago and hasn't answered anything, for example if they lost their phone.</p>
+    <p>You made this group, so you can remove someone who joined more than 2 days ago and hasn't answered anything. This helps if someone lost their phone.</p>
     ${membersList()}
   </details>` : ''}
 
@@ -1080,7 +1088,7 @@ async function copyText(text, button) {
     toast(button && button.dataset.private ? 'Copied. Open it on your other phone.' : 'Copied. Now paste it into your group chat.');
     if (button) button.textContent = 'Copied';
   } catch {
-    toast("Couldn't copy. Your browser may not allow it here.");
+    toast("Couldn't copy. Open this page in Safari or Chrome and try again.");
   }
 }
 

@@ -381,7 +381,7 @@ export async function createMinibusServer({
 
     // Someone opened a plan link (before or after joining). Counted for the user test only.
     if (sub === 'opened') {
-      if (!allow(`opened:${clientIp(req)}`, IP_READS_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests.');
+      if (!allow(`opened:${clientIp(req)}`, IP_READS_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
       const body = await readBody(req);
       const hang = typeof body.hangId === 'string' && Object.prototype.hasOwnProperty.call(entry.state.hangs, body.hangId) ? entry.state.hangs[body.hangId] : null;
       if (hang) {
@@ -437,7 +437,7 @@ export async function createMinibusServer({
     // Show the check-in code. Showing it also checks you in, since you're there.
     if (codeHang) {
       const me = authMember(req, entry);
-      if (!me) return fail(req, res, 403, 'not_member', "You're not in this group on this device.");
+      if (!me) return fail(req, res, 403, 'not_member', "You're not in this group on this device. Open the group link and join first.");
       entry.state = L.reduce(entry.state, { type: 'showCode', hangId: codeHang, memberId: me }, now());
       scheduleSave();
       notify(crewId);
@@ -447,7 +447,7 @@ export async function createMinibusServer({
     // A new private link. The old one stops working.
     if (sub === 'reset-key') {
       const me = authMember(req, entry);
-      if (!me) return fail(req, res, 403, 'not_member', "You're not in this group on this device.");
+      if (!me) return fail(req, res, 403, 'not_member', "You're not in this group on this device. Open the group link and join first.");
       if (!allow(`reset:${me}`, KEY_RESETS_PER_HOUR, 60 * 60 * 1000)) return fail(req, res, 429, 'slow_down', 'You made several new links already. Try again in an hour.');
       const key = newKey();
       if (!entry.pendingKeys) entry.pendingKeys = {};
