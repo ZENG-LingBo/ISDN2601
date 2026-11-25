@@ -257,4 +257,6 @@ Two new reviewers worked in parallel.
 
 Not done: the time ranges still use a dash in normal text; some screen readers read it out. The grid buttons and announcements say "7 to 10pm".
 
+Text judge on the new wording: FAIL on 2 strings in round 1 ("Every time counts" played on the word "time", and an error message still said "2 days" instead of 6 hours), then PASS in round 2.
+
 67 unit and server tests pass. The walkthrough checks that the confirm button comes straight after the grid.
