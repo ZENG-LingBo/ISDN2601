@@ -417,3 +417,7 @@ A new reviewer re-ran the full week for a group of 5 on the latest code, with so
 84 unit and server tests pass. The walkthrough passes.
 
 Text judge on the new wording: FAIL on 5 one-line items in round 1 (a broken table row, an unclear "it", a restore step that left out deploying the change, "group numbers" in the consent line, and two screens that disagreed after "No, we didn't"), then PASS in round 2.
+
+## Cycle 19: Chinese names and plan ideas (04:55)
+
+Many students will type names, group names and plan ideas in Chinese, so a script made a group called "大學O營好朋友組合超級長的名字測試一下", a plan called "打邊爐然後去旺角行街食糖水再去唱K", and members called "陳美玲" and "黃家明 Ka Ming", on 320 px and 390 px phones. The share message, plan page and group page all showed the Chinese text correctly, and nothing scrolled sideways. Joining with a Chinese name that was already taken was refused, as it should be. The page titles were right, and there were no errors.
