@@ -521,7 +521,7 @@ function answerBlock(hang) {
   const on = hang.mine.on;
   return `<section class="block">
     <h2>Are you in?</h2>
-    <p>Until the plan is confirmed, nobody sees your name with your answer. People only see totals, like "3 free". In a small group, friends may still be able to guess.</p>
+    <p>Until the plan is confirmed, nobody sees your name with your answer. People only see totals, like "3 free". In a small group, friends may still be able to guess your answer.</p>
     <div class="choice" role="group" aria-label="Are you in?">
       <button class="btn toggle" type="button" id="on-yes" data-act="on" data-on="1" aria-pressed="${on === true}">I'm in</button>
       <button class="btn toggle" type="button" id="on-no" data-act="on" data-on="0" aria-pressed="${on === false}">Not this time</button>
@@ -789,8 +789,8 @@ function swapBlock(hang) {
     </div>
     <div class="actions stack">
       <button class="btn primary" type="button" id="swap-save" data-act="swap-save">I can't make this time</button>
-      <button class="btn" type="button" id="swap-out" data-act="on" data-on="0">I can't go at all</button>
-      <button class="btn quiet" type="button" id="swap-close" data-act="swap-close">Cancel</button>
+      <button class="btn" type="button" id="swap-out" data-act="on" data-on="0">I can't make any time</button>
+      <button class="btn quiet" type="button" id="swap-close" data-act="swap-close">I can still make it</button>
     </div>
   </div>`;
 }
