@@ -1,118 +1,108 @@
 # Speaking script: “We should hang out.”
 
 ISDN 1001 · Individual project · Problem-statement pitch
-Live, 26 Nov 2026, 9:00 a.m. · **Hard limit: 2:00. Target: 1:50.**
+Live, 26 Nov 2026, 9:00 a.m. · **Time limit: 2:00. Aim for 1:50.**
 
-About 250 words. At a calm 135–140 words a minute that is about 1:50, which leaves 10 seconds
-of buffer for pauses and nerves. The same text is in each slide's speaker notes.
+The script is about 250 words. Said at a calm pace, with the numbers read out in full, that takes about 1:50 and leaves 10 seconds for pauses. The same words are in each slide's speaker notes.
 
 ---
 
-## Slide 1 · The group chat (0:00–0:15)
+## Slide 1: The group chat (0:00–0:15)
 
-*(Click to the cover. Pause for one breath and look at the room before you speak.)*
+*(Show the first slide. Take one breath and look at the room before you start.)*
 
 > “We should hang out soon!” Four thumbs up. Everyone agrees. Then… nothing.
 > Three months later, it’s still the last message in the chat.
 
-*Delivery: read the chat message as if you sent it, then slow down on “Then… nothing.”*
+*Read the chat message as if you sent it. Slow down on “Then… nothing.”*
 
-## Slide 2 · Meet Mandy (0:15–0:30)
+## Slide 2: Target user (0:15–0:30)
 
-> Meet Mandy, Year 2 at HKUST. She made four close friends in Year 1. Now they have different
-> timetables, jobs and long commutes. She misses them, but every plan stays at “soon”.
+> Meet Mandy, a Year 2 student at HKUST. In Year 1 she made four close friends. Now they have
+> different timetables and long commutes. She misses them, but every plan stays at “soon”.
 
-## Slide 3 · Mandy is not alone (0:30–0:50)
+## Slide 3: Background (0:30–0:50)
 
 > Mandy is not alone. This year, 83.7% of young people in Hong Kong reported moderate to high
-> loneliness, up from 47.7% in 2021. In the US, young people spend 70% less time with friends in
-> person than in 2003. And in the UK, two in three 18-to-34-year-olds admit they flake.
+> loneliness. In the US, young people spend 70% less time with friends in person than in 2003.
+> And 68% of young adults in the UK admit they cancel plans at the last minute.
 
-*Delivery: say “eighty-three point seven percent”, then pause before “up from forty-seven point seven”.*
+*Say “eighty-three point seven percent” slowly. The 2021 figure is on the slide, so you don't need to say it.*
 
-## Slide 4 · The paradox (0:50–1:05)
+## Slide 4: The paradox (0:50–1:05)
 
-> And here’s the strange part. We say yes because no feels rude. Closer to the day, we regret it.
-> When a friend cancels, one in three of us feels relieved… and then guilty.
+> Here’s the strange part. We say yes because saying no feels rude. Closer to the day, we
+> regret it. When a friend cancels, one in three of us feels relieved… and then guilty.
 
-*Delivery: a small smile on “relieved”. Everyone in the room knows this feeling.*
+*Smile a little on “relieved”. Most people in the room know this feeling.*
 
-## Slide 5 · Why plans die (1:05–1:25)
+## Slide 5: Why plans fall through (1:05–1:25)
 
-> Why do plans die? No owner: everyone thinks someone else will organise it. No time, no place:
-> “soon” isn’t a plan. And fear: we worry about looking too keen, but friends value hearing from
-> us more than we think.
+> Why do plans fall through? No one owns the plan: everyone thinks someone else will organise it.
+> There’s no time and no place: “soon” is not a plan. And we’re afraid of looking too eager, but
+> friends want to hear from us more than we think.
 
-*Delivery: count the three reasons on your fingers.*
+*Count the three reasons on your fingers.*
 
-## Slide 6 · Empathy map (1:25–1:38)
+## Slide 6: Empathy map (1:25–1:38)
 
-> So Mandy says “next week for sure!”, likes the message, and waits. She thinks, “If I push,
+> So Mandy says “Next week for sure!”, likes the message, and waits. She thinks, “If I push,
 > I’ll seem desperate.” She feels lonely, relieved, then guilty.
 
-## Slide 7 · Problem statement and HMW (1:38–2:00)
+## Slide 7: Problem and How Might We (1:38–2:00)
 
-> My problem: university friend groups want time together, but their plans die in the group chat,
-> and free time gets spent scrolling alone.
+> My problem: university friend groups want to spend time together, but their plans fall apart
+> in the group chat.
 >
-> So: **how might we turn “we should hang out” into real meetups for university friend groups,
+> **How might we turn “we should hang out” into real meetups for university friend groups,
 > in order to keep their friendships close?**
 >
 > *(Pause.)* Everyone wants the hangout. Nobody owns the plan.
 
-*Delivery: slow down for the HMW. Stop after the last line. Do not add “thank you, any questions”
-until the room reacts. The last line is your clear ending.*
+*Slow down for the question. Stop after the last line and wait. Don't add “that's it” or “any
+questions?” The last line is your ending.*
 
 ---
 
 ## If you are running long
 
-Cut these, in this order. Each cut saves about 3–5 seconds and the story still works:
+Cut these, in this order. Each one saves 3 to 5 seconds, and the story still works:
 
 1. Slide 4: “Closer to the day, we regret it.”
-2. Slide 3: “up from 47.7% in 2021.”
-3. Slide 2: “jobs and long commutes” becomes “different timetables”.
+2. Slide 2: “and long commutes”. Say “different timetables” only.
+3. Slide 3: the US sentence. The slide still shows it.
 
-Do **not** cut the HMW or the last line.
+Don't cut the How Might We question or the last line.
 
-## Optional line, only if it is true
+## Optional line, only if it's true
 
-If you message 4–5 friends tonight and ask “Is there a plan stuck in one of your group chats right
-now?”, you can add one line to Slide 3: “Last night I asked five classmates. [X] of them had a plan
-stuck in a group chat right now.” Use your real number or leave the line out.
+If you message 4 or 5 friends tonight and ask “Is there a plan stuck in one of your group chats
+right now?”, you can add one line to slide 3: “Last night I asked five classmates. [X] of them
+had a plan stuck in a group chat right now.” Use your real number, or leave the line out.
 
-## Rehearsal checklist
+## Before you present
 
-- [ ] Run it three times with a phone timer. Every run must finish under 1:55.
-- [ ] Practise the HMW sentence alone five times. It is the line the graders will write down.
-- [ ] Fill in your name and student ID on the cover (`[Your name] · [Student ID]`).
-- [ ] Present from the deck’s Present mode. The References slide is the last slide: stop before it.
-- [ ] Have the deck downloaded as PDF or PPTX on a USB stick in case the classroom PC is offline.
+- [ ] Practise three times with a phone timer. Every run should finish under 1:55.
+- [ ] Practise the How Might We sentence on its own five times. It's the line the markers will write down.
+- [ ] Put your name on the first slide (it says `[Your name]`).
+- [ ] Present from the deck's Present mode. The References slide is last. Stop before it.
+- [ ] Download the deck as a PDF or PowerPoint file and bring it on a USB drive, in case the classroom computer is offline.
 
 ---
 
-## Likely questions (30-second answers)
+## Likely questions, with short answers
 
-**“Isn’t most of your flaking data from the UK and US?”**
-Yes. The loneliness numbers are from Hong Kong (HKFYG 2026, 600 youth aged 12–24; HK Family
-Wellbeing Index 2026). The flaking numbers are from UK and US polls, because I could not find a
-Hong Kong flaking survey. That gap is why the next step is interviews with HKUST students.
+**“Isn't most of your cancelling data from the UK and US?”**
+Yes. The loneliness numbers are from Hong Kong: the HKFYG survey of 600 young people in 2026, and the Hong Kong Family Wellbeing Index 2026. The numbers on cancelled plans are from UK and US polls, because I couldn't find a Hong Kong survey on that. That gap is why my next step is to interview HKUST students.
 
-**“Why not just tell them to use a WhatsApp poll?”**
-This pitch is only about the problem. A poll might help with the “no time, no place” reason, but
-it does not fix “no owner” or the fear of pushing. I want to keep the HMW open for many ideas.
+**“Why not just use a WhatsApp poll?”**
+This pitch is only about the problem. A poll could help people pick a time, but it doesn't fix the other two reasons: nobody owns the plan, and people are afraid of looking too eager. I want to keep the question open to many ideas.
 
-**“Isn’t this just laziness?”**
-The research says no. People underestimate how much friends like them (Boothby et al., 2018) and
-how much friends value hearing from them (Liu et al., 2022). The block is social fear and unclear
-ownership, not a lack of caring.
+**“Isn't this just laziness?”**
+The research says no. People underestimate how much their friends like them (Boothby et al., 2018) and how much friends want to hear from them (Liu et al., 2023). The problem is social fear and nobody being in charge, not a lack of caring.
 
 **“Why university students, and why Year 2?”**
-Year 1 gives you ready-made chances to meet: O-camp, hall, shared classes. By Year 2, timetables
-split, but the friendships are still new. Close friendships need about 200 hours together
-(Hall, 2019), so this is when dead plans hurt most.
+Year 1 has ready-made chances to meet, like orientation camp, halls and shared classes. By Year 2, timetables split, but the friendships are still new. Close friendships need about 200 hours together (Hall, 2019), so this is when missed plans hurt the most.
 
 **“How does this fit ‘Leisure in 2030’?”**
-The brief asks us to move from killing time to intentional, meaningful downtime. Free time that
-was meant to be shared ends up spent scrolling alone. Turning “we should” into “we did” is exactly
-that shift.
+The brief asks how free time can move from killing time to meaningful downtime. Time that was meant for friends ends up spent scrolling alone. Turning “we should” into “we did” is that change.
