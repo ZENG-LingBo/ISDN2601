@@ -166,3 +166,16 @@ A new reviewer who had seen none of the earlier rounds used the prototype as a f
 Not done: a late-night time of day (it would add a fourth column to a phone-width grid), and repeating plans that Minibus starts on a schedule.
 
 62 tests pass (up from 57). The walkthrough passes.
+
+## Cycle 7: last check of the pitch (26 Nov, 01:20)
+
+A pitch coach who hadn't seen the deck before checked it against the grading items and the lecturers' rules. Verdict: meets every item; nearly ready. The one real risk was time.
+
+| Priority | Finding | Change |
+|---|---|---|
+| P1 | With numbers read out in full, the script ran 2:01–2:11, not 1:50. Slide 7 had the fastest pace on the line that should be slowest. | Cut to 237 words: removed "and long commutes", the "As the day gets closer…" sentence, and shortened slides 5 and 6. New timings give slide 7 28 seconds. |
+| P2 | The pitch never said "problem statement" or mentioned free time, which links it to the leisure theme. | Slide 7 now says "Problem statement: university friend groups want to spend their free time together…". |
+| P2 | Missing answers for likely questions. | Added: "Is Mandy real?", "Darley and Latané studied emergencies", "What's your solution?", "Maybe people just don't want to meet?", "How was 83.7% measured?", and a note on the 86% guilt figure. |
+| P3 | Checks only the student can do. | Checklist: put your name on the cover, open the HKFYG press release to confirm the numbers, check the icon and arrows in Present mode. |
+
+Kept as they were (the coach said not to change them): the How Might We question, the opening and ending, the empathy map, and the numbers. Deck republished as version 9.
