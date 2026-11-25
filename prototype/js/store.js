@@ -1,6 +1,5 @@
-// Two ways to keep plans, same interface:
-// - LocalStore: everything on this device (the hosted demo). Tabs stay in sync,
-//   so you can play several friends in several tabs.
+// Two ways to keep plans, with the same interface:
+// - LocalStore: everything on this device (the hosted demo, with pretend friends).
 // - ServerStore: talks to server.js, so friends on different phones share one plan.
 
 import * as L from './logic.js';
@@ -23,7 +22,15 @@ const storage = {
     try {
       localStorage.setItem(key, value);
     } catch {
-      /* memory copy is enough for this visit */
+      /* the memory copy is enough for this visit */
+    }
+  },
+  remove(key) {
+    memory.delete(key);
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* nothing to do */
     }
   },
 };
@@ -37,7 +44,7 @@ function readJson(key, fallback) {
   }
 }
 
-// Who am I in each group, and which groups have I joined, on this device.
+// Who you are in each group, and which groups you've joined, on this device.
 export const identity = {
   get(crewId) {
     return readJson(`${PREFIX}me:${crewId}`, null);
@@ -45,8 +52,13 @@ export const identity = {
   set(crewId, me) {
     storage.set(`${PREFIX}me:${crewId}`, JSON.stringify(me));
   },
+  forget(crewId) {
+    storage.remove(`${PREFIX}me:${crewId}`);
+    storage.set(`${PREFIX}crews`, JSON.stringify(identity.crews().filter((c) => c.id !== crewId)));
+  },
   crews() {
-    return readJson(`${PREFIX}crews`, []);
+    const list = readJson(`${PREFIX}crews`, []);
+    return Array.isArray(list) ? list : [];
   },
   remember(crewId, name) {
     const list = identity.crews().filter((c) => c.id !== crewId);
@@ -64,7 +76,7 @@ export function createStore() {
   return backendKind() === 'server' ? new ServerStore() : new LocalStore();
 }
 
-// ---------------------------------------------------------------- local
+// ---------------------------------------------------------------- on this device
 
 class LocalStore {
   constructor() {
@@ -78,11 +90,11 @@ class LocalStore {
   }
 
   now(state) {
-    return Date.now() + ((state && state.crew.clockOffset) || 0);
+    return Date.now() + ((state && state.demo && state.demo.clockOffset) || 0);
   }
 
   read(crewId) {
-    return readJson(`${PREFIX}crew:${crewId}`, null);
+    return L.migrate(readJson(`${PREFIX}crew:${crewId}`, null));
   }
 
   write(state) {
@@ -127,13 +139,17 @@ class LocalStore {
   async view(crewId) {
     const state = this.read(crewId);
     if (!state) return null;
+    // Apply time-based changes, like the 48-hour deadline.
+    const before = JSON.stringify(state);
+    L.settle(state, this.now(state));
+    if (JSON.stringify(state) !== before) storage.set(`${PREFIX}crew:${crewId}`, JSON.stringify(state));
     const me = identity.get(crewId);
     return L.buildView(state, me && me.memberId, this.now(state));
   }
 
   async join(crewId, name) {
     const state = this.read(crewId);
-    if (!state) throw new L.ActionError('not_found', "can't find that group on this device");
+    if (!state) throw new L.ActionError('not_found', "This group isn't saved on this device.");
     const memberId = L.newId();
     this.write(L.reduce(state, { type: 'join', memberId, name }, this.now(state)));
     identity.set(crewId, { memberId });
@@ -142,38 +158,51 @@ class LocalStore {
 
   async act(crewId, action) {
     const state = this.read(crewId);
-    if (!state) throw new L.ActionError('not_found', "can't find that group on this device");
+    if (!state) throw new L.ActionError('not_found', "This group isn't saved on this device.");
     const me = identity.get(crewId);
-    if (!me) throw new L.ActionError('not_member', 'join the group first');
+    if (!me) throw new L.ActionError('not_member', 'Join the group first.');
     this.write(L.reduce(state, { ...action, memberId: me.memberId }, this.now(state)));
+    if (action.type === 'leave') identity.forget(crewId);
   }
 
-  // Demo only: make a fake friend do something, or skip ahead in time.
+  // ---- demo only ----
+
+  // Switch which person you're playing, to see what each friend sees.
+  playAs(crewId, memberId) {
+    const state = this.read(crewId);
+    if (!state || !state.crew.demo || !Object.prototype.hasOwnProperty.call(state.members, memberId)) return;
+    const before = identity.get(crewId) || {};
+    identity.set(crewId, { memberId, demoSelf: before.demoSelf || before.memberId || memberId });
+    this.ping(crewId);
+  }
+
+  // The person you joined as in the demo (not one of the pretend friends).
+  demoSelf(crewId) {
+    const me = identity.get(crewId);
+    return me ? me.demoSelf || me.memberId : null;
+  }
+
+  // Make a pretend friend do something, or skip ahead in time.
   //   'tom'  : Tom finally answers
-  //   'swap' : the first other person going can't make the locked time anymore
+  //   'swap' : someone else who is going can't make the confirmed time anymore
   //   'skip' : jump to an hour after the plan
   async demo(crewId, hangId, what) {
     let state = this.read(crewId);
-    if (!state || !state.crew.demo || !state.hangs[hangId]) return;
+    if (!state || !state.crew.demo || !Object.prototype.hasOwnProperty.call(state.hangs, hangId)) return;
     const hang = state.hangs[hangId];
-    const me = identity.get(crewId);
     const now = this.now(state);
-    const members = Object.values(state.members);
+    const tom = Object.values(state.members).find((m) => m.name === 'Tom');
 
-    if (what === 'tom') {
-      const tom = members.find((m) => m.name === 'Tom');
-      if (!tom) return;
-      state = L.reduce(state, { type: 'respond', hangId, memberId: tom.id, on: true, free: state.crew.demoTomFree || [] }, now);
+    if (what === 'tom' && tom) {
+      state = L.reduce(state, { type: 'respond', hangId, memberId: tom.id, on: true, free: state.demo.tomFree || [] }, now);
     } else if (what === 'swap' && hang.lock) {
-      const friend = members.find(
-        (m) => m.id !== (me && me.memberId) && m.r[hangId] && m.r[hangId].on === true && m.r[hangId].free.includes(hang.lock.slot),
-      );
+      const friend = this.demoSwapper(state, hangId);
       if (!friend) return;
       const free = friend.r[hangId].free.filter((s) => s !== hang.lock.slot);
       state = L.reduce(state, { type: 'respond', hangId, memberId: friend.id, free }, now);
     } else if (what === 'skip' && hang.lock) {
-      const target = L.slotTime(hang.lock.slot, 'end') + 60 * 60 * 1000;
-      state.crew.clockOffset = Math.max(state.crew.clockOffset || 0, target - Date.now());
+      const target = L.slotTime(hang.lock.slot, 'end') + L.HOUR_MS;
+      state.demo.clockOffset = Math.max(state.demo.clockOffset || 0, target - Date.now());
       state = L.settle(state, this.now(state));
     } else {
       return;
@@ -181,19 +210,34 @@ class LocalStore {
     this.write(state);
   }
 
+  demoSwapper(state, hangId) {
+    const hang = state.hangs[hangId];
+    if (!hang || !hang.lock) return null;
+    const me = identity.get(state.crew.id);
+    return (
+      Object.values(state.members).find(
+        (m) =>
+          m.id !== (me && me.memberId) &&
+          m.id !== (me && me.demoSelf) &&
+          m.r[hangId] &&
+          m.r[hangId].on === true &&
+          m.r[hangId].free.includes(hang.lock.slot),
+      ) || null
+    );
+  }
+
   demoSwapperName(crewId, hangId) {
     const state = this.read(crewId);
-    const hang = state && state.hangs[hangId];
-    if (!hang || !hang.lock) return null;
-    const me = identity.get(crewId);
-    const friend = Object.values(state.members).find(
-      (m) => m.id !== (me && me.memberId) && m.r[hangId] && m.r[hangId].on === true && m.r[hangId].free.includes(hang.lock.slot),
-    );
+    const friend = state ? this.demoSwapper(state, hangId) : null;
     return friend ? friend.name : null;
   }
 
   calendarFileUrl() {
     return null; // the hosted demo can't download files; the calendar link still works
+  }
+
+  personalLink() {
+    return null; // not needed: the demo only works on this device anyway
   }
 }
 
@@ -204,39 +248,35 @@ class ServerStore {
     this.kind = 'server';
   }
 
-  async request(method, path, body) {
+  async request(method, path, { body, crewId } = {}) {
+    const headers = {};
+    if (body) headers['content-type'] = 'application/json';
+    const me = crewId ? identity.get(crewId) : null;
+    if (me && me.key) {
+      headers['x-minibus-member'] = me.memberId;
+      headers['x-minibus-key'] = me.key;
+    }
     let res;
     try {
-      res = await fetch(path, {
-        method,
-        headers: body ? { 'content-type': 'application/json' } : undefined,
-        body: body ? JSON.stringify(body) : undefined,
-      });
+      res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
     } catch {
-      throw new L.ActionError('offline', "can't reach the server. check your connection and try again");
+      throw new L.ActionError('offline', "Can't reach Minibus. Check your internet connection and try again.");
     }
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new L.ActionError(data.code || 'error', data.message || 'something went wrong');
+    if (!res.ok) throw new L.ActionError(data.code || 'error', data.message || 'Something went wrong. Try again.');
     return data;
   }
 
-  auth(crewId) {
-    const me = identity.get(crewId);
-    return me ? { memberId: me.memberId, key: me.key } : {};
-  }
-
   async createCrew(input) {
-    const out = await this.request('POST', '/api/crews', input);
+    const out = await this.request('POST', '/api/crews', { body: input });
     identity.set(out.crewId, { memberId: out.memberId, key: out.key });
-    identity.remember(out.crewId, cleanName(input.crewName));
+    identity.remember(out.crewId, L.cleanText(input.crewName, L.LIMITS.crewName));
     return { crewId: out.crewId, hangId: out.hangId };
   }
 
   async view(crewId) {
-    const { memberId, key } = this.auth(crewId);
-    const q = memberId ? `?member=${encodeURIComponent(memberId)}&key=${encodeURIComponent(key)}` : '';
     try {
-      return await this.request('GET', `/api/crews/${encodeURIComponent(crewId)}${q}`);
+      return await this.request('GET', `/api/crews/${encodeURIComponent(crewId)}`, { crewId });
     } catch (e) {
       if (e.code === 'not_found') return null;
       throw e;
@@ -244,41 +284,56 @@ class ServerStore {
   }
 
   async join(crewId, name) {
-    const out = await this.request('POST', `/api/crews/${encodeURIComponent(crewId)}/join`, { name });
+    const out = await this.request('POST', `/api/crews/${encodeURIComponent(crewId)}/join`, { body: { name } });
     identity.set(crewId, { memberId: out.memberId, key: out.key });
     identity.remember(crewId, out.crewName);
   }
 
   async act(crewId, action) {
-    await this.request('POST', `/api/crews/${encodeURIComponent(crewId)}/actions`, { ...this.auth(crewId), action });
+    await this.request('POST', `/api/crews/${encodeURIComponent(crewId)}/actions`, { body: { action }, crewId });
+    if (action.type === 'leave') identity.forget(crewId);
   }
 
+  // Live updates. If the live connection drops, check every 15 seconds until it's back.
   subscribe(crewId, fn) {
-    let source = null;
     let timer = null;
-    const poll = () => {
-      timer = setInterval(fn, 15000);
+    const startPolling = () => {
+      if (!timer) timer = setInterval(fn, 15000);
     };
+    const stopPolling = () => {
+      clearInterval(timer);
+      timer = null;
+    };
+    let source = null;
     if ('EventSource' in window) {
       source = new EventSource(`/api/crews/${encodeURIComponent(crewId)}/events`);
       source.addEventListener('change', fn);
-      source.onerror = () => {
-        if (source.readyState === EventSource.CLOSED && !timer) poll();
-      };
+      source.addEventListener('open', () => {
+        stopPolling();
+        fn(); // catch up on anything missed while disconnected
+      });
+      source.addEventListener('error', startPolling);
     } else {
-      poll();
+      startPolling();
     }
     return () => {
       if (source) source.close();
-      if (timer) clearInterval(timer);
+      stopPolling();
     };
   }
 
   calendarFileUrl(crewId, hangId) {
     return `/api/crews/${encodeURIComponent(crewId)}/hangs/${encodeURIComponent(hangId)}/calendar.ics`;
   }
-}
 
-function cleanName(name) {
-  return L.cleanText(name, L.LIMITS.crewName);
+  // A private link that signs you back in on another device or browser.
+  personalLink(crewId) {
+    const me = identity.get(crewId);
+    if (!me || !me.key) return null;
+    return `${location.href.split('#')[0]}#me-${crewId}-${me.memberId}-${me.key}`;
+  }
+
+  claim(crewId, memberId, key) {
+    identity.set(crewId, { memberId, key });
+  }
 }

@@ -2,13 +2,15 @@
 //
 //   node server.js            # http://localhost:8080, data in ./data/store.json
 //   PORT=3000 DATA_FILE=/tmp/minibus.json node server.js
+//   MINIBUS_BACKEND=local node server.js   # serve the on-device demo instead
+//   TRUST_PROXY=1 node server.js            # behind a proxy that sets X-Forwarded-For
 //
 // It serves the same app as the hosted demo, but plans live here, so friends on
 // different phones share them. It runs the exact same rules (js/logic.js).
 
 import http from 'node:http';
-import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { readFile, rename, mkdir, open } from 'node:fs/promises';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { networkInterfaces } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,7 +19,12 @@ import * as L from './js/logic.js';
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const MAX_BODY = 16 * 1024;
 const MAX_CREWS = 2000;
-const WRITES_PER_MINUTE = 120;
+const MAX_STREAMS_PER_CREW = 50;
+const MEMBER_WRITES_PER_MINUTE = 120;
+const IP_CREATES_PER_MINUTE = 30;
+const SAVE_DELAY_MS = 200;
+const SAVE_MAX_WAIT_MS = 2000;
+const SETTLE_EVERY_MS = 10 * 60 * 1000;
 
 const STATIC = {
   '/styles.css': ['styles.css', 'text/css; charset=utf-8'],
@@ -33,6 +40,8 @@ const SECURITY_HEADERS = {
   'referrer-policy': 'no-referrer',
 };
 
+const ACTIONS = ['createHang', 'respond', 'addPlace', 'like', 'lock', 'outcome', 'leave', 'setSize'];
+
 function hashKey(key) {
   return createHash('sha256').update(String(key)).digest();
 }
@@ -44,39 +53,67 @@ function keyMatches(stored, given) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 // backend: 'server' (normal) or 'local' (serve the on-device demo, same as the hosted version).
 export async function createMinibusServer({
   dataFile = path.join(ROOT, 'data', 'store.json'),
   now = () => Date.now(),
   backend = 'server',
+  trustProxy = false,
+  log = console,
 } = {}) {
   // ---------- storage ----------
   let db = { crews: {} };
   try {
-    db = JSON.parse(await readFile(dataFile, 'utf8'));
-    if (!db || typeof db.crews !== 'object') db = { crews: {} };
-  } catch {
-    /* first run */
+    const parsed = JSON.parse(await readFile(dataFile, 'utf8'));
+    if (!isPlainObject(parsed) || !isPlainObject(parsed.crews)) throw new Error('missing "crews"');
+    for (const entry of Object.values(parsed.crews)) L.migrate(entry.state);
+    db = parsed;
+  } catch (e) {
+    if (e.code !== 'ENOENT') {
+      // Never overwrite a file we couldn't read. Keep it for recovery and start empty.
+      const aside = `${dataFile}.unreadable-${now()}`;
+      await rename(dataFile, aside).catch(() => {});
+      log.error(`Could not read ${dataFile} (${e.message}). Moved it to ${aside} and started with no plans.`);
+    }
   }
 
   let saveTimer = null;
+  let firstPendingAt = 0;
   let saving = Promise.resolve();
   async function writeNow() {
     await mkdir(path.dirname(dataFile), { recursive: true });
     const tmp = `${dataFile}.${process.pid}.tmp`;
-    await writeFile(tmp, JSON.stringify(db));
+    const fh = await open(tmp, 'w');
+    try {
+      await fh.writeFile(JSON.stringify(db));
+      await fh.sync();
+    } finally {
+      await fh.close();
+    }
     await rename(tmp, dataFile); // atomic on the same filesystem
   }
   function queueWrite() {
-    saving = saving.then(writeNow).catch((e) => console.error('save failed:', e.message));
+    firstPendingAt = 0;
+    saving = saving.then(writeNow).catch((e) => log.error('Save failed:', e.message));
   }
-  // Many quick taps become one write.
+  // Quick changes are grouped into one write, but nothing waits more than 2 seconds.
   function scheduleSave() {
+    const t = now();
+    if (!firstPendingAt) firstPendingAt = t;
     clearTimeout(saveTimer);
+    if (t - firstPendingAt >= SAVE_MAX_WAIT_MS) {
+      saveTimer = null;
+      queueWrite();
+      return;
+    }
     saveTimer = setTimeout(() => {
       saveTimer = null;
       queueWrite();
-    }, 200);
+    }, SAVE_DELAY_MS);
   }
   async function flush() {
     if (saveTimer) {
@@ -95,23 +132,41 @@ export async function createMinibusServer({
     for (const res of set) res.write(`event: change\ndata: {}\n\n`);
   }
 
-  // ---------- rate limiting (per IP, writes only) ----------
+  // Apply time-based changes (deadline, moved plans). Save and tell open pages if anything changed.
+  function settleCrew(crewId, entry) {
+    const before = JSON.stringify(entry.state);
+    L.settle(entry.state, now());
+    if (JSON.stringify(entry.state) !== before) {
+      scheduleSave();
+      notify(crewId);
+    }
+  }
+
+  // ---------- rate limits ----------
   const buckets = new Map();
-  function allowWrite(ip) {
+  function allow(bucketKey, limit) {
     const t = now();
-    const b = buckets.get(ip) || { count: 0, reset: t + 60_000 };
+    const b = buckets.get(bucketKey) || { count: 0, reset: t + 60_000 };
     if (t > b.reset) {
       b.count = 0;
       b.reset = t + 60_000;
     }
     b.count += 1;
-    buckets.set(ip, b);
-    if (buckets.size > 10_000) buckets.clear();
-    return b.count <= WRITES_PER_MINUTE;
+    buckets.set(bucketKey, b);
+    if (buckets.size > 20_000) buckets.clear();
+    return b.count <= limit;
+  }
+
+  function clientIp(req) {
+    if (trustProxy) {
+      const fwd = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+      if (fwd) return fwd;
+    }
+    return req.socket.remoteAddress || 'unknown';
   }
 
   // ---------- helpers ----------
-  function send(res, status, body, headers = {}) {
+  function send(req, res, status, body, headers = {}) {
     const isText = typeof body === 'string' || Buffer.isBuffer(body);
     res.writeHead(status, {
       ...SECURITY_HEADERS,
@@ -119,11 +174,11 @@ export async function createMinibusServer({
       'cache-control': 'no-store',
       ...headers,
     });
-    res.end(isText ? body : JSON.stringify(body));
+    res.end(req.method === 'HEAD' ? undefined : isText ? body : JSON.stringify(body));
   }
 
-  function fail(res, status, code, message) {
-    send(res, status, { code, message });
+  function fail(req, res, status, code, message) {
+    send(req, res, status, { code, message });
   }
 
   async function readBody(req) {
@@ -137,22 +192,25 @@ export async function createMinibusServer({
       });
       req.on('end', () => {
         // Read the whole body before answering, so the client gets a clean 413.
-        if (size > MAX_BODY) {
-          reject(new L.ActionError('too_big', 'request too big'));
-          return;
-        }
+        if (size > MAX_BODY) return reject(new L.ActionError('too_big', 'That request is too big.'));
+        let parsed;
         try {
-          resolve(chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {});
+          parsed = chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {};
         } catch {
-          reject(new L.ActionError('invalid', 'bad JSON'));
+          return reject(new L.ActionError('invalid', 'The server could not read that request.'));
         }
+        if (!isPlainObject(parsed)) return reject(new L.ActionError('invalid', 'The server could not read that request.'));
+        resolve(parsed);
       });
       req.on('error', reject);
     });
   }
 
-  function authMember(entry, memberId, key) {
-    if (!memberId || !entry.keys[memberId]) return null;
+  // The member id and key travel in headers, not the address, so they don't end up in logs.
+  function authMember(req, entry) {
+    const memberId = String(req.headers['x-minibus-member'] || '');
+    const key = String(req.headers['x-minibus-key'] || '');
+    if (!L.isId(memberId) || !Object.prototype.hasOwnProperty.call(entry.keys, memberId)) return null;
     return keyMatches(entry.keys[memberId], key) ? memberId : null;
   }
 
@@ -170,45 +228,52 @@ export async function createMinibusServer({
     return indexCache;
   }
 
+  function newKey() {
+    return L.newId(32); // letters and digits only, so it can travel in a link
+  }
+
   // ---------- routes ----------
   async function handle(req, res) {
     const url = new URL(req.url, 'http://local');
     const p = url.pathname;
-    const ip = req.socket.remoteAddress || 'unknown';
+    const reading = req.method === 'GET' || req.method === 'HEAD';
 
-    if (req.method === 'GET' && (p === '/' || p === '/index.html')) {
-      return send(res, 200, await indexHtml(), { 'content-type': 'text/html; charset=utf-8' });
+    if (reading && (p === '/' || p === '/index.html')) {
+      return send(req, res, 200, await indexHtml(), { 'content-type': 'text/html; charset=utf-8' });
     }
-    if (req.method === 'GET' && STATIC[p]) {
+    if (reading && Object.prototype.hasOwnProperty.call(STATIC, p)) {
       const [file, type] = STATIC[p];
-      return send(res, 200, await readFile(path.join(ROOT, file)), { 'content-type': type, 'cache-control': 'no-cache' });
+      return send(req, res, 200, await readFile(path.join(ROOT, file)), { 'content-type': type, 'cache-control': 'no-cache' });
     }
-    if (req.method === 'GET' && p === '/api/health') return send(res, 200, { ok: true });
+    if (reading && p === '/api/health') return send(req, res, 200, { ok: true });
 
     if (p === '/api/crews' && req.method === 'POST') {
-      if (!allowWrite(ip)) return fail(res, 429, 'slow_down', 'too many requests, give it a minute');
-      if (Object.keys(db.crews).length >= MAX_CREWS) return fail(res, 507, 'full', 'this server is full');
+      if (!allow(`ip:${clientIp(req)}`, IP_CREATES_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
+      if (Object.keys(db.crews).length >= MAX_CREWS) return fail(req, res, 507, 'full', 'This server is full.');
       const body = await readBody(req);
       const ids = { crewId: L.newId(), hangId: L.newId(), memberId: L.newId() };
       const state = L.createCrewState({ ...body, ...ids, demo: false }, now());
-      const key = randomBytes(24).toString('base64url');
+      const key = newKey();
       db.crews[ids.crewId] = { state, keys: { [ids.memberId]: hashKey(key).toString('hex') } };
       scheduleSave();
-      return send(res, 201, { ...ids, key });
+      return send(req, res, 201, { ...ids, key });
     }
 
-    const m = /^\/api\/crews\/([a-z0-9]{6,24})(?:\/(join|actions|events)|\/hangs\/([a-z0-9]{6,24})\/calendar\.ics)?$/.exec(p);
-    if (!m) return fail(res, 404, 'not_found', 'not found');
+    const m = /^\/api\/crews\/([a-z0-9]{6,40})(?:\/(join|actions|events)|\/hangs\/([a-z0-9]{6,40})\/calendar\.ics)?$/.exec(p);
+    if (!m) return fail(req, res, 404, 'not_found', 'Not found.');
     const [, crewId, sub, icsHang] = m;
+    if (!Object.prototype.hasOwnProperty.call(db.crews, crewId)) return fail(req, res, 404, 'not_found', "This group doesn't exist. Check the link.");
     const entry = db.crews[crewId];
-    if (!entry) return fail(res, 404, 'not_found', "can't find that group");
 
-    if (!sub && !icsHang && req.method === 'GET') {
-      const me = authMember(entry, url.searchParams.get('member'), url.searchParams.get('key'));
-      return send(res, 200, L.buildView(entry.state, me, now()));
+    if (!sub && !icsHang && reading) {
+      settleCrew(crewId, entry);
+      return send(req, res, 200, L.buildView(entry.state, authMember(req, entry), now()));
     }
 
     if (sub === 'events' && req.method === 'GET') {
+      if (!listeners.has(crewId)) listeners.set(crewId, new Set());
+      const set = listeners.get(crewId);
+      if (set.size >= MAX_STREAMS_PER_CREW) return fail(req, res, 503, 'busy', 'Too many open pages for this group.');
       res.writeHead(200, {
         ...SECURITY_HEADERS,
         'content-type': 'text/event-stream',
@@ -216,12 +281,6 @@ export async function createMinibusServer({
         connection: 'keep-alive',
       });
       res.write('retry: 5000\n\n');
-      if (!listeners.has(crewId)) listeners.set(crewId, new Set());
-      const set = listeners.get(crewId);
-      if (set.size >= 200) {
-        res.end();
-        return;
-      }
       set.add(res);
       const ping = setInterval(() => res.write(': ping\n\n'), 25_000);
       req.on('close', () => {
@@ -231,61 +290,63 @@ export async function createMinibusServer({
       return;
     }
 
-    if (icsHang && req.method === 'GET') {
+    if (icsHang && reading) {
       const view = L.buildView(entry.state, null, now());
       const hang = view.hangs.find((h) => h.id === icsHang);
-      if (!hang || !hang.lock) return fail(res, 404, 'not_found', 'that plan has no time yet');
-      return send(res, 200, L.icsText(hang, view.crew.name, `${crewId}-${hang.id}`, now()), {
+      if (!hang || !hang.lock) return fail(req, res, 404, 'not_found', "This plan doesn't have a time yet.");
+      return send(req, res, 200, L.icsText(hang, view.crew.name, `${crewId}-${hang.id}`, now()), {
         'content-type': 'text/calendar; charset=utf-8',
         'content-disposition': 'attachment; filename="minibus-plan.ics"',
       });
     }
 
-    if (req.method !== 'POST') return fail(res, 405, 'method', 'method not allowed');
-    if (!allowWrite(ip)) return fail(res, 429, 'slow_down', 'too many requests, give it a minute');
-    const body = await readBody(req);
+    if (req.method !== 'POST') return fail(req, res, 405, 'method', 'Method not allowed.');
 
     if (sub === 'join') {
+      if (!allow(`ip:${clientIp(req)}`, IP_CREATES_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
+      const body = await readBody(req);
       const memberId = L.newId();
       entry.state = L.reduce(entry.state, { type: 'join', memberId, name: body.name }, now());
-      const key = randomBytes(24).toString('base64url');
+      const key = newKey();
       entry.keys[memberId] = hashKey(key).toString('hex');
       scheduleSave();
       notify(crewId);
-      return send(res, 201, { memberId, key, crewName: entry.state.crew.name });
+      return send(req, res, 201, { memberId, key, crewName: entry.state.crew.name });
     }
 
     if (sub === 'actions') {
-      const me = authMember(entry, body.memberId, body.key);
-      if (!me) return fail(res, 403, 'not_member', "you're not in this group on this device. open the link and join first");
-      const action = body.action || {};
-      const allowed = ['createHang', 'respond', 'addPlace', 'like', 'lock', 'outcome'];
-      if (!allowed.includes(action.type)) return fail(res, 400, 'invalid', 'unknown action');
+      const me = authMember(req, entry);
+      if (!me) return fail(req, res, 403, 'not_member', "You're not in this group on this device. Open the group link and join, or use your personal link.");
+      if (!allow(`member:${me}`, MEMBER_WRITES_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many changes at once. Wait a minute and try again.');
+      const body = await readBody(req);
+      const action = isPlainObject(body.action) ? { ...body.action } : {};
+      if (!ACTIONS.includes(action.type)) return fail(req, res, 400, 'invalid', 'The server could not read that request.');
+      if (action.type === 'addPlace') action.placeId = L.newId(); // the server picks ids, not the client
       entry.state = L.reduce(entry.state, { ...action, memberId: me }, now());
+      if (action.type === 'leave') delete entry.keys[me];
       scheduleSave();
       notify(crewId);
-      return send(res, 200, { ok: true });
+      return send(req, res, 200, { ok: true });
     }
 
-    return fail(res, 404, 'not_found', 'not found');
+    return fail(req, res, 404, 'not_found', 'Not found.');
   }
 
   const server = http.createServer((req, res) => {
     handle(req, res).catch((e) => {
       if (e instanceof L.ActionError) {
-        const status = e.code === 'not_found' ? 404 : e.code === 'too_big' ? 413 : 400;
-        return fail(res, status, e.code, e.message);
+        const status = e.code === 'not_found' ? 404 : e.code === 'too_big' ? 413 : e.code === 'not_member' ? 403 : 400;
+        return fail(req, res, status, e.code, e.message);
       }
-      console.error(e);
-      return fail(res, 500, 'error', 'something broke on the server');
+      log.error(e);
+      return fail(req, res, 500, 'error', 'Something went wrong on the server. Try again.');
     });
   });
 
-  // Hourly, re-check every plan so time-based changes are saved even when nobody is active.
+  // Every 10 minutes, apply time-based changes (like the 48-hour deadline) even if nobody is looking.
   const tick = setInterval(() => {
-    for (const entry of Object.values(db.crews)) L.settle(entry.state, now());
-    scheduleSave();
-  }, 60 * 60 * 1000);
+    for (const [crewId, entry] of Object.entries(db.crews)) settleCrew(crewId, entry);
+  }, SETTLE_EVERY_MS);
   tick.unref();
   server.on('close', () => clearInterval(tick));
 
@@ -306,10 +367,11 @@ if (isMain) {
   const { server, flush } = await createMinibusServer({
     dataFile: process.env.DATA_FILE || undefined,
     backend: process.env.MINIBUS_BACKEND === 'local' ? 'local' : 'server',
+    trustProxy: process.env.TRUST_PROXY === '1',
   });
   server.listen(port, host, () => {
     console.log(`Minibus is running on http://localhost:${port}`);
-    for (const ip of lanAddresses()) console.log(`  friends on the same Wi-Fi: http://${ip}:${port}`);
+    for (const ip of lanAddresses()) console.log(`  Friends on the same Wi-Fi can open http://${ip}:${port}`);
   });
   const stop = async () => {
     await flush();

@@ -4,7 +4,7 @@ import * as L from '../js/logic.js';
 
 // Wed 25 Nov 2026, 10:00 in Hong Kong.
 const NOW = Date.parse('2026-11-25T02:00:00Z');
-const HOUR = 60 * 60 * 1000;
+const HOUR = L.HOUR_MS;
 
 function crew(extra = {}) {
   return L.createCrewState(
@@ -15,7 +15,7 @@ function crew(extra = {}) {
       crewName: 'O-camp gang',
       size: 4,
       creatorName: 'Mandy',
-      idea: 'dinner somewhere cheap',
+      idea: 'Dinner somewhere cheap',
       seats: 3,
       budget: '$50–100',
       ...extra,
@@ -35,9 +35,19 @@ const H = 'hang000001';
 const [MANDY, JASON, MEI, TOM] = ['mem0000001', 'mem0000002', 'mem0000003', 'mem0000004'];
 const THU_EVE = '2026-11-26_eve';
 const FRI_LUNCH = '2026-11-27_lunch';
+const SAT_EVE = '2026-11-28_eve';
 
-function respond(state, memberId, on, free) {
-  return L.reduce(state, { type: 'respond', hangId: H, memberId, on, free }, NOW);
+function respond(state, memberId, on, free, now = NOW) {
+  return L.reduce(state, { type: 'respond', hangId: H, memberId, on, free }, now);
+}
+
+// Mandy, Jason and Mei are in and free Thursday evening; Tom says no. Confirms on its own.
+function confirmedThursday(extraFree = []) {
+  let state = withFriends(crew());
+  state = respond(state, MANDY, true, [THU_EVE, ...extraFree]);
+  state = respond(state, JASON, true, [THU_EVE, ...extraFree]);
+  state = respond(state, MEI, true, [THU_EVE, ...extraFree]);
+  return respond(state, TOM, false, []);
 }
 
 test('dates use Hong Kong time whatever the machine timezone', () => {
@@ -45,17 +55,22 @@ test('dates use Hong Kong time whatever the machine timezone', () => {
   assert.equal(L.hkDate(Date.parse('2026-11-25T15:59:00Z')), '2026-11-25');
   assert.equal(L.slotTime(THU_EVE), Date.parse('2026-11-26T19:00:00+08:00'));
   assert.equal(L.slotLabel(THU_EVE), 'Thu 26 Nov, evening');
+  assert.equal(L.momentLabel(Date.parse('2026-11-27T02:00:00Z')), 'Fri 27 Nov, 10:00');
   assert.equal(L.addDays('2026-12-30', 3), '2027-01-02');
   assert.equal(L.parseSlot('2026-11-26_brunch'), null);
   assert.equal(L.parseSlot('nonsense'), null);
 });
 
-test('a new plan covers 7 days from today', () => {
-  const state = crew();
-  const slots = L.hangSlots(state.hangs[H]);
+test('a new plan covers 7 days, starting tomorrow if today is over', () => {
+  const morning = crew();
+  const slots = L.hangSlots(morning.hangs[H]);
   assert.equal(slots.length, 21);
   assert.equal(slots[0], '2026-11-25_lunch');
-  assert.equal(slots.at(-1), '2026-12-01_eve');
+  const lateNight = L.createCrewState(
+    { crewId: 'crew000002', hangId: H, memberId: MANDY, crewName: 'g', creatorName: 'M', idea: 'x' },
+    Date.parse('2026-11-25T13:30:00Z'), // 21:30 in Hong Kong
+  );
+  assert.equal(lateNight.hangs[H].startDate, '2026-11-26');
 });
 
 test('inputs are cleaned and clamped', () => {
@@ -63,27 +78,38 @@ test('inputs are cleaned and clamped', () => {
   assert.equal(state.crew.name, 'O-camp gang');
   assert.equal(state.hangs[H].seats, L.LIMITS.seatsMax);
   assert.equal(state.crew.size, L.LIMITS.sizeMin);
-  assert.throws(() => crew({ creatorName: '   ' }), { code: 'invalid' });
   assert.equal(crew({ budget: 'free money' }).hangs[H].budget, '', 'unknown budgets are dropped');
+  assert.throws(() => crew({ creatorName: '   ' }), { code: 'invalid' });
+  assert.equal(L.cleanText('Man​dy‮', 24), 'Mandy', 'invisible and direction characters are removed');
 });
 
-test('only people who said yes count toward a time', () => {
+test('only people who are in count toward a time', () => {
   let state = withFriends(crew());
   state = respond(state, MANDY, true, [THU_EVE]);
-  state = respond(state, JASON, false, [THU_EVE]); // free but not keen: doesn't count
+  state = respond(state, JASON, false, [THU_EVE]); // free but not in: doesn't count
   const s = L.summarize(state, H, NOW);
   assert.equal(s.slots.find((x) => x.id === THU_EVE).count, 1);
   assert.equal(s.onBoardIds.length, 1);
   assert.equal(s.ready, false);
 });
 
-test('times outside the plan window are dropped', () => {
+test('times outside the plan, and times that have closed, are dropped', () => {
   let state = withFriends(crew());
   state = respond(state, MANDY, true, [THU_EVE, '2030-01-01_eve', 'bad']);
   assert.deepEqual(state.members[MANDY].r[H].free, [THU_EVE]);
+  const at11 = NOW + HOUR; // today's lunch (12:30) is now less than 2 hours away
+  state = respond(state, MANDY, true, [THU_EVE, '2026-11-25_lunch'], at11);
+  assert.deepEqual(state.members[MANDY].r[H].free, [THU_EVE]);
 });
 
-test('a plan becomes ready, and locks itself once everyone has answered', () => {
+test('a time you already picked stays when it closes', () => {
+  let state = withFriends(crew());
+  state = respond(state, MANDY, true, ['2026-11-25_lunch', THU_EVE]);
+  state = respond(state, MANDY, true, ['2026-11-25_lunch', THU_EVE, SAT_EVE], NOW + HOUR);
+  assert.deepEqual(state.members[MANDY].r[H].free, ['2026-11-25_lunch', THU_EVE, SAT_EVE]);
+});
+
+test('a plan becomes ready, and confirms itself once everyone has answered', () => {
   let state = withFriends(crew());
   state = respond(state, MANDY, true, [THU_EVE, FRI_LUNCH]);
   state = respond(state, JASON, true, [THU_EVE]);
@@ -92,7 +118,6 @@ test('a plan becomes ready, and locks itself once everyone has answered', () => 
   assert.equal(s.status, 'ready');
   assert.equal(s.best.id, THU_EVE);
   assert.equal(state.hangs[H].lock, null, 'Tom has not answered, so it waits');
-
   state = respond(state, TOM, false, []);
   s = L.summarize(state, H, NOW);
   assert.equal(s.status, 'locked');
@@ -100,7 +125,19 @@ test('a plan becomes ready, and locks itself once everyone has answered', () => 
   assert.equal(state.hangs[H].note.type, 'auto');
 });
 
-test('anyone who said yes can lock a ready plan early', () => {
+test('after 48 hours, a ready plan confirms without waiting for everyone', () => {
+  let state = withFriends(crew());
+  state = respond(state, MANDY, true, [SAT_EVE]);
+  state = respond(state, JASON, true, [SAT_EVE]);
+  state = respond(state, MEI, true, [SAT_EVE]);
+  assert.equal(state.hangs[H].lock, null);
+  const later = state.hangs[H].decideBy + 1;
+  L.settle(state, later);
+  assert.equal(state.hangs[H].lock.slot, SAT_EVE);
+  assert.equal(state.hangs[H].note.type, 'deadline');
+});
+
+test('anyone who is in can confirm a ready plan early', () => {
   let state = withFriends(crew());
   state = respond(state, MANDY, true, [THU_EVE]);
   state = respond(state, JASON, true, [THU_EVE]);
@@ -111,69 +148,66 @@ test('anyone who said yes can lock a ready plan early', () => {
   assert.equal(state.hangs[H].lock.slot, THU_EVE);
 });
 
-test('ties go to the earliest time', () => {
+test('ties go to the earliest time, and closed times never win', () => {
   let state = withFriends(crew({ seats: 2 }));
   state = respond(state, MANDY, true, [FRI_LUNCH, THU_EVE]);
   state = respond(state, JASON, true, [FRI_LUNCH, THU_EVE]);
   assert.equal(L.summarize(state, H, NOW).best.id, THU_EVE);
+  const thuAfternoon = Date.parse('2026-11-26T09:30:00Z'); // 17:30, evening starts in 1.5 hours
+  const s = L.summarize(state, H, thuAfternoon);
+  assert.equal(s.slots.find((x) => x.id === THU_EVE).closed, true);
+  assert.equal(s.best.id, FRI_LUNCH);
 });
 
-test('past times never win', () => {
-  let state = withFriends(crew({ seats: 2 }));
-  const todayLunch = '2026-11-25_lunch';
-  state = respond(state, MANDY, true, [todayLunch, THU_EVE]);
-  state = respond(state, JASON, true, [todayLunch, THU_EVE]);
-  const later = NOW + 4 * HOUR; // 14:00 HKT, lunch has started
-  const s = L.summarize(state, H, later);
-  assert.equal(s.slots.find((x) => x.id === todayLunch).past, true);
-  assert.equal(s.best.id, THU_EVE);
-});
-
-test('when someone swaps out, the plan moves instead of dying', () => {
-  let state = withFriends(crew());
-  state = respond(state, MANDY, true, [THU_EVE, FRI_LUNCH]);
-  state = respond(state, JASON, true, [THU_EVE, FRI_LUNCH]);
-  state = respond(state, MEI, true, [THU_EVE, FRI_LUNCH]);
-  state = respond(state, TOM, false, []);
+test('when someone changes their times, the plan moves instead of dying', () => {
+  let state = confirmedThursday([FRI_LUNCH]);
   assert.equal(state.hangs[H].lock.slot, THU_EVE);
-
   state = respond(state, MEI, true, [FRI_LUNCH]); // Mei can't do Thursday anymore
   assert.equal(state.hangs[H].lock.slot, FRI_LUNCH);
   assert.equal(state.hangs[H].note.type, 'moved');
   assert.equal(state.hangs[H].note.from, THU_EVE);
 });
 
-test('if no time works anymore, the plan goes back to picking a time', () => {
-  let state = withFriends(crew());
-  state = respond(state, MANDY, true, [THU_EVE]);
-  state = respond(state, JASON, true, [THU_EVE]);
-  state = respond(state, MEI, true, [THU_EVE]);
-  state = respond(state, TOM, false, []);
+test('if no time works anymore, the group goes back to choosing a time', () => {
+  let state = confirmedThursday();
   state = respond(state, JASON, false, undefined);
   assert.equal(state.hangs[H].lock, null);
   assert.equal(state.hangs[H].note.type, 'unlocked');
 });
 
-test('who said yes stays hidden until the plan locks', () => {
+test('a confirmed plan is not moved once it is less than 2 hours away', () => {
+  let state = confirmedThursday();
+  const soon = Date.parse('2026-11-26T10:00:00Z'); // 18:00, starts in 1 hour
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [] }, soon);
+  assert.equal(state.hangs[H].lock.slot, THU_EVE);
+});
+
+test('before a plan is confirmed, nobody can tell who said what', () => {
   let state = withFriends(crew());
   state = respond(state, JASON, true, [THU_EVE]);
   const view = L.buildView(state, MANDY, NOW);
   const json = JSON.stringify(view);
-  assert.ok(!json.includes('"r":'), 'no raw responses in the view');
-  assert.equal(view.hangs[0].onBoard, 1);
-  assert.equal(view.hangs[0].lock, null);
-  assert.deepEqual(view.hangs[0].mine.free, []);
+  assert.ok(!json.includes('"r":'), 'no raw answers in the view');
+  assert.ok(!json.includes('waitingNames'), 'no list of who has not answered');
+  const hang = view.hangs[0];
+  assert.equal(hang.onBoard, 1);
+  assert.equal(hang.showCounts, false, 'with only 1 person in, counts per time would give them away');
+  assert.ok(hang.slots.every((s) => s.count === 0));
+  assert.equal(hang.best, null);
   assert.ok(view.members.every((m) => Object.keys(m).sort().join() === 'id,name'));
+
+  state = respond(state, MEI, true, [THU_EVE]);
+  const view2 = L.buildView(state, MANDY, NOW);
+  assert.equal(view2.hangs[0].showCounts, true);
+  assert.equal(view2.hangs[0].best.count, 2);
 });
 
-test('names show once it locks: only the people going', () => {
-  let state = withFriends(crew());
-  state = respond(state, MANDY, true, [THU_EVE]);
-  state = respond(state, JASON, true, [THU_EVE]);
-  state = respond(state, MEI, true, [THU_EVE]);
-  state = respond(state, TOM, false, []);
+test('once confirmed, it shows only who is going', () => {
+  const state = confirmedThursday();
   const view = L.buildView(state, TOM, NOW);
   assert.deepEqual(view.hangs[0].lock.people.sort(), ['Jason', 'Mandy', 'Mei']);
+  assert.equal(view.hangs[0].lock.imGoing, false);
+  assert.equal(L.buildView(state, MEI, NOW).hangs[0].lock.imGoing, true);
 });
 
 test('places: duplicates merge, adding one votes for it, votes sort the list', () => {
@@ -187,6 +221,11 @@ test('places: duplicates merge, adding one votes for it, votes sort the list', (
   assert.equal(s.places[0].likes, 2);
   state = L.reduce(state, { type: 'like', hangId: H, memberId: MEI, placeId: 'plc0000002', on: false }, NOW);
   assert.equal(L.summarize(state, H, NOW).places[0].likes, 1);
+  assert.throws(
+    () => L.reduce(state, { type: 'addPlace', hangId: H, memberId: TOM, placeId: 'plc0000001', name: 'Sai Kung' }, NOW),
+    { code: 'invalid' },
+    'a place id can only be used once',
+  );
 });
 
 test('names must be unique in a group and groups have a size limit', () => {
@@ -198,42 +237,68 @@ test('names must be unique in a group and groups have a size limit', () => {
   assert.throws(() => L.reduce(state, { type: 'join', memberId: 'memy000001', name: 'one more' }, NOW), { code: 'full' });
 });
 
-test('did it happen: only after it started, and it adds hours', () => {
+test('leaving deletes your name and answers', () => {
   let state = withFriends(crew());
-  state = respond(state, MANDY, true, [THU_EVE]);
   state = respond(state, JASON, true, [THU_EVE]);
-  state = respond(state, MEI, true, [THU_EVE]);
-  state = respond(state, TOM, false, []);
-  assert.throws(() => L.reduce(state, { type: 'outcome', hangId: H, memberId: MANDY, met: true }, NOW), { code: 'too_early' });
+  state = L.reduce(state, { type: 'leave', memberId: JASON }, NOW);
+  assert.equal(state.members[JASON], undefined);
+  assert.ok(!JSON.stringify(state).includes('"Jason"'));
+});
+
+test('group size can be changed, but not below the number of people in it', () => {
+  let state = withFriends(crew({ size: 8 }));
+  state = L.reduce(state, { type: 'setSize', memberId: MANDY, size: 2 }, NOW);
+  assert.equal(state.crew.size, 4);
+  state = L.reduce(state, { type: 'setSize', memberId: MANDY, size: 6 }, NOW);
+  assert.equal(state.crew.size, 6);
+});
+
+test('did you meet: only after the plan ends, and only from people who went', () => {
+  let state = confirmedThursday();
+  const during = L.slotTime(THU_EVE, 'start') + HOUR;
+  assert.throws(() => L.reduce(state, { type: 'outcome', hangId: H, memberId: MANDY, met: false }, during), { code: 'too_early' });
   const after = L.slotTime(THU_EVE, 'end') + HOUR;
   assert.equal(L.summarize(state, H, after).status, 'check');
+  assert.throws(() => L.reduce(state, { type: 'outcome', hangId: H, memberId: TOM, met: false }, after), { code: 'not_going' });
   state = L.reduce(state, { type: 'outcome', hangId: H, memberId: MANDY, met: true }, after);
   assert.equal(L.summarize(state, H, after).status, 'happened');
   const hours = L.crewHours(state);
   assert.equal(hours.hours, 3);
-  assert.equal(hours.next.hours, 50);
+  assert.equal(hours.times, 1);
 });
 
-test('a locked plan in the past is not moved', () => {
+test('a plan nobody could agree on runs out of days', () => {
   let state = withFriends(crew());
   state = respond(state, MANDY, true, [THU_EVE]);
-  state = respond(state, JASON, true, [THU_EVE]);
-  state = respond(state, MEI, true, [THU_EVE]);
-  state = respond(state, TOM, false, []);
-  const after = L.slotTime(THU_EVE, 'end') + HOUR;
-  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [] }, after);
-  assert.equal(state.hangs[H].lock.slot, THU_EVE);
+  const nextWeek = Date.parse('2026-12-02T15:00:00Z');
+  assert.equal(L.summarize(state, H, nextWeek).status, 'expired');
+});
+
+test('ids that look like built-in object keys are rejected', () => {
+  const state = crew();
+  for (const bad of ['__proto__', 'constructor', 'hasOwnProperty', 'toString']) {
+    assert.throws(() => L.reduce(state, { type: 'respond', hangId: bad, memberId: MANDY, on: true }, NOW), { code: 'not_found' });
+    assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: bad, on: true }, NOW), { code: 'not_member' });
+  }
+  assert.equal({}.polluted, undefined);
+});
+
+test('unknown or malformed actions are rejected', () => {
+  const state = crew();
+  assert.throws(() => L.reduce(state, null, NOW), { code: 'invalid' });
+  assert.throws(() => L.reduce(state, { type: 'explode', hangId: H, memberId: MANDY }, NOW), { code: 'invalid' });
+  assert.throws(() => L.reduce(state, { type: 'respond', hangId: 'nohang0001', memberId: MANDY, on: true }, NOW), { code: 'not_found' });
+  assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: MANDY, on: 'yes' }, NOW), { code: 'invalid' });
+  assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: MANDY, free: 'all' }, NOW), { code: 'invalid' });
 });
 
 test('messages and calendar files', () => {
-  let state = withFriends(crew());
-  state = respond(state, MANDY, true, [THU_EVE]);
-  state = respond(state, JASON, true, [THU_EVE]);
-  state = respond(state, MEI, true, [THU_EVE]);
-  state = respond(state, TOM, false, []);
+  const state = confirmedThursday();
   const hang = L.buildView(state, MANDY, NOW).hangs[0];
-  assert.match(L.shareMessage(hang, 'https://x.test/#p'), /3 of us hop on/);
-  assert.match(L.lockedMessage(hang, 'https://x.test/#p'), /Thu 26 Nov, evening/);
+  assert.match(L.shareMessage(hang, 'https://x.test/#p'), /confirmed once 3 of us can make the same time/);
+  const locked = L.lockedMessage(hang, 'https://x.test/#p');
+  assert.match(locked, /Thu 26 Nov, evening/);
+  assert.match(locked, /Going: /);
   const ics = L.icsText(hang, 'O-camp gang', 'uid1', NOW);
   assert.match(ics, /DTSTART:20261126T110000Z/);
   assert.match(ics, /DTEND:20261126T140000Z/);
@@ -243,15 +308,29 @@ test('messages and calendar files', () => {
   assert.equal(url.searchParams.get('dates'), '20261126T110000Z/20261126T140000Z');
 });
 
-test('nudge message names who has not answered', () => {
+test('the reminder message never names anyone', () => {
   let state = withFriends(crew({ size: 5 }));
   state = respond(state, MANDY, true, [THU_EVE]);
   const hang = L.buildView(state, MANDY, NOW).hangs[0];
   const text = L.nudgeMessage(hang, 'https://x.test');
-  assert.match(text, /4 people still haven't answered \(Jason, Mei, Tom\)/);
+  assert.match(text, /^Minibus reminder: 4 people haven't answered yet/);
+  for (const name of ['Jason', 'Mei', 'Tom']) assert.ok(!text.includes(name));
 });
 
-test('the demo group starts one person short of leaving', () => {
+test('old saved data is upgraded', () => {
+  const old = crew();
+  old.v = 1;
+  delete old.hangs[H].decideBy;
+  old.crew.demo = true;
+  old.crew.clockOffset = 5;
+  const state = L.migrate(old);
+  assert.equal(state.v, 2);
+  assert.equal(state.hangs[H].decideBy, state.hangs[H].createdAt + L.DECIDE_AFTER_MS);
+  assert.equal(state.demo.clockOffset, 5);
+  assert.equal(state.crew.clockOffset, undefined);
+});
+
+test('the demo group starts one person short of confirming', () => {
   const ids = {
     crewId: 'democrew01',
     hangId: 'demohang01',
@@ -265,13 +344,5 @@ test('the demo group starts one person short of leaving', () => {
   assert.equal(s.status, 'open');
   assert.equal(s.waiting, 2);
   assert.equal(state.crew.demo, true);
-});
-
-test('unknown or malformed actions are rejected', () => {
-  const state = crew();
-  assert.throws(() => L.reduce(state, { type: 'explode', hangId: H, memberId: MANDY }, NOW), { code: 'invalid' });
-  assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: 'nobody0001', on: true }, NOW), { code: 'not_member' });
-  assert.throws(() => L.reduce(state, { type: 'respond', hangId: 'nohang0001', memberId: MANDY, on: true }, NOW), { code: 'not_found' });
-  assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: MANDY, on: 'yes' }, NOW), { code: 'invalid' });
-  assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: MANDY, free: 'all' }, NOW), { code: 'invalid' });
+  assert.equal(state.demo.tomFree.length, 2);
 });

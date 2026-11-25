@@ -1,6 +1,6 @@
 // Browser walkthrough of both versions, with phone-size screenshots.
-// Not part of `npm test` because it needs a Chromium. Usage:
-//   node test/e2e.mjs <screenshot-dir> [path-to-playwright]
+// Not part of `npm test` because it needs Chromium. Usage:
+//   node test/e2e.mjs <screenshot-folder> [path-to-playwright]
 // It starts its own servers on random ports.
 
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
@@ -14,9 +14,10 @@ const pwPath = process.argv[3] || '/opt/node-tools/node_modules/playwright';
 const { chromium } = createRequire(import.meta.url)(pwPath);
 await mkdir(outDir, { recursive: true });
 const dataDir = await mkdtemp(path.join(tmpdir(), 'minibus-e2e-'));
+const quiet = { error() {}, log() {} };
 
 async function serve(backend) {
-  const inst = await createMinibusServer({ dataFile: path.join(dataDir, `${backend}.json`), backend });
+  const inst = await createMinibusServer({ dataFile: path.join(dataDir, `${backend}.json`), backend, log: quiet });
   await new Promise((r) => inst.server.listen(0, '127.0.0.1', r));
   return { inst, url: `http://127.0.0.1:${inst.server.address().port}/` };
 }
@@ -29,7 +30,7 @@ function watch(page, who) {
   page.on('pageerror', (e) => errors.push(`${who}: ${e.message}`));
   // Font requests are blocked on purpose (offline runs), so only count other failures.
   page.on('requestfailed', (r) => {
-    if (!/fonts\.(googleapis|gstatic)\.com/.test(r.url())) errors.push(`${who}: failed ${r.url()}`);
+    if (!/fonts\.(googleapis|gstatic)\.com/.test(r.url()) && !/\/events$/.test(r.url())) errors.push(`${who}: failed ${r.url()}`);
   });
   page.on('console', (m) => {
     if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errors.push(`${who}: ${m.text()}`);
@@ -41,16 +42,19 @@ async function shot(page, name) {
   await page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage: true });
 }
 
+function check(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
 const step = (msg) => console.log(`- ${msg}`);
 
-// Fonts come from Google; block them so runs are offline and repeatable.
 async function context(opts = {}) {
   const ctx = await browser.newContext({ ...phone, ...opts });
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
   return ctx;
 }
 
-// ---------------------------------------------------------------- server mode, two friends
+// ---------------------------------------------------------------- server version, two friends
 {
   const { inst, url } = await serve('server');
   const mandyCtx = await context();
@@ -63,117 +67,166 @@ async function context(opts = {}) {
   await mandy.goto(url);
   await shot(mandy, '01-start');
   await mandy.click('text=Start a plan');
+  await mandy.click('#create-submit');
+  await mandy.waitForSelector('.field-error');
+  check((await mandy.getAttribute('#c-crew', 'aria-invalid')) === 'true', 'empty group name should be marked invalid');
+  check((await mandy.evaluate(() => document.activeElement.id)) === 'c-crew', 'focus should move to the first error');
+  await shot(mandy, '02-create-errors');
+  step('server: empty form shows errors under the fields and focuses the first one');
+
   await mandy.fill('#c-crew', 'O-camp gang');
   await mandy.fill('#c-size', '3');
-  await mandy.click('button.chip:has-text("hotpot")');
+  await mandy.click('button.chip:has-text("Hotpot")');
   await mandy.fill('#c-seats', '2');
   await mandy.check('input[name="budget"][value="$100–200"]', { force: true });
   await mandy.fill('#c-name', 'Mandy');
-  await shot(mandy, '02-create-form');
-  await mandy.click('button:has-text("Make the link")');
+  await mandy.click('#create-submit');
   await mandy.waitForSelector('#share-text');
   await shot(mandy, '03-share');
   const planHash = (await mandy.textContent('#share-text')).match(/#plan-[a-z0-9]+-[a-z0-9]+/)[0];
-  step('server: plan created and share message shows a link');
+  step('server: plan created and the share message has a link');
 
   await mandy.click('text=Go to the plan');
-  await mandy.click('button:has-text("Yeah, I\'m in")');
-  const firstOpen = mandy.locator('button.cell:not([disabled])').nth(4);
-  const slot = await firstOpen.getAttribute('data-slot');
-  await firstOpen.click();
-  await mandy.waitForSelector(`button.cell.mine[data-slot="${slot}"]`);
+  await mandy.waitForSelector('#on-yes');
+  await mandy.click('#on-yes');
+  await mandy.waitForSelector('#on-yes[aria-pressed="true"]');
+  // Four quick taps should all be saved.
+  const open = mandy.locator('button.cell:not([disabled])');
+  const picks = [];
+  for (let i = 3; i < 7; i++) picks.push(await open.nth(i).getAttribute('data-slot'));
+  for (const slot of picks) await mandy.click(`button.cell[data-slot="${slot}"]`);
+  await mandy.waitForTimeout(900);
+  await mandy.reload();
+  await mandy.waitForSelector('#on-yes');
+  for (const slot of picks) check(await mandy.locator(`button.cell.mine[data-slot="${slot}"]`).count(), `quick tap on ${slot} was lost`);
   await shot(mandy, '04-plan-open');
-  step('server: Mandy answered and picked a time');
+  step('server: four quick taps on the time grid were all saved');
+  const slot = picks[0];
 
   await jason.goto(url + planHash);
   await jason.waitForSelector('#j-name');
   await shot(jason, '05-join-dark');
+  await jason.fill('#j-name', 'Mandy');
+  await jason.click('#join-submit');
+  await jason.waitForSelector('#j-name[aria-invalid="true"]');
+  step('server: a name that is already taken shows an error under the field');
   await jason.fill('#j-name', 'Jason');
-  await jason.click('button:has-text("Join")');
-  await jason.waitForSelector('text=Would you actually go?');
-  const countText = await jason.textContent(`button.cell[data-slot="${slot}"] .cell-count`);
-  if (!/1 free/.test(countText)) throw new Error(`Jason should see 1 free, saw "${countText}"`);
-  await jason.click('button:has-text("Yeah, I\'m in")');
+  await jason.click('#join-submit');
+  await jason.waitForSelector('text=Are you in?');
+  const firstHeading = await jason.locator('main h2').first().textContent();
+  check(firstHeading === 'Are you in?', `a new person should see their own question first, saw "${firstHeading}"`);
+  const hidden = await jason.textContent(`button.cell[data-slot="${slot}"] .cell-count`);
+  check(hidden.trim() === '', `with 1 person in, counts should be hidden, saw "${hidden}"`);
+  step('server: Jason joined; his question comes first and counts stay hidden while only 1 person is in');
+
+  await jason.click('#on-yes');
   await jason.click(`button.cell[data-slot="${slot}"]`);
-  await jason.waitForSelector('text=Enough of you are free.');
+  await jason.waitForSelector('text=Enough people are free', { timeout: 8000 });
   await shot(jason, '06-ready-dark');
-  step('server: Jason joined from the link and the plan became ready');
+  step('server: Jason said yes and picked the same time, so the plan is ready');
 
-  // Mandy's page updates live, without a reload.
-  await mandy.waitForSelector('text=Enough of you are free.', { timeout: 8000 });
+  await mandy.waitForSelector('text=Enough people are free', { timeout: 8000 });
   step('server: Mandy saw it update live');
-  await mandy.click('button:has-text("Lock it in")');
-  await mandy.waitForSelector("text=It's actually happening.");
-  await shot(mandy, '07-locked');
+  await mandy.click('#confirm');
+  await mandy.waitForSelector('text=The plan is confirmed');
+  await shot(mandy, '07-confirmed');
   const going = await mandy.textContent('.status.go');
-  if (!/Mandy/.test(going) || !/Jason/.test(going)) throw new Error('names should show once locked');
-  step('server: locked, names revealed');
+  check(/Mandy/.test(going) && /Jason/.test(going), 'names should show once confirmed');
+  step('server: confirmed, and only then names are shown');
 
-  await jason.waitForSelector("text=It's actually happening.", { timeout: 8000 });
-  await jason.click("text=Can't make it anymore?");
-  await shot(jason, '08-swap-dark');
-  await jason.click('button:has-text("I can\'t do")');
-  await jason.waitForSelector('text=back to picking a time');
-  await shot(jason, '09-unlocked-dark');
-  step('server: Jason swapped out and the plan went back to picking a time');
+  await jason.waitForSelector('text=The plan is confirmed', { timeout: 8000 });
+  await jason.click('#swap-open');
+  await jason.waitForSelector('#swap-save');
+  await shot(jason, '08-change-times-dark');
+  await jason.click('#swap-save');
+  await jason.waitForSelector('text=choosing a new time');
+  await shot(jason, '09-back-to-choosing-dark');
+  step('server: Jason changed his times and the group went back to choosing a time');
+
+  await mandy.click('.bar-link');
+  await mandy.waitForSelector('#copy-personal');
+  await shot(mandy, '10-group-page');
+  step('server: the group page offers a private link for other devices');
 
   await mandyCtx.close();
   await jasonCtx.close();
   await new Promise((r) => inst.server.close(r));
 }
 
-// ---------------------------------------------------------------- local demo mode
+// ---------------------------------------------------------------- demo version
 {
   const { inst, url } = await serve('local');
   const ctx = await context();
   const page = await ctx.newPage();
   watch(page, 'demo');
   await page.goto(url);
-  await page.click('text=Try it with fake friends');
+  await page.click('#start-demo');
   await page.waitForSelector('#j-name');
-  await shot(page, '10-demo-join');
+  await shot(page, '11-demo-join');
   await page.fill('#j-name', 'Mandy');
-  await page.click('button:has-text("Join")');
-  await page.waitForSelector('text=Would you actually go?');
-  await shot(page, '11-demo-plan');
-  await page.click('button:has-text("Yeah, I\'m in")');
-  // The demo friends overlap on one time; joining it fills the third seat.
+  await page.click('#join-submit');
+  await page.waitForSelector('#on-yes');
+  await shot(page, '12-demo-plan');
+  await page.click('#on-yes');
+  await page.waitForSelector('button.cell.best');
   const best = await page.locator('button.cell.best').getAttribute('data-slot');
   await page.click(`button.cell[data-slot="${best}"]`);
-  await page.waitForSelector('text=Enough of you are free.');
-  step('demo: joining the best time made it ready');
-  await page.click('button:has-text("Tom finally answers")');
-  await page.waitForSelector("text=It's actually happening.");
-  await shot(page, '12-demo-locked');
-  step('demo: Tom answered, everyone had answered, so it locked itself');
-  const swapper = page.locator('button[data-act="demo"][data-what="swap"]');
-  await swapper.click();
+  await page.waitForSelector('text=Enough people are free');
+  step('demo: picking the best time made the plan ready');
+
+  await page.selectOption('#play-as', { label: 'Jason' });
+  await page.waitForTimeout(200);
+  check((await page.locator('#play-as option:checked').textContent()) === 'Jason', 'should now be playing Jason');
+  await page.selectOption('#play-as', { label: 'Mandy (you)' });
+  await page.waitForTimeout(200);
+  step('demo: switched to Jason and back');
+
+  await page.click('#demo-tom');
+  await page.waitForSelector('text=The plan is confirmed');
+  await shot(page, '13-demo-confirmed');
+  step('demo: Tom answered, so everyone had answered and Minibus confirmed it');
+
+  await page.click('#demo-swap');
   await page.waitForSelector('.banner');
-  await shot(page, '13-demo-after-swap');
-  step(`demo: after a friend swapped out: ${(await page.textContent('.banner')).trim()}`);
+  const banner = (await page.textContent('.banner')).trim();
+  check(/moved to/.test(banner), `expected the plan to move, saw: ${banner}`);
+  await shot(page, '14-demo-moved');
+  step(`demo: ${banner}`);
 
-  // Make sure it's locked before skipping ahead.
-  if (await page.locator('button[data-act="lock"]').count()) await page.click('button[data-act="lock"]');
-  if (await page.locator('button[data-act="demo"][data-what="skip"]').count()) {
-    await page.click('button[data-act="demo"][data-what="skip"]');
-    await page.waitForSelector('text=did it happen?');
-    await page.click('button:has-text("Yes, we met")');
-    await page.waitForSelector('text=You actually met.');
-    await shot(page, '14-demo-met');
-    await page.click('.bar-crew');
-    await page.waitForSelector('text=hours together this term');
-    await shot(page, '15-demo-crew');
-    step('demo: marked as met and the hours counter went up');
-  } else {
-    step('demo: plan was not locked after the swap, skipped the "did it happen" part');
+  if (await page.locator('text=Can you make it?').count()) {
+    await page.click('#join-time');
+    await page.waitForSelector('#demo-skip');
+    step('demo: Mandy was asked about the new time and said yes');
   }
+  await page.click('#demo-skip');
+  await page.waitForSelector('text=Did you meet?');
+  await page.click('#met-yes');
+  await page.waitForSelector('h2:has-text("You met")');
+  await shot(page, '15-demo-met');
+  await page.click('.bar-link');
+  await page.waitForSelector("text=You've met 1 time");
+  await shot(page, '16-demo-group');
+  step('demo: marked as met, and the group page counts it');
 
-  // A second tab plays another friend and stays in sync.
-  const tab2 = await ctx.newPage();
-  watch(tab2, 'demo-tab2');
-  await tab2.goto(page.url());
-  await tab2.waitForSelector('main h1, main h2');
-  step('demo: a second tab opens the same plan');
+  await ctx.close();
+  await new Promise((r) => inst.server.close(r));
+}
+
+// ---------------------------------------------------------------- narrow screen
+{
+  const { inst, url } = await serve('local');
+  const ctx = await context({ viewport: { width: 320, height: 640 } });
+  const page = await ctx.newPage();
+  watch(page, 'narrow');
+  await page.goto(url);
+  await page.click('#start-demo');
+  await page.fill('#j-name', 'Mandy');
+  await page.click('#join-submit');
+  await page.waitForSelector('#on-yes');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  check(overflow <= 0, `page scrolls sideways at 320px by ${overflow}px`);
+  await shot(page, '17-narrow-320');
+  step('320px wide: nothing scrolls sideways');
   await ctx.close();
   await new Promise((r) => inst.server.close(r));
 }

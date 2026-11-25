@@ -19,66 +19,63 @@ The script is about 250 words. Said at a calm pace, with the numbers read out in
 ## Slide 2: Target user (0:15–0:30)
 
 > Meet Mandy, a Year 2 student at HKUST. In Year 1 she made four close friends. Now they have
-> different timetables and long commutes. She misses them, but every plan stays at “soon”.
+> different timetables and long commutes. She misses them, but no one ever picks a date.
 
 ## Slide 3: Background (0:30–0:50)
 
 > Mandy is not alone. This year, 83.7% of young people in Hong Kong reported moderate to high
-> loneliness. In the US, young people spend 70% less time with friends in person than in 2003.
-> And 68% of young adults in the UK admit they cancel plans at the last minute.
+> loneliness. And 68% of UK adults aged 18 to 34 admit they cancel plans at the last minute.
 
-*Say “eighty-three point seven percent” slowly. The 2021 figure is on the slide, so you don't need to say it.*
+*Say “eighty-three point seven percent” slowly. The 2021 figure and the US number are on the slide, so you don't need to say them.*
 
-## Slide 4: The paradox (0:50–1:05)
+## Slide 4: Say yes, then regret it (0:50–1:05)
 
-> Here’s the strange part. We say yes because saying no feels rude. Closer to the day, we
-> regret it. When a friend cancels, one in three of us feels relieved… and then guilty.
+> Here’s the strange part. We say yes because saying no feels rude. As the day gets closer, we
+> wish we had said no. When a friend cancels, one in three of us feels relieved… and then guilty.
 
 *Smile a little on “relieved”. Most people in the room know this feeling.*
 
 ## Slide 5: Why plans fall through (1:05–1:25)
 
-> Why do plans fall through? No one owns the plan: everyone thinks someone else will organise it.
-> There’s no time and no place: “soon” is not a plan. And we’re afraid of looking too eager, but
+> Why do plans fall through? No one is in charge: everyone thinks someone else will organise it. The plan has no set time or place: “soon” is not a plan. And we’re afraid of looking too eager, but
 > friends want to hear from us more than we think.
 
 *Count the three reasons on your fingers.*
 
 ## Slide 6: Empathy map (1:25–1:38)
 
-> So Mandy says “Next week for sure!”, likes the message, and waits. She thinks, “If I push,
-> I’ll seem desperate.” She feels lonely, relieved, then guilty.
+> So Mandy says “Next week for sure!”, likes the message, and waits. She thinks, “If I keep
+> asking, I’ll seem desperate.” She feels lonely, then relieved when plans fall through, then guilty.
 
 ## Slide 7: Problem and How Might We (1:38–2:00)
 
-> My problem: university friend groups want to spend time together, but their plans fall apart
-> in the group chat.
+> The problem is this: university friend groups want to spend time together, but their plans
+> fall through in the group chat.
 >
 > **How might we turn “we should hang out” into real meetups for university friend groups,
 > in order to keep their friendships close?**
 >
-> *(Pause.)* Everyone wants the hangout. Nobody owns the plan.
+> *(Pause.)* Everyone wants to meet. No one is in charge of the plan.
 
 *Slow down for the question. Stop after the last line and wait. Don't add “that's it” or “any
 questions?” The last line is your ending.*
 
 ---
 
-## If you are running long
+## If you go over time
 
 Cut these, in this order. Each one saves 3 to 5 seconds, and the story still works:
 
-1. Slide 4: “Closer to the day, we regret it.”
+1. Slide 4: “As the day gets closer, we wish we had said no.”
 2. Slide 2: “and long commutes”. Say “different timetables” only.
-3. Slide 3: the US sentence. The slide still shows it.
 
 Don't cut the How Might We question or the last line.
 
 ## Optional line, only if it's true
 
 If you message 4 or 5 friends tonight and ask “Is there a plan stuck in one of your group chats
-right now?”, you can add one line to slide 3: “Last night I asked five classmates. [X] of them
-had a plan stuck in a group chat right now.” Use your real number, or leave the line out.
+right now?”, you can add one line to slide 3: “I asked [N] friends. [X] of them have a plan stuck in a group
+chat.” Use your real number, or leave the line out.
 
 ## Before you present
 
@@ -96,13 +93,13 @@ had a plan stuck in a group chat right now.” Use your real number, or leave th
 Yes. The loneliness numbers are from Hong Kong: the HKFYG survey of 600 young people in 2026, and the Hong Kong Family Wellbeing Index 2026. The numbers on cancelled plans are from UK and US polls, because I couldn't find a Hong Kong survey on that. That gap is why my next step is to interview HKUST students.
 
 **“Why not just use a WhatsApp poll?”**
-This pitch is only about the problem. A poll could help people pick a time, but it doesn't fix the other two reasons: nobody owns the plan, and people are afraid of looking too eager. I want to keep the question open to many ideas.
+This pitch is only about the problem. A poll could help people pick a time, but it doesn't fix the other two reasons: no one is in charge of the plan, and people are afraid of looking too eager. I want to keep the question open to many ideas.
 
 **“Isn't this just laziness?”**
-The research says no. People underestimate how much their friends like them (Boothby et al., 2018) and how much friends want to hear from them (Liu et al., 2023). The problem is social fear and nobody being in charge, not a lack of caring.
+The research says no. People underestimate how much their friends like them (Boothby et al., 2018) and how much friends want to hear from them (Liu et al., 2023). People do care. They worry about how they'll look, and no one takes charge.
 
 **“Why university students, and why Year 2?”**
-Year 1 has ready-made chances to meet, like orientation camp, halls and shared classes. By Year 2, timetables split, but the friendships are still new. Close friendships need about 200 hours together (Hall, 2019), so this is when missed plans hurt the most.
+Year 1 has ready-made chances to meet, like orientation camp, halls and shared classes. By Year 2, everyone has a different timetable, but the friendships are still new. Close friendships need about 200 hours together (Hall, 2019), so this is when missed plans hurt the most.
 
 **“How does this fit ‘Leisure in 2030’?”**
-The brief asks how free time can move from killing time to meaningful downtime. Time that was meant for friends ends up spent scrolling alone. Turning “we should” into “we did” is that change.
+The brief asks how free time can move from killing time to meaningful downtime. Right now, students often spend that time alone on their phones. This project is about helping friends spend that time together.
