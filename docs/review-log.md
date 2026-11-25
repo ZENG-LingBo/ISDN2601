@@ -374,3 +374,9 @@ What worked: when totals are hidden, the screen shows nothing else about anyone'
 **A decision for you.** Friends can still guess some answers because the app shows the exact number free at each time before the plan is confirmed. You could hide those numbers until the plan is confirmed, and show only the best time once the plan is ready. That would stop most guessing. The downside: people couldn't see which times others can make, so it would be harder to find a time that works. The class test can show which matters more to real groups: privacy, or seeing the numbers. In the interview, after "Did seeing only numbers, not names, change what you answered?", ask "Would you rather see no numbers until the plan is confirmed?" (It's now in the study plan.)
 
 84 unit and server tests pass. The walkthrough passes.
+
+Text judge on the new wording: FAIL in rounds 1 and 2, then PASS in round 3. It pointed out that "especially in a small group" was wrong: the test showed bigger groups give away more answers, not fewer. It also asked for plainer words in this section.
+
+## Load test (26 Nov, 04:25)
+
+To check the server can handle a class test, a script ran 6 groups of 5 on one server at the same time. All 30 people had live updates open, and everyone answered and changed their times 8 times. Result: 510 requests in half a second, all successful. Half of them took 16 ms or less, and 95% took 109 ms or less. Every live update arrived.
