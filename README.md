@@ -21,6 +21,15 @@ The slide deck (8 slides: 7 presented plus a references appendix) is a Claude Sl
 https://claude.ai/artifact/ChLZkzX5tjTnP63Hisntgn. It can be downloaded as PPTX or PDF from the
 deck’s Share › Export menu. The speaker notes on each slide match the script.
 
+## Prototype (next stage, not for the 26 Nov pitch)
+
+The pitch only covers the problem. For the next stage, [`prototype/`](prototype/) has **Minibus**, a working prototype that responds to the How Might We question. Friends say privately if they're in and tap the times they're free, and the plan is confirmed once enough people can make the same time.
+
+- Try the demo (one device, pretend friends): https://claude.ai/artifact/Rk1gLXmtPHwNFv97aH3E8E
+- How it works, how to run it for real friends, privacy and consent: [`prototype/README.md`](prototype/README.md)
+- How it was reviewed and improved: [`docs/review-log.md`](docs/review-log.md)
+- A one-week study plan: [`docs/study-plan.md`](docs/study-plan.md)
+
 ## Deck outline
 
 1. **Hook:** a group chat where everyone agrees and nobody meets

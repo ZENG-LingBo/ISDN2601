@@ -35,7 +35,7 @@ See [`docs/study-plan.md`](../docs/study-plan.md) for a one-week study plan: who
 
 ## Two versions
 
-**The demo** runs entirely in your browser. It keeps everything on your device and has pretend friends. Open "Demo controls" to see the plan as a different friend, make a friend answer or say they can't make it, skip to the start of the plan to try check-in, or skip to after the plan. Links don't work on other phones in this version.
+**The demo** ([try it](https://claude.ai/artifact/Rk1gLXmtPHwNFv97aH3E8E)) runs entirely in your browser. It keeps everything on your device and has pretend friends. Open "Demo controls" to see the plan as a different friend, make a friend answer or say they can't make it, skip to the start of the plan to try check-in, or skip to after the plan. Links don't work on other phones in this version.
 
 **The server version** lets real friends use it on their own phones. It's one small Node.js program with no other software to install.
 
