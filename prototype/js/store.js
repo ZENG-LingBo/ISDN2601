@@ -220,7 +220,9 @@ class LocalStore {
     const tom = Object.values(state.members).find((m) => m.name === 'Tom');
 
     if (what === 'tom' && tom) {
-      state = L.reduce(state, { type: 'respond', hangId, memberId: tom.id, on: true, free: state.demo.tomFree || [] }, now);
+      // Tom has a food limit he'd rather not say out loud, and any of the suggestions is fine with him.
+      state = L.reduce(state, { type: 'setLimits', memberId: tom.id, diet: ['no-pork'], spend: null }, now);
+      state = L.reduce(state, { type: 'respond', hangId, memberId: tom.id, on: true, free: state.demo.tomFree || [], mood: 'chill', anyOk: true }, now);
     } else if (what === 'swap' && hang.lock) {
       const friend = this.demoSwapper(state, hangId);
       if (!friend) return;

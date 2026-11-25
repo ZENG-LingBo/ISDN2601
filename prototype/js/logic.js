@@ -43,6 +43,105 @@ export const LIMITS = {
 
 export const BUDGETS = ['', 'Under $50', '$50–100', '$100–200', '$200+'];
 
+// What each person can tell Minibus privately, so it suggests things everyone can do.
+// Nobody else sees these. The list doesn't ask about religion or health beyond "food allergy".
+export const DIETS = [
+  { key: 'no-spicy', label: 'No spicy food' },
+  { key: 'vegetarian', label: 'Vegetarian' },
+  { key: 'no-beef', label: 'No beef' },
+  { key: 'no-pork', label: 'No pork' },
+  { key: 'no-seafood', label: 'No seafood' },
+  { key: 'allergy', label: 'Food allergy' },
+];
+export const SPEND_LIMITS = [50, 100, 200]; // most you want to spend, in HK$. No answer means any.
+export const MOODS = [
+  { key: 'hungry', label: 'Hungry' },
+  { key: 'not-hungry', label: 'Not hungry' },
+  { key: 'chill', label: 'Low energy' },
+  { key: 'active', label: 'Up for something active' },
+];
+const BUDGET_CAPS = { 'Under $50': 50, '$50–100': 100, '$100–200': 200 };
+
+// Things to do in Hong Kong, so a plan doesn't have to start with an idea.
+// food: 'main' (the plan is a meal), 'optional' (there's food if you want it) or 'none'.
+// price: about how much each person spends, in HK$.
+// fails: the limits a meal can't meet. Places with a big menu, where everyone picks their own, fail fewer.
+export const ACTIVITIES = [
+  { id: 'food-court', name: 'Food court', detail: 'Everyone picks their own stall', food: 'main', energy: 'low', price: 70, fails: [] },
+  { id: 'hotpot', name: 'Hotpot', detail: 'Pick a non-spicy soup, and everyone chooses what to cook', food: 'main', energy: 'low', price: 180, fails: [] },
+  { id: 'cha-chaan-teng', name: 'Cha chaan teng', detail: 'Big menu, quick and cheap', food: 'main', energy: 'low', price: 60, fails: ['vegetarian'] },
+  { id: 'dim-sum', name: 'Dim sum', detail: 'Lots of small dishes to share', food: 'main', energy: 'low', price: 120, fails: ['vegetarian', 'no-pork', 'no-seafood', 'allergy'] },
+  { id: 'veggie', name: 'Vegetarian restaurant', detail: 'No meat or fish on the menu', food: 'main', energy: 'low', price: 110, fails: [] },
+  { id: 'korean-bbq', name: 'Korean BBQ', detail: 'Grill meat at the table', food: 'main', energy: 'low', price: 200, fails: ['vegetarian', 'no-beef', 'no-pork'] },
+  { id: 'sichuan', name: 'Sichuan food', detail: 'Spicy dishes to share', food: 'main', energy: 'low', price: 150, fails: ['no-spicy', 'no-pork', 'allergy'] },
+  { id: 'dessert', name: 'Dessert shop', detail: 'Sweet soups and snacks, nothing heavy', food: 'optional', energy: 'low', price: 50, fails: [] },
+  { id: 'bubble-tea-walk', name: 'Bubble tea and a walk', detail: 'Around campus or along the harbour', food: 'optional', energy: 'med', price: 40, fails: [] },
+  { id: 'picnic', name: 'Picnic in the park', detail: 'Everyone brings something they like', food: 'optional', energy: 'low', price: 50, fails: [] },
+  { id: 'board-games', name: 'Board game café', detail: 'Snacks if you want them', food: 'optional', energy: 'low', price: 80, fails: [] },
+  { id: 'karaoke', name: 'Karaoke', detail: 'Food if you want it', food: 'optional', energy: 'med', price: 100, fails: [] },
+  { id: 'night-market', name: 'Night market walk', detail: 'Temple Street, with snacks if you want them', food: 'optional', energy: 'med', price: 60, fails: [] },
+  { id: 'study', name: 'Study together', detail: 'Library or a quiet café', food: 'optional', energy: 'low', price: 40, fails: [] },
+  { id: 'movie', name: 'Movie', detail: 'Pick something everyone wants to see', food: 'none', energy: 'low', price: 100, fails: [] },
+  { id: 'museum', name: 'Museum or gallery', detail: 'M+ or the Museum of Art', food: 'none', energy: 'low', price: 50, fails: [] },
+  { id: 'arcade', name: 'Arcade', detail: 'Games and prizes', food: 'none', energy: 'med', price: 80, fails: [] },
+  { id: 'bowling', name: 'Bowling', detail: 'Easy to play, even if you never have', food: 'none', energy: 'med', price: 80, fails: [] },
+  { id: 'escape-room', name: 'Escape room', detail: 'Solve puzzles as a team', food: 'none', energy: 'med', price: 200, fails: [] },
+  { id: 'beach', name: 'Beach afternoon', detail: 'Clear Water Bay or Shek O', food: 'optional', energy: 'med', price: 30, fails: [] },
+  { id: 'hike', name: 'Easy hike', detail: "Dragon's Back or a trail near you", food: 'none', energy: 'high', price: 20, fails: [] },
+  { id: 'cycling', name: 'Cycling by the river', detail: 'Rent bikes in Tai Wai', food: 'none', energy: 'high', price: 80, fails: [] },
+  { id: 'sports', name: 'Badminton or basketball', detail: 'On campus or at a sports centre', food: 'none', energy: 'high', price: 30, fails: [] },
+];
+const SUGGEST_TITLE = 'Something everyone can do';
+
+function moodScore(a, moods) {
+  let score = 0;
+  for (const m of moods) {
+    if (m === 'hungry') score += a.food === 'main' ? 2 : a.food === 'optional' ? 1 : 0;
+    if (m === 'not-hungry') score += a.food === 'main' ? -2 : 1;
+    if (m === 'chill') score += a.energy === 'low' ? 2 : a.energy === 'high' ? -2 : 0;
+    if (m === 'active') score += a.energy === 'high' ? 2 : a.energy === 'med' ? 1 : -1;
+  }
+  return score;
+}
+
+// The 3 things Minibus suggests for a plan, worked out from the private limits and moods of
+// everyone who is in. Everyone sees the same 3. Nobody sees whose limit ruled something out.
+export function suggestions(state, hangId) {
+  const hang = state.hangs[hangId];
+  const members = Object.values(state.members);
+  const inGroup = members.filter((m) => response(m, hangId).on === true);
+  const group = inGroup.length ? inGroup : members.filter((m) => m.id === hang.createdBy);
+  const diets = new Set(group.flatMap((m) => (m.limits && Array.isArray(m.limits.diet) ? m.limits.diet : [])));
+  const caps = group.map((m) => m.limits && m.limits.spend).filter((x) => typeof x === 'number');
+  if (BUDGET_CAPS[hang.budget]) caps.push(BUDGET_CAPS[hang.budget]);
+  const cap = caps.length ? Math.min(...caps) : Infinity;
+  const moods = group.map((m) => response(m, hangId).mood).filter(Boolean);
+  const ranked = ACTIVITIES.filter((a) => a.price <= cap)
+    .filter((a) => a.food !== 'main' || !a.fails.some((d) => diets.has(d)))
+    .map((a) => ({ a, score: moodScore(a, moods) + (hash32(`${hang.id}|${a.id}`) % 100) / 1000 }))
+    .sort((x, y) => y.score - x.score)
+    .map((x) => x.a);
+  // The best one, then the best of the other kind (a meal, or something else), then the next best.
+  const kind = (a) => (a.food === 'main' ? 'meal' : 'other');
+  const out = ranked.slice(0, 1);
+  const other = ranked.find((a) => out.length && kind(a) !== kind(out[0]));
+  if (other) out.push(other);
+  for (const a of ranked) if (out.length < 3 && !out.includes(a)) out.push(a);
+  return out;
+}
+
+// How many people who are in would go to each suggestion. "Any of these is fine" counts for all 3.
+function suggestionVotes(state, hangId, list) {
+  const inGroup = Object.values(state.members).filter((m) => response(m, hangId).on === true);
+  return list.map((a) => ({
+    a,
+    count: inGroup.filter((m) => {
+      const r = response(m, hangId);
+      return r.anyOk === true || (Array.isArray(r.picks) && r.picks.includes(a.id));
+    }).length,
+  }));
+}
+
 // Things the app counts per plan, to measure a user test. No personal data.
 export const TRACKED = ['share', 'remind', 'confirmed', 'calendar'];
 
@@ -207,9 +306,11 @@ export function decideByFor(nowMs) {
 }
 
 function makeHang({ hangId, memberId, idea, seats, budget }, nowMs) {
+  const text = cleanText(idea, LIMITS.idea);
   return {
     id: hangId,
-    idea: requireText(idea, LIMITS.idea, 'Add what the plan is, like "hotpot".'),
+    idea: text,
+    suggest: !text, // no idea yet: Minibus suggests 3 things everyone can do
     seats: clampInt(seats, LIMITS.seatsMin, LIMITS.seatsMax, 3),
     budget: BUDGETS.includes(budget) ? budget : '',
     startDate: startDateFor(nowMs),
@@ -381,6 +482,9 @@ export function summarize(state, hangId, nowMs) {
     ? onBoard.filter((m) => response(m, hangId).free.includes(hang.lock.slot)).map((m) => m.id)
     : [];
 
+  // Until a plan has something to do, Minibus suggests 3 things, most picked first when it's confirmed.
+  const suggested = hang.suggest && !hang.chosen ? suggestionVotes(state, hangId, suggestions(state, hangId)) : [];
+
   let status = 'open';
   if (hang.outcome) status = hang.outcome.met ? 'happened' : 'fizzled';
   else if (hang.lock && hasEnded(hang.lock.slot, nowMs)) status = lockPeople.length ? 'check' : 'fizzled';
@@ -408,6 +512,7 @@ export function summarize(state, hangId, nowMs) {
     metNo,
     // No time works, and either everyone has answered or 48 hours have passed.
     stuck: !hang.lock && !hang.outcome && anyOpen && (everyoneAnswered || deadlinePassed) && answered.length > 0 && !ready,
+    suggested,
     status,
   };
 }
@@ -429,6 +534,12 @@ function bestAutoSlot(summary, seats, nowMs) {
 function lockTo(hang, summary, slot, nowMs, reason) {
   const place = summary.topPlace;
   hang.lock = { slot: slot.id, placeId: place ? place.id : null, at: nowMs, reason };
+  if (hang.suggest && !hang.chosen && summary.suggested && summary.suggested.length) {
+    // The most picked suggestion becomes the plan. On a tie, the one Minibus listed first.
+    const top = summary.suggested.reduce((best, x) => (x.count > best.count ? x : best), summary.suggested[0]);
+    hang.chosen = top.a.id;
+    hang.idea = top.a.name;
+  }
   if (!hang.firstLock) hang.firstLock = { slot: slot.id, at: nowMs, reason }; // kept for measuring, even if the plan moves
 }
 
@@ -549,6 +660,13 @@ export function reduce(prev, action, nowMs) {
     return settle(state, nowMs);
   }
 
+  if (type === 'setLimits') {
+    const diet = Array.isArray(action.diet) ? [...new Set(action.diet.filter((d) => DIETS.some((x) => x.key === d)))] : [];
+    if (action.spend !== null && action.spend !== undefined && !SPEND_LIMITS.includes(action.spend)) throw new ActionError('invalid', 'Something went wrong. Try again.');
+    member.limits = { diet, spend: SPEND_LIMITS.includes(action.spend) ? action.spend : null };
+    return state;
+  }
+
   if (type === 'createHang') {
     if (!isId(action.hangId) || has(state.hangs, action.hangId)) throw new ActionError('invalid', 'Something went wrong. Try again.');
     if (Object.keys(state.hangs).length >= LIMITS.hangs) throw new ActionError('full', 'This group has too many plans. Ask the person who runs the server to clear old ones.');
@@ -647,6 +765,18 @@ export function reduce(prev, action, nowMs) {
       r.on = action.on;
     }
     if (action.decline !== undefined && typeof action.decline !== 'boolean') throw new ActionError('invalid', 'Something went wrong. Try again.');
+    if (action.mood !== undefined) {
+      if (action.mood !== null && !MOODS.some((m) => m.key === action.mood)) throw new ActionError('invalid', 'Something went wrong. Try again.');
+      r.mood = action.mood;
+    }
+    if (action.picks !== undefined) {
+      if (!Array.isArray(action.picks)) throw new ActionError('invalid', 'Something went wrong. Try again.');
+      r.picks = [...new Set(action.picks.filter((id) => ACTIVITIES.some((a) => a.id === id)))].slice(0, 5);
+    }
+    if (action.anyOk !== undefined) {
+      if (typeof action.anyOk !== 'boolean') throw new ActionError('invalid', 'Something went wrong. Try again.');
+      r.anyOk = action.anyOk;
+    }
     if (action.decline === true && hang.lock) {
       // "No, I can't" make the confirmed time: you stay in, and your other times still count if the plan moves.
       r.declined = hang.lock.slot;
@@ -781,7 +911,12 @@ export function buildView(state, meId, nowMs) {
       const showBest = showCounts || (Boolean(me) && s.ready);
       return {
         id: hang.id,
-        idea: hang.idea,
+        idea: hang.idea || SUGGEST_TITLE,
+        suggest: Boolean(hang.suggest && !hang.chosen),
+        // Members see the 3 suggestions and how many would go. Nobody sees anyone else's limits or mood.
+        suggestions: me && hang.suggest && !hang.chosen
+          ? s.suggested.map((x) => ({ id: x.a.id, name: x.a.name, detail: x.a.detail, price: x.a.price, food: x.a.food, count: x.count, mine: Array.isArray(mine.picks) && mine.picks.includes(x.a.id) }))
+          : [],
         seats: hang.seats,
         budget: hang.budget,
         createdAt: hang.createdAt,
@@ -825,12 +960,16 @@ export function buildView(state, meId, nowMs) {
           likes: mine.likes,
           met: typeof mine.met === 'boolean' ? mine.met : null,
           declined: Boolean(hang.lock && mine.declined === hang.lock.slot), // said they can't make the confirmed time
+          mood: mine.mood || null,
+          picks: Array.isArray(mine.picks) ? mine.picks : [],
+          anyOk: mine.anyOk === true,
         },
       };
     });
   return {
     crew: { id: state.crew.id, name: state.crew.name, size: state.crew.size, demo: state.crew.demo },
     me: me ? { id: me.id, name: me.name } : null,
+    myLimits: me ? { diet: (me.limits && me.limits.diet) || [], spend: me.limits ? me.limits.spend : null } : null, // only your own
     members: (me ? Object.values(state.members) : []).map((m) => ({
       id: m.id,
       name: m.name,
@@ -853,6 +992,15 @@ export function exportState(state) {
 // ---------- messages people paste into the group chat ----------
 
 export function shareMessage(hang, link) {
+  if (hang.suggest) {
+    return [
+      `Hi everyone! Instead of just saying we should hang out, let's actually plan something.`,
+      ``,
+      `Open the link, say if you're in, and tap the times you're free. You can also tell Minibus privately what works for you, like no spicy food or not hungry, and it suggests 3 things everyone can do. Until the plan is confirmed, Minibus shows totals, not names. It's confirmed once ${hang.seats} of us can make the same time.`,
+      ``,
+      link,
+    ].join('\n');
+  }
   return [
     `Hi everyone! Instead of just saying we should hang out, let's actually plan it: ${hang.idea}.`,
     ``,
@@ -864,7 +1012,8 @@ export function shareMessage(hang, link) {
 
 export function nudgeMessage(view, link) {
   const people = view.waiting === 1 ? '1 person hasn\'t' : `${view.waiting} people haven't`;
-  return `Minibus reminder: ${people} answered yet for "${view.idea}". It takes about 20 seconds: ${link}`;
+  const what = view.suggest ? 'our plan' : `"${view.idea}"`;
+  return `Minibus reminder: ${people} answered yet for ${what}. It takes about 20 seconds: ${link}`;
 }
 
 export function lockedMessage(view, link) {
@@ -937,7 +1086,7 @@ export function createDemoState(ids, nowMs) {
       crewName: 'O-camp gang',
       size: 5,
       creatorName: DEMO_FRIENDS[0],
-      idea: 'Dinner somewhere cheap',
+      idea: '', // the demo shows Minibus suggesting what to do
       seats: 3,
       budget: '$50–100',
       demo: true,
@@ -954,6 +1103,13 @@ export function createDemoState(ids, nowMs) {
   state = reduce(state, { type: 'respond', memberId: memberIds[0], hangId, on: true, free: pick(2, 5, 8, 11) }, nowMs);
   // Mei is free twice when Jason is. The earlier one is the best time so far.
   state = reduce(state, { type: 'respond', memberId: memberIds[1], hangId, on: true, free: pick(5, 8, 10) }, nowMs);
+  // What Jason and Mei told Minibus privately. Nobody else sees this.
+  state = reduce(state, { type: 'setLimits', memberId: memberIds[1], diet: ['no-spicy'], spend: null }, nowMs);
+  state = reduce(state, { type: 'respond', memberId: memberIds[0], hangId, mood: 'hungry' }, nowMs);
+  state = reduce(state, { type: 'respond', memberId: memberIds[1], hangId, mood: 'chill' }, nowMs);
+  const ideas = suggestions(state, hangId);
+  state = reduce(state, { type: 'respond', memberId: memberIds[0], hangId, picks: [ideas[0].id] }, nowMs);
+  state = reduce(state, { type: 'respond', memberId: memberIds[1], hangId, picks: ideas.slice(0, 2).map((a) => a.id) }, nowMs);
   // Ka Yan can't make it this week.
   state = reduce(state, { type: 'respond', memberId: memberIds[3], hangId, on: false, free: [] }, nowMs);
   // Tom hasn't answered. When he does, he's free at the later shared time,

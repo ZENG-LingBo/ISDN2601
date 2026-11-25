@@ -431,3 +431,17 @@ Many students will type names, group names and plan ideas in Chinese, so a scrip
   - A new text judge passed every string in the app and every doc.
   - 84 unit and server tests pass, and the browser walkthrough passes.
 - **Still yours to decide:** see [next-steps.md](next-steps.md). The main one is whether to hide the totals until a plan is confirmed. Two tools also need your OK: a QR code library, and the axe-core accessibility scan.
+
+## Cycle 20: the 2030 version (26 Nov, from 07:31)
+
+Your feedback: the theme is 2030, so the solution should look further ahead. The prototype also assumed the group already knew what to do. Most meetups end up as "eat, eat, eat", and people with food limits (no spicy food, allergies), people on a budget, or people who just aren't hungry tend to stay quiet so they don't seem difficult. So the group says 是但 and ends up at the same dinner, or doesn't meet.
+
+What changed:
+
+- **A plan can start without an idea.** Leave "What's the plan?" empty, and the plan becomes "Something everyone can do".
+- **What works for you, privately.** Each person who is in can tap how they feel (hungry, not hungry, low energy, up for something active), food they can't or won't eat, and the most they want to spend. Nobody else sees it. The list doesn't ask about religion. "No pork" and "No beef" cover most needs without asking why.
+- **3 suggestions everyone can do.** Minibus picks from about 20 things to do in Hong Kong, tagged with price, food and energy. It leaves out meals that someone who is in can't eat, and anything over the lowest budget. It ranks the rest by everyone's mood, and it always tries to include one meal and one thing that isn't a meal. People tap "I'd go", or "Any of these is fine". When the plan is confirmed, the most picked one becomes the plan's name.
+- **Fill from my timetable (demo).** One tap fills the time grid from a pretend class timetable. This stands in for reading a real timetable in 2030, with permission.
+- **Minibus in the group chat (mock-up).** A demo screen shows Minibus as an assistant inside the group chat. It notices "we should hang out" and offers to plan it, with private answers.
+
+90 unit and server tests pass (6 new). The walkthrough now also covers the chat mock-up, private mood and limits, picking a suggestion, and the plan taking its name.

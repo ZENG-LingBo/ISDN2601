@@ -50,7 +50,7 @@ const SECURITY_HEADERS = {
   'referrer-policy': 'no-referrer',
 };
 
-const ACTIONS = ['createHang', 'respond', 'addPlace', 'like', 'lock', 'outcome', 'leave', 'setSize', 'remove', 'track', 'setSeats', 'checkin'];
+const ACTIONS = ['createHang', 'respond', 'addPlace', 'like', 'lock', 'outcome', 'leave', 'setSize', 'remove', 'track', 'setSeats', 'checkin', 'setLimits'];
 const CHECKIN_TRIES_PER_MINUTE = 10;
 const KEY_RESETS_PER_HOUR = 5;
 const MIN_ADMIN_TOKEN = 32;

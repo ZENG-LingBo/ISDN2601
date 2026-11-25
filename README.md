@@ -25,7 +25,7 @@ deck’s Share › Export menu. The speaker notes on each slide match the script
 
 ## Prototype (next stage, not for the 26 Nov pitch)
 
-The pitch only covers the problem. For the next stage, [`prototype/`](prototype/) has **Minibus**, a working prototype that responds to the How Might We question. Friends say if they're in and tap the times they're free. Names aren't shown with answers until the plan is confirmed. The plan is confirmed once enough people can make the same time.
+The pitch only covers the problem. For the next stage, [`prototype/`](prototype/) has **Minibus**, a working prototype that responds to the How Might We question. Friends say if they're in and tap the times they're free. If nobody knows what to do yet, each person tells Minibus privately what works for them (like no spicy food, or not hungry), and it suggests 3 things everyone can do. Names aren't shown with answers until the plan is confirmed. The plan is confirmed once enough people can make the same time.
 
 - Try the demo (one device, pretend friends): https://claude.ai/artifact/Rk1gLXmtPHwNFv97aH3E8E
 - How it works, how to run it for real friends, privacy and consent: [`prototype/README.md`](prototype/README.md)

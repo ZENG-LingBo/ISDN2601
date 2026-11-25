@@ -1040,3 +1040,84 @@ h1:focus-visible,
     gap: 0;
   }
 }
+
+/* What to do: the 3 suggestions */
+.ideas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.idea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.idea-text {
+  min-width: 0;
+}
+
+.idea-text p {
+  margin: 0;
+}
+
+.idea-name {
+  font-weight: 600;
+}
+
+.idea .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Group chat mock-up (demo only) */
+.chat-mock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.chat-title {
+  margin: 0 0 0.3rem;
+  font-weight: 600;
+}
+
+.bubble {
+  align-self: flex-start;
+  max-width: 85%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.bubble p {
+  margin: 0;
+}
+
+.bubble .who {
+  font-weight: 600;
+}
+
+.bubble.bot {
+  align-self: stretch;
+  max-width: none;
+  border: 2px solid var(--green);
+  background: var(--green-soft);
+}
+
+.bubble.bot .btn {
+  margin-top: 0.7rem;
+}

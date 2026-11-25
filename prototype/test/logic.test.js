@@ -836,3 +836,85 @@ test('after 2 check-ins, someone can still join and check in before the plan end
   // After the plan ends, answers are closed again.
   assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: TOM, on: false }, L.slotTime(THU_EVE, 'end') + 1), { code: 'closed' });
 });
+
+// ---------- Minibus 2030: private limits and suggestions ----------
+
+function suggestPlan(seats = 3) {
+  let state = withFriends(crew({ idea: '', seats, budget: '' }));
+  assert.equal(state.hangs[H].suggest, true, 'an empty idea means Minibus suggests');
+  return state;
+}
+
+test('suggestions leave out meals that someone who is in cannot eat, and things over budget', () => {
+  let state = suggestPlan();
+  for (const id of [MANDY, JASON, MEI]) state = respond(state, id, true, [THU_EVE]);
+  state = L.reduce(state, { type: 'setLimits', memberId: JASON, diet: ['vegetarian', 'no-spicy'], spend: 100 }, NOW);
+  // Ask for many suggestions' worth of moods, so meals rank high.
+  for (const id of [MANDY, JASON, MEI]) state = L.reduce(state, { type: 'respond', hangId: H, memberId: id, mood: 'hungry' }, NOW);
+  const ideas = L.suggestions(state, H);
+  assert.equal(ideas.length, 3);
+  for (const a of ideas) {
+    assert.ok(a.price <= 100, `${a.name} is over the budget`);
+    if (a.food === 'main') assert.ok(!a.fails.includes('vegetarian') && !a.fails.includes('no-spicy'), `${a.name} doesn't suit Jason`);
+  }
+  assert.ok(ideas.some((a) => a.food === 'main'), 'hungry people get a meal option');
+  assert.ok(ideas.some((a) => a.food !== 'main'), 'and something that is not a meal');
+});
+
+test('someone who is not in does not change the suggestions', () => {
+  let state = suggestPlan();
+  for (const id of [MANDY, JASON]) state = respond(state, id, true, [THU_EVE]);
+  const before = L.suggestions(state, H).map((a) => a.id);
+  state = L.reduce(state, { type: 'setLimits', memberId: TOM, diet: ['vegetarian'], spend: 50 }, NOW);
+  state = respond(state, TOM, false, []);
+  assert.deepEqual(L.suggestions(state, H).map((a) => a.id), before);
+});
+
+test('nobody else can see your limits or your mood', () => {
+  let state = suggestPlan();
+  state = respond(state, MEI, true, [THU_EVE]);
+  state = L.reduce(state, { type: 'setLimits', memberId: MEI, diet: ['allergy'], spend: 50 }, NOW);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, mood: 'not-hungry' }, NOW);
+  const json = JSON.stringify(L.buildView(state, MANDY, NOW));
+  assert.ok(!json.includes('allergy') && !json.includes('not-hungry'));
+  const mine = L.buildView(state, MEI, NOW);
+  assert.deepEqual(mine.myLimits, { diet: ['allergy'], spend: 50 });
+  assert.equal(mine.hangs[0].mine.mood, 'not-hungry');
+  assert.equal(L.buildView(state, null, NOW).hangs[0].suggestions.length, 0, 'people who have not joined see no suggestions');
+});
+
+test('when the plan is confirmed, the suggestion most people would go to becomes the plan', () => {
+  let state = suggestPlan(3);
+  for (const id of [MANDY, JASON, MEI]) state = respond(state, id, true, [SAT_EVE]);
+  const ideas = L.suggestions(state, H);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MANDY, picks: [ideas[2].id] }, NOW);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: JASON, picks: [ideas[2].id, ideas[0].id] }, NOW);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, anyOk: true }, NOW);
+  const view = L.buildView(state, MANDY, NOW).hangs[0];
+  assert.equal(view.suggestions.find((a) => a.id === ideas[2].id).count, 3);
+  state = L.reduce(state, { type: 'lock', hangId: H, memberId: MANDY }, NOW);
+  assert.equal(state.hangs[H].chosen, ideas[2].id);
+  const after = L.buildView(state, MANDY, NOW).hangs[0];
+  assert.equal(after.idea, ideas[2].name);
+  assert.equal(after.suggest, false);
+  assert.match(L.lockedMessage(after, 'https://x.test/#p'), new RegExp(`The plan is confirmed: ${ideas[2].name}`));
+});
+
+test('a plan with an idea never changes its idea, and bad limits are refused', () => {
+  let state = withFriends(crew());
+  state = respond(state, MANDY, true, [SAT_EVE]);
+  assert.equal(state.hangs[H].suggest, false);
+  assert.equal(L.buildView(state, MANDY, NOW).hangs[0].suggestions.length, 0);
+  assert.throws(() => L.reduce(state, { type: 'setLimits', memberId: MANDY, diet: [], spend: 75 }, NOW), { code: 'invalid' });
+  assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: MANDY, mood: 'angry' }, NOW), { code: 'invalid' });
+  const odd = L.reduce(state, { type: 'setLimits', memberId: MANDY, diet: ['vegetarian', 'nonsense', 'vegetarian'] }, NOW);
+  assert.deepEqual(odd.members[MANDY].limits, { diet: ['vegetarian'], spend: null });
+});
+
+test('the share message for a plan without an idea explains the private limits', () => {
+  const state = suggestPlan();
+  const hang = L.buildView(state, MANDY, NOW).hangs[0];
+  const msg = L.shareMessage(hang, 'https://x.test/#p');
+  assert.match(msg, /tell Minibus privately what works for you/);
+  assert.match(L.nudgeMessage({ ...hang, waiting: 2 }, 'https://x.test/#p'), /for our plan/);
+});

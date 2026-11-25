@@ -188,6 +188,12 @@ async function context(opts = {}) {
   const ctx = await context();
   const page = await ctx.newPage();
   watch(page, 'demo');
+  // The 2030 mock-up: Minibus as an assistant inside the group chat.
+  await page.goto(url + '#chat');
+  await page.waitForSelector('#chat-plan');
+  check((await page.textContent('.bubble.bot')).includes('privately'), 'the assistant should say answers are private');
+  await shot(page, '10c-chat-mockup');
+  step('demo: the group chat mock-up shows Minibus as an assistant');
   await page.goto(url);
   await page.click('#start-demo');
   await page.waitForSelector('#j-name');
@@ -198,6 +204,19 @@ async function context(opts = {}) {
   await shot(page, '12-demo-plan');
   await page.click('#on-yes');
   await page.waitForSelector('button.cell.best');
+  // What works for you: private mood and limits, then 3 suggestions everyone can do.
+  check((await page.textContent('#page-title')).trim() === 'Something everyone can do', 'a plan without an idea should say so');
+  check((await page.locator('.idea').count()) === 3, 'there should be 3 suggestions');
+  await page.click('#mood-chill');
+  await page.waitForSelector('#mood-chill[aria-pressed="true"]');
+  await page.click('#diet-no-seafood');
+  await page.waitForSelector('#diet-no-seafood[aria-pressed="true"]');
+  const pickId = await page.$eval('.idea button', (b) => b.id);
+  const pickName = await page.$eval('.idea .idea-name', (e) => e.textContent.trim());
+  await page.click('#' + pickId);
+  await page.waitForSelector(`#${pickId}[aria-pressed="true"]`);
+  await shot(page, '12b-demo-what-works');
+  step(`demo: Mandy said privately she's low on energy and doesn't eat seafood, and picked "${pickName}"`);
   const best = await page.locator('button.cell.best').getAttribute('data-slot');
   await page.click(`button.cell[data-slot="${best}"]`);
   await page.waitForSelector('text=Enough people are free');
@@ -217,6 +236,8 @@ async function context(opts = {}) {
 
   await page.click('#demo-tom');
   await page.waitForSelector('text=The plan is confirmed');
+  const planName = (await page.textContent('#page-title')).trim();
+  check(planName !== 'Something everyone can do', 'once confirmed, the most picked suggestion should become the plan');
   await shot(page, '13-demo-confirmed');
   step('demo: Tom answered, so everyone had answered and Minibus confirmed it');
 

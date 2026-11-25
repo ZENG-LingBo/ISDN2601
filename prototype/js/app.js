@@ -80,6 +80,7 @@ function parseRoute() {
   }
   let m;
   if (h === 'new') return { name: 'new' };
+  if (h === 'chat') return { name: 'chat' };
   if ((m = /^plan-([a-z0-9]+)-([a-z0-9]+)$/.exec(h))) return { name: 'plan', crewId: m[1], hangId: m[2] };
   if ((m = /^shared-([a-z0-9]+)-([a-z0-9]+)$/.exec(h))) return { name: 'shared', crewId: m[1], hangId: m[2] };
   if ((m = /^newplan-([a-z0-9]+)$/.exec(h))) return { name: 'newplan', crewId: m[1] };
@@ -442,8 +443,9 @@ function ideaFields(prefix) {
       <legend>What's the plan?</legend>
       <div class="chips">${IDEAS.map((i, n) => `<button type="button" class="chip" id="${prefix}-idea-chip-${n}" data-act="fill" data-target="${prefix}-idea" data-value="${esc(i)}" aria-pressed="false">${esc(i)}</button>`).join('')}</div>
       <label class="sub-label" for="${prefix}-idea">Or type your own</label>
-      <input id="${prefix}-idea" name="idea" maxlength="${L.LIMITS.idea}" autocomplete="off" aria-required="true"${invalidAttrs(`${prefix}-idea`)}>
+      <input id="${prefix}-idea" name="idea" maxlength="${L.LIMITS.idea}" autocomplete="off"${invalidAttrs(`${prefix}-idea`, `${prefix}-idea-help`)}>
       ${fieldError(`${prefix}-idea`)}
+      <p class="help" id="${prefix}-idea-help">Not sure yet? Leave it empty. Each person tells Minibus privately what works for them, and it suggests 3 things everyone can do.</p>
     </fieldset>
     <div class="field">
       <label for="${prefix}-seats">How many people need to be free for the plan to happen?</label>
@@ -454,6 +456,11 @@ function ideaFields(prefix) {
       <legend>Budget per person</legend>
       <div class="chips">${L.BUDGETS.map((b, i) => `<label class="chip radio"><input type="radio" id="${prefix}-budget-${i}" name="budget" value="${esc(b)}" ${i === 0 ? 'checked' : ''}><span>${b ? esc(b) : 'Not sure'}</span></label>`).join('')}</div>
     </fieldset>`;
+}
+
+function whatLine(hang) {
+  const top = hang.suggestions.reduce((best, a) => (a.count > (best ? best.count : 0) ? a : best), null);
+  return top ? `Most picked: ${top.name}` : 'Not decided yet';
 }
 
 function placard(hang, asHeading = true) {
@@ -471,6 +478,7 @@ function placard(hang, asHeading = true) {
     </div>
     ${asHeading ? `<h1 class="dest" id="page-title" tabindex="-1">${esc(hang.idea)}</h1>` : `<p class="dest">${esc(hang.idea)}</p>`}
     <dl class="placard-rows">
+      ${hang.suggest ? `<div><dt>What</dt><dd>${esc(whatLine(hang))}</dd></div>` : ''}
       <div><dt>When</dt><dd>${esc(when)}</dd></div>
       <div><dt>Where</dt><dd>${esc(where)}</dd></div>
     </dl>
@@ -529,6 +537,72 @@ function answerBlock(hang) {
   </section>`;
 }
 
+// Private: mood for this plan, and food limits and spending for every plan in this group.
+function whatWorksBlock(hang) {
+  if (!hang.suggest || hang.mine.on !== true) return '';
+  const lim = view.myLimits || { diet: [], spend: null };
+  const chip = (act, key, label, on) =>
+    `<button type="button" class="chip" id="${act}-${esc(key)}" data-act="${act}" data-key="${esc(key)}" aria-pressed="${on}">${esc(label)}</button>`;
+  return `<section class="block">
+    <h2>What works for you?</h2>
+    <p>Only Minibus sees this. It uses it to suggest things everyone can do. Nobody sees who chose what.</p>
+    <fieldset class="field">
+      <legend>How you feel about this plan</legend>
+      <div class="chips">${L.MOODS.map((m) => chip('mood', m.key, m.label, hang.mine.mood === m.key)).join('')}</div>
+    </fieldset>
+    <fieldset class="field">
+      <legend>Food you can't or won't eat</legend>
+      <div class="chips">${L.DIETS.map((d) => chip('diet', d.key, d.label, lim.diet.includes(d.key))).join('')}</div>
+    </fieldset>
+    <fieldset class="field">
+      <legend>Most you want to spend</legend>
+      <div class="chips">${L.SPEND_LIMITS.map((n) => chip('spend', String(n), `Up to $${n}`, lim.spend === n)).join('')}${chip('spend', 'any', 'Any amount', lim.spend === null)}</div>
+      <p class="help">Your food and spending answers are kept for your next plans in this group.</p>
+    </fieldset>
+  </section>`;
+}
+
+// The 3 things Minibus suggests. The one most people would go to becomes the plan.
+function suggestionsBlock(hang) {
+  if (!hang.suggest || !hang.suggestions.length) return '';
+  const canPick = hang.mine.on === true;
+  const items = hang.suggestions
+    .map(
+      (a) => `<li class="idea">
+        <div class="idea-text">
+          <p class="idea-name">${esc(a.name)}</p>
+          <p>${esc(a.detail)}. About $${a.price} each.</p>
+          <p>${a.count} ${a.count === 1 ? 'person' : 'people'} would go</p>
+        </div>
+        ${canPick ? `<button type="button" class="btn toggle small" id="idea-${esc(a.id)}" data-act="pick-idea" data-key="${esc(a.id)}" aria-pressed="${a.mine}" aria-label="${esc(`I'd go to ${a.name}`)}">I'd go</button>` : ''}
+      </li>`,
+    )
+    .join('');
+  return `<section class="block">
+    <h2>What to do</h2>
+    <p>Minibus suggests 3 things everyone can do, based on what people told it privately. ${canPick ? "Tap the ones you'd go to." : "Say you're in to pick the ones you'd go to."}</p>
+    <ul class="ideas">${items}</ul>
+    ${canPick ? `<button type="button" class="btn toggle" id="any-ok" data-act="any-ok" aria-pressed="${hang.mine.anyOk}">Any of these is fine</button>` : ''}
+    <p class="help">When the plan is confirmed, the one most people would go to becomes the plan.</p>
+  </section>`;
+}
+
+// Demo only: fill the grid from a pretend class timetable (classes at lunch on Mon, Wed and Fri,
+// and in the afternoon on Tue and Thu). By 2030, Minibus could read your real timetable if you allow it.
+function timetableFree(hang) {
+  return hang.slots
+    .filter((x) => !x.closed)
+    .map((x) => x.id)
+    .filter((id) => {
+      const [date, type] = id.split('_');
+      const [y, m, d] = date.split('-').map(Number);
+      const day = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 is Sunday
+      if (type === 'lunch' && [1, 3, 5].includes(day)) return false;
+      if (type === 'aft' && [2, 4].includes(day)) return false;
+      return true;
+    });
+}
+
 function gridBlock(hang) {
   if (hang.mine.on === false) return '';
   const notYet = hang.mine.on === null; // say you're in before picking times
@@ -562,6 +636,10 @@ function gridBlock(hang) {
   return `<section class="block">
     <h2>When are you free?</h2>
     <p>${notYet ? "Say you're in first. Then tap all the times you're free in the next 7 days." : "Tap all the times you're free in the next 7 days."}</p>
+    ${store.kind === 'local' && !notYet && !hang.lock ? `<div class="actions">
+      <button class="btn small" type="button" id="fill-timetable" data-act="fill-timetable" aria-describedby="fill-timetable-help">Fill from my timetable</button>
+    </div>
+    <p class="help" id="fill-timetable-help">In the demo, this uses a pretend class timetable. A real version would read your timetable only if you allow it.</p>` : ''}
     <div class="grid" role="group" aria-label="When are you free?">
       <div class="grid-row grid-head" aria-hidden="true"><span></span>${L.SLOT_TYPES.map((t) => `<span>${esc(t.label[0].toUpperCase() + t.label.slice(1))}<span class="clock">${esc(t.clock)}</span></span>`).join('')}</div>
       ${rows}
@@ -882,11 +960,33 @@ function planScreen() {
   // Someone who hadn't answered when they opened the page sees their own question first,
   // and the order stays the same while they answer.
   // The status goes straight after the grid, so "Confirm this time now" is close to the times you just picked.
-  if (ui.answerFirst) return `${top}${answerBlock(hang)}${gridBlock(hang)}${status}${placesBlock(hang)}${joinedBanner(hang)}${back}`;
-  return `${top}${status}${answerBlock(hang)}${gridBlock(hang)}${placesBlock(hang)}${joinedBanner(hang)}${back}`;
+  // For a plan without an idea yet: what works for you (private), then the 3 suggestions, before confirming.
+  const what = whatWorksBlock(hang);
+  if (ui.answerFirst) return `${top}${answerBlock(hang)}${what}${gridBlock(hang)}${suggestionsBlock(hang)}${status}${placesBlock(hang)}${joinedBanner(hang)}${back}`;
+  return `${top}${status}${answerBlock(hang)}${what}${gridBlock(hang)}${suggestionsBlock(hang)}${placesBlock(hang)}${joinedBanner(hang)}${back}`;
 }
 
 // ---------------------------------------------------------------- other screens
+
+// Demo only: a mock-up of Minibus as an assistant inside the group chat, as it could work by 2030.
+function chatScreen() {
+  return `<section class="block">
+    <h1 id="page-title" tabindex="-1">Minibus in your group chat</h1>
+    <p>This is a mock-up of how Minibus could work by 2030: as an assistant inside the group chat, so nobody has to open a link. Today, Minibus is a link you paste into the chat.</p>
+  </section>
+  <section class="chat-mock" aria-label="Mock-up of a group chat">
+    <p class="chat-title">O-camp gang</p>
+    <div class="bubble"><p class="who">Jason</p><p>we should hang out soon!!</p></div>
+    <div class="bubble"><p class="who">Mei</p><p>yes!! after midterms?</p></div>
+    <div class="bubble"><p class="who">Tom</p><p>deal</p></div>
+    <div class="bubble bot">
+      <p class="who">Minibus</p>
+      <p>It sounds like you all want to meet. Want me to plan it? I'll find a time that works and suggest 3 things everyone can do. You can tell me privately what works for you, like no spicy food or not hungry. Nobody else will see it.</p>
+      <button class="btn primary" type="button" id="chat-plan" data-act="start-demo">Plan it</button>
+    </div>
+  </section>
+  <p class="back"><a id="back-link" href="#start">Back to the home page</a></p>`;
+}
 
 function startScreen() {
   const mine = identity.crews();
@@ -894,7 +994,7 @@ function startScreen() {
   return `
   <section class="hero">
     <h1 class="hero-title" id="page-title" tabindex="-1">We should hang out.</h1>
-    <p class="lede">Everyone says it. Then nobody makes a plan. Minibus helps your group choose a time and a place, so the plan actually happens and nobody has to keep asking.</p>
+    <p class="lede">Everyone says it. Then nobody makes a plan. Minibus helps your group choose a time and something everyone can do, so the plan actually happens and nobody has to keep asking.</p>
     <div class="actions">
       <a class="btn primary" href="#new">Start a plan</a>
       ${local ? '<button class="btn" type="button" id="start-demo" data-act="start-demo">Try the demo</button>' : ''}
@@ -912,11 +1012,18 @@ function startScreen() {
       <li>Start a plan and paste the message into your group chat.</li>
       <li>Each friend says if they're in. Until the plan is confirmed, others see numbers like "3 free", not names.</li>
       <li>If you're in, tap the times you're free in the next 7 days.</li>
+      <li>Not sure what to do? Leave the plan empty. Each person tells Minibus privately what works for them, like no spicy food or not hungry, and it suggests 3 things everyone can do.</li>
       <li>When enough people are free at the same time, the plan is confirmed.</li>
       <li>If you can't make it anymore, change your times instead of cancelling. If enough people can make another time, the plan moves there.</li>
     </ol>
     <p>Minibus is named after Hong Kong's red minibuses, which leave once enough seats are filled.</p>
   </section>
+
+  ${local ? `<section class="block">
+    <h2>Minibus in 2030</h2>
+    <p>By 2030, Minibus could live inside your group chat as an assistant, so nobody has to open a link.</p>
+    <a class="btn" id="see-chat" href="#chat">See a mock-up</a>
+  </section>` : ''}
 
   ${local ? `<section class="block notice">
     <h2>About this demo</h2>
@@ -1239,6 +1346,9 @@ function render() {
     case 'switch':
       body = switchScreen();
       break;
+    case 'chat':
+      body = chatScreen();
+      break;
     default:
       body = startScreen();
   }
@@ -1246,6 +1356,7 @@ function render() {
   const hang = currentHang();
   const titles = {
     new: 'Start a plan',
+    chat: 'Group chat mock-up',
     newplan: 'New plan',
     shared: 'Send to your group',
     switch: 'Use this group?',
@@ -1547,6 +1658,35 @@ app.addEventListener('click', (event) => {
       go(`plan-${out.crewId}-${out.hangId}`);
     });
   }
+  if (a === 'mood' || a === 'diet' || a === 'spend' || a === 'pick-idea' || a === 'any-ok') {
+    return void run(async () => {
+      const key = target.dataset.key;
+      const fresh = currentHang() || hang;
+      const lim = view.myLimits || { diet: [], spend: null };
+      if (a === 'mood') {
+        await act({ type: 'respond', mood: fresh.mine.mood === key ? null : key, seq: nextSeq() });
+      } else if (a === 'diet') {
+        const diet = lim.diet.includes(key) ? lim.diet.filter((d) => d !== key) : [...lim.diet, key];
+        await act({ type: 'setLimits', diet, spend: lim.spend });
+      } else if (a === 'spend') {
+        await act({ type: 'setLimits', diet: lim.diet, spend: key === 'any' ? null : Number(key) });
+      } else if (a === 'pick-idea') {
+        const picks = fresh.mine.picks.includes(key) ? fresh.mine.picks.filter((x) => x !== key) : [...fresh.mine.picks, key];
+        await act({ type: 'respond', picks, seq: nextSeq() });
+      } else {
+        await act({ type: 'respond', anyOk: !fresh.mine.anyOk, seq: nextSeq() });
+      }
+      announce('Saved.', true);
+    });
+  }
+  if (a === 'fill-timetable') {
+    const fresh = currentHang() || hang;
+    if (!fresh) return;
+    pendingFree.set(fresh.id, new Set(timetableFree(fresh)));
+    redraw();
+    toast('Filled from your timetable. Tap any time to change it.');
+    return void flushFree();
+  }
   if (a === 'size-edit') {
     ui.sizeEdit = true;
     redraw();
@@ -1672,7 +1812,6 @@ app.addEventListener('submit', (event) => {
   if (form.id === 'create-form') {
     if (!requireFields(form, [
       ['c-crew', 'Add a name for the group.'],
-      ['c-idea', 'Pick a plan above or type your own.'],
       ['c-name', 'Add your name.'],
     ])) return;
     run(async () => {
@@ -1687,7 +1826,6 @@ app.addEventListener('submit', (event) => {
       go(`shared-${out.crewId}-${out.hangId}`);
     });
   } else if (form.id === 'newplan-form') {
-    if (!requireFields(form, [['n-idea', 'Pick a plan above or type your own.']])) return;
     run(async () => {
       const hangId = L.newId();
       await store.act(route.crewId, { type: 'createHang', hangId, idea: data.idea, seats: data.seats, budget: data.budget || '' });
