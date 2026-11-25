@@ -12,7 +12,8 @@ export const DAYS_AHEAD = 7;
 export const CLOSE_BEFORE_MS = 2 * HOUR_MS; // a time can't be picked less than 2 hours before it starts
 export const DECIDE_AFTER_MS = 48 * HOUR_MS; // after this, a plan with enough people is confirmed without waiting for everyone
 export const MIN_FOR_COUNTS = 2; // counts per time stay hidden until this many OTHER people are in
-export const REMOVE_AFTER_MS = 48 * HOUR_MS; // someone who never answered can be removed after this
+export const REMOVE_AFTER_MS = 6 * HOUR_MS; // someone who never answered can be removed after this
+export const AUTO_LEAD_MS = 12 * HOUR_MS; // Minibus only confirms or moves a plan on its own if it's at least this far away
 export const CHECKIN_OPENS_BEFORE_MS = 30 * 60 * 1000; // check-in opens 30 minutes before the plan
 export const CHECKINS_TO_MEET = 2; // this many check-ins count as "we met"
 export const WAKING_HOUR = 9; // deadlines never land before 09:00 Hong Kong time
@@ -365,6 +366,8 @@ export function summarize(state, hangId, nowMs) {
   const ready = onBoard.length >= hang.seats && Boolean(best) && best.count >= hang.seats;
   const everyoneAnswered = answered.length >= expected;
   const checkedIn = hang.lock ? onBoard.filter((m) => response(m, hangId).checkedIn && response(m, hangId).free.includes(hang.lock.slot)).map((m) => m.id) : [];
+  const metYes = members.filter((m) => response(m, hangId).met === true).length;
+  const metNo = members.filter((m) => response(m, hangId).met === false).length;
   const deadlinePassed = nowMs >= hang.decideBy;
   const anyOpen = slots.some((s) => !s.closed);
 
@@ -395,6 +398,8 @@ export function summarize(state, hangId, nowMs) {
     topPlace: places[0] || null,
     lockPeople,
     checkedIn,
+    metYes,
+    metNo,
     stuck: !hang.lock && !hang.outcome && anyOpen && everyoneAnswered && !ready,
     status,
   };
@@ -402,8 +407,16 @@ export function summarize(state, hangId, nowMs) {
 
 // ---------- automatic changes ----------
 
-function bestSlotAtLeast(summary, seats) {
-  return summary.best && summary.best.count >= seats ? summary.best : null;
+// For automatic changes: the time with the most people free (ties go to the earliest) that has
+// enough people and is far enough ahead for everyone to see it. Without notifications, a plan
+// confirmed for "in 3 hours" could pass before anyone opens the app.
+function bestAutoSlot(summary, seats, nowMs) {
+  let best = null;
+  for (const s of summary.slots) {
+    if (s.closed || s.count < seats || slotTime(s.id, 'start') - nowMs < AUTO_LEAD_MS) continue;
+    if (!best || s.count > best.count) best = s;
+  }
+  return best;
 }
 
 function lockTo(hang, summary, slot, nowMs, reason) {
@@ -446,7 +459,7 @@ export function settleChanged(state, nowMs) {
       }
       changed = true;
       const from = hang.lock.slot;
-      const next = bestSlotAtLeast(summary, hang.seats);
+      const next = bestAutoSlot(summary, hang.seats, nowMs);
       if (next) {
         lockTo(hang, summary, next, nowMs, 'moved');
         hang.note = { type: 'moved', from, to: next.id, at: nowMs };
@@ -460,10 +473,14 @@ export function settleChanged(state, nowMs) {
     }
 
     if (summary.ready && (summary.everyoneAnswered || summary.deadlinePassed)) {
-      const reason = summary.everyoneAnswered ? 'auto' : 'deadline';
-      lockTo(hang, summary, summary.best, nowMs, reason);
-      hang.note = { type: reason, to: summary.best.id, at: nowMs };
-      changed = true;
+      const slot = bestAutoSlot(summary, hang.seats, nowMs);
+      if (slot) {
+        const reason = summary.everyoneAnswered ? 'auto' : 'deadline';
+        lockTo(hang, summary, slot, nowMs, reason);
+        hang.note = { type: reason, to: slot.id, at: nowMs };
+        changed = true;
+      }
+      // Otherwise the only good time is soon. Someone in the group has to confirm it themselves.
     }
   }
   return changed;
@@ -560,7 +577,7 @@ export function reduce(prev, action, nowMs) {
     if (!r.checkedIn) r.checkedIn = nowMs;
     member.r[hang.id] = r;
     const after = summarize(state, hang.id, nowMs);
-    if (after.checkedIn.length >= Math.min(CHECKINS_TO_MEET, after.lockPeople.length)) {
+    if (after.checkedIn.length >= CHECKINS_TO_MEET) {
       hang.outcome = { met: true, at: nowMs, by: member.id, checked: true };
     }
     return state;
@@ -584,7 +601,13 @@ export function reduce(prev, action, nowMs) {
       // New times must still be open. Times you already had stay, even if they've since closed.
       r.free = [...new Set(action.free)].filter((id) => valid.has(id) && (!isClosed(id, nowMs) || before.has(id)));
     }
+    const goingBefore = hang.lock && isClosed(hang.lock.slot, nowMs) ? summarize(state, hang.id, nowMs).lockPeople : null;
     member.r[hang.id] = r;
+    // Too late to move the plan: tell the group plainly that someone can't come.
+    if (goingBefore && goingBefore.includes(member.id)) {
+      const goingAfter = summarize(state, hang.id, nowMs).lockPeople;
+      if (!goingAfter.includes(member.id)) hang.note = { type: 'dropped', still: goingAfter.length, at: nowMs };
+    }
     return settle(state, nowMs);
   }
 
@@ -624,11 +647,15 @@ export function reduce(prev, action, nowMs) {
   if (type === 'outcome') {
     if (!hang.lock) throw new ActionError('not_locked', "This plan was never confirmed.");
     if (!hasEnded(hang.lock.slot, nowMs)) throw new ActionError('too_early', "You can answer this after the plan.");
-    if (hang.outcome) return state;
+    if (hang.outcome && hang.outcome.checked) return state; // check-ins already settled it
     const summary = summarize(state, hang.id, nowMs);
     if (!summary.lockPeople.includes(member.id)) throw new ActionError('not_going', 'Only people who were going can answer this.');
     if (typeof action.met !== 'boolean') throw new ActionError('invalid', 'Something went wrong. Try again.');
-    hang.outcome = { met: action.met, at: nowMs, by: member.id };
+    // Everyone who was going can answer. Each answer is kept; the result follows the answers so far.
+    r.met = action.met;
+    member.r[hang.id] = r;
+    const after = summarize(state, hang.id, nowMs);
+    hang.outcome = { met: after.metYes > 0 && after.metYes >= after.metNo, at: nowMs, by: member.id, yes: after.metYes, no: after.metNo };
     return state;
   }
 
@@ -664,9 +691,11 @@ export function buildView(state, meId, nowMs) {
       const place = hang.lock && hang.lock.placeId ? hang.places.find((p) => p.id === hang.lock.placeId) : null;
       // Totals show only once at least 2 OTHER people are in, so nobody can work out a single person's answer.
       const othersIn = s.onBoardIds.filter((id) => !me || id !== me.id).length;
-      const showCounts = Boolean(hang.lock) || othersIn >= MIN_FOR_COUNTS;
+      // Someone who isn't signed in (or hasn't joined) sees no totals at all before the plan is
+      // confirmed, so a member can't open the plan signed out and compare.
+      const showCounts = Boolean(hang.lock) || (Boolean(me) && othersIn >= MIN_FOR_COUNTS);
       // A ready plan needs its best time shown, but not every other time's total.
-      const showBest = showCounts || s.ready;
+      const showBest = showCounts || (Boolean(me) && s.ready);
       return {
         id: hang.id,
         idea: hang.idea,
@@ -699,13 +728,14 @@ export function buildView(state, meId, nowMs) {
               reason: hang.lock.reason,
               imGoing: Boolean(me) && s.lockPeople.includes(me.id),
               checkinOpen: checkinOpen(hang.lock.slot, nowMs),
+              tooLateToMove: isClosed(hang.lock.slot, nowMs),
               checkedIn: s.checkedIn.map(nameOf),
               iCheckedIn: Boolean(me) && s.checkedIn.includes(me.id),
             }
           : null,
-        note: hang.note ? { type: hang.note.type, from: hang.note.from, to: hang.note.to, by: hang.note.by ? nameOf(hang.note.by) : undefined } : null,
-        outcome: hang.outcome ? { met: hang.outcome.met, checked: Boolean(hang.outcome.checked) } : null,
-        mine: { on: mine.on, free: mine.free, likes: mine.likes },
+        note: hang.note ? { type: hang.note.type, from: hang.note.from, to: hang.note.to, still: hang.note.still, by: hang.note.by ? nameOf(hang.note.by) : undefined } : null,
+        outcome: hang.outcome ? { met: hang.outcome.met, checked: Boolean(hang.outcome.checked), yes: s.metYes, no: s.metNo } : null,
+        mine: { on: mine.on, free: mine.free, likes: mine.likes, met: typeof mine.met === 'boolean' ? mine.met : null },
       };
     });
   return {
@@ -738,7 +768,7 @@ export function shareMessage(hang, link) {
   return [
     `Hi everyone! Instead of just saying we should hang out, let's actually plan it: ${hang.idea}.`,
     ``,
-    `Open the link, say if you're in, and tap the times you're free. Nobody sees who said yes until the plan is confirmed. It's confirmed once ${hang.seats} of us can make the same time.`,
+    `Open the link, say if you're in, and tap the times you're free. Until the plan is confirmed, Minibus shows totals, not names. It's confirmed once ${hang.seats} of us can make the same time.`,
     ``,
     link,
   ].join('\n');

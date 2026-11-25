@@ -144,3 +144,25 @@ A QR code for the same check-in was planned, but copying the downloaded QR libra
 ### Tests
 
 57 unit and server tests pass (up from 50). The walkthrough now also covers the ready cue, the private link box after answering, the "Use this group as Mandy?" screen on a second phone, and the full demo check-in.
+
+## Cycle 4: fresh-eyes final review (26 Nov, 01:05–01:20)
+
+A new reviewer who had seen none of the earlier rounds used the prototype as a first-time user, with a fake clock to reach edge cases, then read the code. Verdict: well built and well tested, but not yet ready for a supervised test, because of 3 problems. The text judge passed the app's wording after a 4th round.
+
+| Priority | Finding | Change |
+|---|---|---|
+| P1 | One person alone could record "You met": showing the code checked them in, and the bar was "2, or fewer if fewer were going". | Always 2 different people. Test added. |
+| P1 | Dropping out in the last 2 hours was silent, and the screen said the plan would move when it couldn't. | In the last 2 hours: "Can't come anymore?" explains it's too late to move, the group sees "Someone can't come anymore. 2 people are still going.", and Minibus writes a message to send. Test added. |
+| P1 | Minibus could confirm a plan for a time a few hours away, with no notifications, so nobody would see it. | Minibus only confirms or moves a plan on its own if the time is at least 12 hours away. Sooner times show "This time is soon … someone who is in needs to confirm it." Test added. |
+| P2 | Someone not signed in (a private tab) saw every time's total, so a member could compare. | No totals for people who aren't signed in. The share message now says "totals, not names" instead of "nobody sees who said yes". Test added. |
+| P2 | Someone who lost their place (in-app browsers) left a duplicate that stalled the plan for 48 hours. | The group maker can remove a never-answered member after 6 hours (was 2 days). A hint appears when Minibus is opened inside Instagram, WeChat and similar apps. The join screen explains what to do if you joined before. |
+| P2 | "No one in charge" only half solved: every message is pasted by hand, and the join screen named who started the plan. | Share and "Open WhatsApp with this message" buttons next to Copy. The join screen no longer names the starter. |
+| P2 | The first "Did you meet?" answer decided for everyone and later answers were silently ignored. | Every answer is kept; the result follows the answers; people who haven't answered can still add theirs. Test added. |
+| P2 | No study plan: "compared to what?" | [`study-plan.md`](study-plan.md): baseline survey, a WhatsApp poll comparison, step-by-step measures, interviews, ethics. |
+| P2 | The 200-hour bar would fill about 1.5% in a week, and Hall's number is for pairs. | Bar removed. The group page shows times met first. |
+| P3 | Wording: "1 of 3 people have answered", the deadline paragraph twice, the unexplained red seat, "(2 people free)" counting you, the reminder shown to people who said no, "Beach in Sai Kung" for a 3-hour afternoon. | All fixed ("has answered", one deadline paragraph, red outline explained, others-only counts, reminder only for people who are in, "Board games"). |
+| P3 | The browser walkthrough wasn't part of npm scripts. | `npm run e2e`. |
+
+Not done: a late-night time of day (it would add a fourth column to a phone-width grid), and repeating plans that Minibus starts on a schedule.
+
+62 tests pass (up from 57). The walkthrough passes.

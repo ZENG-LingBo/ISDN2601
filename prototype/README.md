@@ -14,20 +14,24 @@ This is a prototype for the next stage of an ISDN 1001 project at HKUST. It resp
 2. Each friend opens the link, types their name, and says whether they're in.
 3. Everyone taps the times they're free over the next 7 days: lunch, afternoon or evening.
 4. Anyone can suggest a place, and everyone can vote.
-5. The plan is confirmed when enough people are free at the same time and everyone has answered. If not everyone answers, Minibus confirms it after about 48 hours (never during the night), as long as enough people are free at the same time. Once enough people share a time, anyone who is in can also confirm it earlier. If everyone has answered and no time works, the plan says so, and the group can lower the number of people needed.
-6. If someone can't make it anymore, they change their times instead of cancelling. If enough people can make another time, the plan moves there. If not, the group goes back to choosing a time.
+5. The plan is confirmed when enough people are free at the same time and everyone has answered. If not everyone answers, Minibus confirms it after about 48 hours (never during the night), as long as enough people are free at the same time. Minibus only confirms a time on its own if it's at least 12 hours away, because nobody gets a notification. For a sooner time, someone who is in confirms it. If everyone has answered and no time works, the plan says so, and the group can lower the number of people needed.
+6. If someone can't make it anymore, they change their times instead of cancelling. If enough people can make another time at least 12 hours away, the plan moves there. If not, the group goes back to choosing a time. In the last 2 hours it's too late to move: the person taps "I can't come", the group sees how many are still going, and Minibus writes a message for them to send.
 7. When the group meets, one person shows a 4-digit check-in code and the others type it in. The code changes every minute. Once 2 people have checked in, the plan counts as met.
-8. If nobody checks in, the people who went can still say afterwards whether they met. That answer is self-reported.
+8. If fewer than 2 people check in, the people who were going can say afterwards whether they met. Every answer is kept, and the result follows the answers. These answers are self-reported.
 
 ## How it uses the research
 
 | What the research found | What the prototype does |
 |---|---|
-| In a group chat, no one is in charge of the plan (Darley & Latané, 1968). | Minibus collects answers, picks the time and writes the reminder message. Someone still has to paste the messages into the chat, but the reminder comes from Minibus, not from them. |
+| In a group chat, no one is in charge of the plan (Darley & Latané, 1968). | Minibus collects answers, picks the time and writes the reminder message. Someone still has to send the messages (with Copy, Share or WhatsApp buttons), but the reminder comes from Minibus, not from them. The join screen doesn't say who started the plan. |
 | People who decide when and where they'll do something are more likely to follow through (Gollwitzer & Sheeran, 2006). That research is about individuals; Minibus applies the idea to groups. | Every confirmed plan has one time. If there's no place yet, the confirmed plan asks for one. |
-| People are afraid of looking too eager (Boothby et al., 2018; Liu et al., 2023). | Names aren't shown with answers until the plan is confirmed. Before that, people see how many have answered (not how many said yes). The number free at each time only shows once 2 other people are in. In a small group, totals can still hint at who said yes. |
+| People are afraid of looking too eager (Boothby et al., 2018; Liu et al., 2023). | Names aren't shown with answers until the plan is confirmed. Before that, people see how many have answered (not how many said yes). The number free at each time only shows to members, and only once 2 other people are in. In a small group, totals can still hint at who said yes. |
 | People say yes too easily, then feel relieved when plans are cancelled (Givi & Kirk, 2023; YouGov, 2019). | If you can't make a confirmed plan, you're asked to pick other times first, and the plan moves if enough people can make one. |
 | 2 friends need about 200 hours together to become close friends (Hall, 2019). | The group page shows how many times the group met, and about how many hours that was. Plans count as met when 2 people check in, or when someone who went says so. |
+
+## Testing it with real groups
+
+See [`docs/study-plan.md`](../docs/study-plan.md) for a one-week study plan: who takes part, the comparison with a WhatsApp poll, what to measure, and the interview questions.
 
 ## Two versions
 
@@ -116,7 +120,7 @@ Minibus stores the name you type, the group name, the plan ideas, your answers, 
 
 - The create and join screens show a short notice. With the variables above, it says who runs the test, why, when everything is deleted, and who to contact.
 - Each person can delete their name and answers with "Leave and delete my answers" on the group page. The group name and plan ideas stay until the group is deleted.
-- The person who made the group can remove someone who joined more than 2 days ago and never answered anything, for example if they lost their phone.
+- The person who made the group can remove someone who joined more than 6 hours ago and never answered anything, for example if they lost their phone and joined again under a new name.
 - The server may be outside Hong Kong. Say so in your consent form.
 
 ### Consent for a user test
@@ -140,8 +144,10 @@ npm test
 This runs the tests for the plan rules and the server. There's also a walkthrough that opens the app in a browser, clicks through both versions, and takes phone-size screenshots. It needs Playwright and Chromium, which aren't installed by this project:
 
 ```bash
-node test/e2e.mjs screenshots
+npm run e2e
 ```
+
+Screenshots go into `test/screenshots`.
 
 ## Files
 
@@ -156,7 +162,7 @@ node test/e2e.mjs screenshots
 
 ## Limits
 
-- No accounts. Your place in a group is saved in the browser you joined from. Apps like Instagram open links in their own browser, which keeps separate data, so the same phone can lose your place. To use another phone or browser, copy your private link from the group page. If you lose it, join again with a slightly different name.
+- No accounts. Your place in a group is saved in the browser you joined from. Apps like Instagram and WeChat open links in their own browser, which keeps separate data, so the same phone can lose your place. Minibus shows a hint when it's opened inside one of these apps. To use another phone or browser, copy your private link from the group page. If you lose it, join again with a slightly different name.
 - No notifications. Reminders go through your group chat, by copying a message Minibus writes. If Minibus confirms a plan on its own after 48 hours, people only see it when they open the plan.
 - Check-in shows a number code, not a QR code. A QR code would need an extra library.
 - If nobody checks in, "Did you meet?" is self-reported.

@@ -29,6 +29,7 @@ const ui = {
   answerFirst: false, // keep the screen order the same for the whole visit, so nothing jumps
   privateLink: null, // a private link waiting for "are you sure?"
   code: null, // the check-in code being shown: { hangId, code, expiresAt }
+  lateMessage: null, // the message to paste after saying you can't come at short notice
   seatsEdit: false,
   errors: {},
 };
@@ -44,7 +45,10 @@ function nextSeq() {
 const pendingFree = new Map(); // hangId -> Set of times
 let flushTimer = null;
 
-const IDEAS = ['Dinner somewhere cheap', 'Lunch on campus', 'Bubble tea and a walk', 'Karaoke', 'Hotpot', 'Beach in Sai Kung'];
+const IDEAS = ['Dinner somewhere cheap', 'Lunch on campus', 'Bubble tea and a walk', 'Karaoke', 'Hotpot', 'Board games'];
+
+// Apps like Instagram and WeChat open links in their own browser, which forgets you when it closes.
+const IN_APP_BROWSER = /Instagram|FBAN|FBAV|MicroMessenger|Line\/|Snapchat|BytedanceWebview|musical_ly/i.test(navigator.userAgent || '');
 const PLACES = ['Hang Hau', 'Tseung Kwan O', 'Mong Kok', 'Sai Kung', 'Campus canteen'];
 
 // ---------------------------------------------------------------- helpers
@@ -116,6 +120,21 @@ function currentHang() {
 function joinNames(names) {
   if (names.length <= 1) return names.join('');
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+function inAppHint() {
+  if (!IN_APP_BROWSER) return '';
+  return `<p class="banner">You opened this inside another app. So Minibus remembers you, open it in Safari or Chrome instead: tap the menu (often ••• or ⋮) and choose "Open in browser".</p>`;
+}
+
+// Buttons to send a message: the phone's share sheet when there is one, WhatsApp, and copy.
+function sendButtons(sourceId, text, copyLabel, copyId) {
+  const wa = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  return `<div class="actions stack">
+    <button class="btn primary" type="button" id="${copyId}" data-act="copy" data-source="${sourceId}">${esc(copyLabel)}</button>
+    ${typeof navigator.share === 'function' ? `<button class="btn" type="button" id="${copyId}-share" data-act="share" data-source="${sourceId}">Share…</button>` : ''}
+    <a class="btn" id="${copyId}-wa" href="${esc(wa)}" target="_blank" rel="noopener">Open WhatsApp with this message</a>
+  </div>`;
 }
 
 function people(n) {
@@ -373,7 +392,7 @@ function seats(hang) {
   }).join('');
   return `<div class="seats-wrap">
     <div class="seats" aria-hidden="true">${cells}</div>
-    <p>${esc(text)}</p>
+    <p>${esc(text)}${hang.lock ? '' : ' The seat with the red outline shows how many are needed.'}</p>
   </div>`;
 }
 
@@ -386,6 +405,7 @@ function noteBanner(hang) {
   else if (n.type === 'auto') text = 'Everyone answered, so Minibus confirmed the best time.';
   else if (n.type === 'deadline') text = 'After 48 hours, enough people could make it, so Minibus confirmed the best time.';
   else if (n.type === 'sent' && n.by) text = `${n.by} confirmed the plan once enough people were free.`;
+  else if (n.type === 'dropped') text = `Someone can't come anymore. ${people(n.still)} ${n.still === 1 ? 'is' : 'are'} still going. It's too late to move the plan.`;
   return text ? `<p class="banner">${esc(text)}</p>` : '';
 }
 
@@ -468,19 +488,29 @@ function placesBlock(hang) {
 }
 
 function remindBlock(hang) {
-  if (!hang.waiting || hang.mine.on === null) return '';
+  if (!hang.waiting || hang.mine.on !== true) return '';
   const link = linkTo(`plan-${view.crew.id}-${hang.id}`);
+  const text = L.nudgeMessage(hang, link);
   return `<div class="remind">
     <h3>Remind your group</h3>
     <p>This message comes from Minibus, so you don't have to be the one asking.</p>
-    <pre class="message" id="nudge-text">${esc(L.nudgeMessage(hang, link))}</pre>
-    <button class="btn" type="button" id="copy-nudge" data-act="copy" data-source="nudge-text">Copy reminder</button>
+    <pre class="message" id="nudge-text">${esc(text)}</pre>
+    ${sendButtons('nudge-text', text, 'Copy reminder', 'copy-nudge')}
   </div>`;
+}
+
+function answeredLine(hang) {
+  return `${hang.answered} of ${hang.expected} people ${hang.answered === 1 ? 'has' : 'have'} answered.`;
 }
 
 function waitingLine(hang) {
   const deadline = L.momentLabel(hang.decideBy);
-  return `${hang.answered} of ${hang.expected} people have answered. Minibus confirms the plan when everyone has answered, or on ${deadline}. Enough people must be free at the same time.`;
+  return `${answeredLine(hang)} Minibus confirms the plan when everyone has answered, or on ${deadline}. Enough people must be free at the same time.`;
+}
+
+// Minibus doesn't confirm a time on its own if it's less than 12 hours away, because nobody gets a notification.
+function isSoon(slot) {
+  return L.slotTime(slot, 'start') - (view ? view.now : Date.now()) < L.AUTO_LEAD_MS;
 }
 
 function statusTitle(text) {
@@ -515,7 +545,8 @@ function readyStatus(hang) {
   return `<section class="status go">
     ${statusTitle('Enough people are free')}
     <p class="big">${esc(L.slotLabel(hang.best.id))}</p>
-    <p>${esc(`${people(hang.best.count)} can make it.`)} ${hang.waiting ? esc(waitingLine(hang)) : ''}</p>
+    <p>${esc(`${people(hang.best.count)} can make it.`)} ${esc(answeredLine(hang))}</p>
+    ${isSoon(hang.best.id) ? '<p>This time is soon, so Minibus won\'t confirm it on its own. Someone who is in needs to confirm it.</p>' : ''}
     ${onBoard
       ? '<button class="btn primary wide" type="button" id="confirm" data-act="lock">Confirm this time now</button>'
       : '<p>Say you\'re in to confirm the plan now.</p>'}
@@ -560,14 +591,36 @@ function lockedStatus(hang) {
     ${noPlace}
     <p>Let everyone know in the group chat:</p>
     <pre class="message" id="locked-text">${esc(L.lockedMessage(hang, planLink))}</pre>
+    ${sendButtons('locked-text', L.lockedMessage(hang, planLink), 'Copy message for the group chat', 'copy-locked')}
     <div class="actions stack">
-      <button class="btn primary" type="button" id="copy-locked" data-act="copy" data-source="locked-text">Copy message for the group chat</button>
       <a class="btn" id="calendar" href="${esc(calendar)}" target="_blank" rel="noopener" data-track="calendar">Add to Google Calendar</a>
       ${file ? `<a class="btn" id="ics" href="${esc(file)}" download>Download calendar file</a>` : ''}
     </div>
     ${hang.lock.checkinOpen ? checkinBlock(hang) : ''}
-    ${me && !hang.lock.checkinOpen ? swapBlock(hang) : ''}
+    ${me && hang.lock.tooLateToMove ? lateBlock(hang) : ''}
+    ${me && !hang.lock.tooLateToMove ? swapBlock(hang) : ''}
   </section>`;
+}
+
+// Less than 2 hours before the plan, it can't move anymore. Be honest about it.
+function lateBlock(hang) {
+  if (ui.lateMessage) {
+    return `<div class="swap">
+      <h3>Tell the group</h3>
+      <p>You're off the plan. Send this so nobody waits for you:</p>
+      <pre class="message" id="late-text">${esc(ui.lateMessage)}</pre>
+      ${sendButtons('late-text', ui.lateMessage, 'Copy message', 'copy-late')}
+    </div>`;
+  }
+  if (!ui.swapOpen) return `<button class="btn quiet" type="button" id="swap-open" data-act="swap-open">Can't come anymore?</button>`;
+  return `<div class="swap">
+    <h3>Can't come anymore?</h3>
+    <p>It's too late to move the plan to another time. If you can't come, Minibus tells the group how many people are still going.</p>
+    <div class="actions stack">
+      <button class="btn danger" type="button" id="late-out" data-act="late-out">I can't come</button>
+      <button class="btn quiet" type="button" id="swap-close" data-act="swap-close">I'm still coming</button>
+    </div>
+  </div>`;
 }
 
 function checkinBlock(hang) {
@@ -598,6 +651,7 @@ function swapBlock(hang) {
   }
   const lockSlot = hang.lock.slot;
   if (!ui.swapPick) ui.swapPick = new Set(hang.mine.free.filter((s) => s !== lockSlot));
+  const others = (s) => s.count - (hang.mine.free.includes(s.id) ? 1 : 0); // don't count yourself
   // Times other people can make come first, then the soonest. Times you already picked always show.
   const open = hang.slots
     .filter((s) => !s.closed && s.id !== lockSlot)
@@ -608,7 +662,7 @@ function swapBlock(hang) {
     <h3>Change your times instead of cancelling</h3>
     <p>Pick any other times you can make. If enough people can make one of them, the plan moves there.</p>
     <div class="swap-list" role="group" aria-label="Other times you can make">
-      ${options.map((s) => `<button class="btn toggle" type="button" id="pick-${esc(s.id)}" data-act="swap-pick" data-slot="${esc(s.id)}" aria-pressed="${ui.swapPick.has(s.id)}">${esc(L.slotLabel(s.id))}${s.count ? ` (${people(s.count)} free)` : ''}</button>`).join('')}
+      ${options.map((s) => `<button class="btn toggle" type="button" id="pick-${esc(s.id)}" data-act="swap-pick" data-slot="${esc(s.id)}" aria-pressed="${ui.swapPick.has(s.id)}">${esc(L.slotLabel(s.id))}${others(s) ? ` (${people(others(s))} free)` : ''}</button>`).join('')}
     </div>
     <div class="actions stack">
       <button class="btn primary" type="button" id="swap-save" data-act="swap-save">Save my times</button>
@@ -625,7 +679,7 @@ function afterStatus(hang) {
     }
     return `<section class="status">
       ${statusTitle('Did you meet?')}
-      <p>${esc(L.slotLabel(hang.lock.slot))}${hang.lock.placeName ? `, ${esc(hang.lock.placeName)}` : ''}. Nobody checked in, so answer here. Only plans where you met count toward your group's hours together.</p>
+      <p>${esc(L.slotLabel(hang.lock.slot))}${hang.lock.placeName ? `, ${esc(hang.lock.placeName)}` : ''}. ${hang.lock.checkedIn.length === 1 ? 'Only 1 person checked in' : 'Nobody checked in'}, so answer here. Only plans where you met count toward your group's hours together.</p>
       <div class="actions stack">
         <button class="btn primary" type="button" id="met-yes" data-act="outcome" data-met="1">Yes, we met</button>
         <button class="btn" type="button" id="met-no" data-act="outcome" data-met="0">No, we didn't</button>
@@ -636,15 +690,24 @@ function afterStatus(hang) {
     <button class="btn primary" type="button" id="again" data-act="again">Plan the same thing again</button>
     <a class="btn" href="#newplan-${esc(view.crew.id)}">Start a different plan</a>
   </div>`;
+  const answers = hang.outcome && !hang.outcome.checked ? `<p>${hang.outcome.yes} said you met, ${hang.outcome.no} said you didn't.</p>` : '';
+  const addMine = hang.outcome && !hang.outcome.checked && hang.lock.imGoing && hang.mine.met === null
+    ? `<div class="actions stack">
+        <p>Did you meet? Your answer counts too.</p>
+        <button class="btn" type="button" id="met-yes" data-act="outcome" data-met="1">Yes, we met</button>
+        <button class="btn" type="button" id="met-no" data-act="outcome" data-met="0">No, we didn't</button>
+      </div>`
+    : '';
   if (hang.status === 'happened') {
     return `<section class="status done">
       ${statusTitle('You met')}
       <p>${hang.outcome && hang.outcome.checked ? `${esc(joinNames(hang.lock.checkedIn))} checked in. ` : ''}That's ${L.slotHours(hang.lock.slot)} more hours together. Your group has met ${view.hours.times} ${view.hours.times === 1 ? 'time' : 'times'} so far.</p>
+      ${answers}${addMine}
       ${again}
     </section>`;
   }
   if (hang.status === 'fizzled') {
-    return `<section class="status">${statusTitle("You didn't meet this time")}<p>That's OK. Starting the next plan takes a minute.</p>${again}</section>`;
+    return `<section class="status">${statusTitle("You didn't meet this time")}<p>That's OK. Starting the next plan takes a minute.</p>${answers}${addMine}${again}</section>`;
   }
   // expired
   return `<section class="status">${statusTitle('No time worked')}<p>Not enough people could make the same time in those 7 days.</p>${again}</section>`;
@@ -664,7 +727,7 @@ function planScreen() {
     ui.answerFirst = hang.mine.on === null;
   }
   if (store.kind === 'server') countOpen(hang.id);
-  const top = `${demoBar(hang)}${placard(hang)}${seats(hang)}${noteBanner(hang)}`;
+  const top = `${demoBar(hang)}${inAppHint()}${placard(hang)}${seats(hang)}${noteBanner(hang)}`;
   const back = `<p class="back"><a href="#crew-${esc(view.crew.id)}">All plans in ${esc(view.crew.name)}</a></p>`;
 
   if (['check', 'happened', 'fizzled', 'expired'].includes(hang.status)) return `${top}${afterStatus(hang)}${back}`;
@@ -769,10 +832,8 @@ function sharedScreen() {
     <h1>Send this to your group chat</h1>
     <p>Copy the message and paste it into your group chat.</p>
     <pre class="message" id="share-text">${esc(L.shareMessage(hang, link))}</pre>
-    <div class="actions stack">
-      <button class="btn primary" type="button" id="copy-share" data-act="copy" data-source="share-text">Copy message</button>
-      <a class="btn" href="#plan-${esc(view.crew.id)}-${esc(hang.id)}">Go to the plan</a>
-    </div>
+    ${sendButtons('share-text', L.shareMessage(hang, link), 'Copy message', 'copy-share')}
+    <p><a class="btn" href="#plan-${esc(view.crew.id)}-${esc(hang.id)}">Go to the plan</a></p>
     ${store.kind === 'local' ? '<p class="notice-inline">In this demo, the link only works on this device.</p>' : ''}
   </section>`;
 }
@@ -808,8 +869,9 @@ function joinScreen(hang) {
   return `
     ${hang ? placard(hang) : ''}
     <section class="block">
+      ${inAppHint()}
       <h1>${hang ? 'Join this plan' : `Join ${esc(view.crew.name)}`}</h1>
-      ${hang ? `<p>${esc(hang.createdBy)} started this plan in ${esc(view.crew.name)}.</p>` : ''}
+      ${hang ? `<p>This plan is for ${esc(view.crew.name)}.</p>` : ''}
       <form id="join-form" class="field" novalidate>
         <label for="j-name">Your name</label>
         <div class="inline-form">
@@ -821,6 +883,10 @@ function joinScreen(hang) {
       </form>
       ${privacyNote()}
       ${names.length ? `<p>Already in this group: ${esc(names.join(', '))}.</p>` : ''}
+      ${store.kind === 'server' ? `<details class="manage">
+        <summary>Joined before on another phone or browser?</summary>
+        <p>Open your private link if you saved it. If you didn't, join again with a slightly different name, like "Mei C". The person who made the group can remove your old name after 6 hours.</p>
+      </details>` : ''}
       ${view.crew.demo ? '<p>This is the demo group. Join as yourself and answer like you normally would.</p>' : ''}
     </section>`;
 }
@@ -849,8 +915,7 @@ function crewScreen() {
 
   <section class="block">
     <h2>${h.times ? `You've met ${h.times} ${h.times === 1 ? 'time' : 'times'}` : "You haven't met yet"}</h2>
-    <p>${h.times ? `That's about ${h.hours} hours together.` : 'Plans that actually happen show up here.'} Researchers found that 2 friends need about 200 hours together to become close friends (Hall, 2019).</p>
-    <progress class="meter" max="200" value="${Math.min(200, h.hours)}" aria-label="${esc(`${h.hours} of 200 hours`)}"></progress>
+    <p>${h.times ? `That's about ${h.hours} hours together.` : 'Plans where you meet show up here.'} Every time counts: researchers found that 2 friends need about 200 hours together to become close friends (Hall, 2019).</p>
   </section>
 
   <section class="block">
@@ -928,7 +993,7 @@ function statusWords(hang) {
     case 'ready':
       return 'Ready to confirm';
     default:
-      return `${hang.answered} of ${hang.expected} answered`;
+      return `${hang.answered} of ${hang.expected} ${hang.answered === 1 ? 'has' : 'have'} answered`;
   }
 }
 
@@ -1172,6 +1237,11 @@ app.addEventListener('click', (event) => {
     if (s && a === 'switch-yes') store.claim(s.crewId, s.memberId, s.key, s.crewName);
     return void go(s ? `crew-${s.crewId}` : 'start');
   }
+  if (a === 'share') {
+    const el = document.getElementById(target.dataset.source);
+    if (el && typeof navigator.share === 'function') navigator.share({ text: el.textContent }).catch(() => {});
+    return;
+  }
   if (a === 'copy-text') {
     copyText(target.dataset.text, target);
     return;
@@ -1300,6 +1370,15 @@ app.addEventListener('click', (event) => {
         await act({ type: 'respond', on: true, free: [...new Set([...fresh.mine.free, fresh.lock.slot])], seq: nextSeq() });
         focusStatus();
         break;
+      case 'late-out': {
+        const still = fresh.lock.people.length - 1;
+        await act({ type: 'respond', free: fresh.mine.free.filter((x) => x !== fresh.lock.slot), seq: nextSeq() });
+        ui.swapOpen = false;
+        ui.lateMessage = `Sorry everyone, I can't make it to ${fresh.idea} anymore. ${still} ${still === 1 ? 'person is' : 'people are'} still going. Have fun!`;
+        redraw();
+        document.getElementById('copy-late')?.focus();
+        break;
+      }
       case 'swap-save': {
         const free = [...ui.swapPick].filter((s) => s !== fresh.lock.slot);
         ui.swapOpen = false;
