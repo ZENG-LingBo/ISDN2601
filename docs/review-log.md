@@ -180,7 +180,7 @@ A pitch coach who hadn't seen the deck before checked it against the grading ite
 
 Kept as they were (the coach said not to change them): the How Might We question, the opening and ending, the empathy map, and the numbers. Deck republished as version 9.
 
-## Cycles 5 and 6: usability and accessibility (26 Nov, 01:30–02:30)
+## Cycles 5 and 6: usability and accessibility (26 Nov, 01:20–01:50)
 
 Two reviewers who hadn't seen the earlier rounds checked the prototype at the same time.
 
@@ -214,7 +214,7 @@ Text judge on the new wording: FAIL on 7 strings in round 1, all fixed, then PAS
 
 63 unit and server tests pass. The browser walkthrough now also checks focus on new screens, the grid waiting for "I'm in", no error alerts on a normal confirm, and "I can't make it" followed by joining again.
 
-## Cycle 8: checking the cycle 5 and 6 changes (26 Nov, 02:30–03:15)
+## Cycle 8: checking the cycle 5 and 6 changes (26 Nov, 01:45–02:05)
 
 A new reviewer read the cycles 5 and 6 code change line by line and wrote a small test script for each problem, comparing with the version before. Verdict: 5 real problems came in with that change, and the tests didn't catch any of them. All 9 findings are fixed. Every repro script was run again after the fix.
 
