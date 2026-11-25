@@ -58,7 +58,7 @@ const IDEAS = ['Dinner somewhere cheap', 'Lunch on campus', 'Bubble tea and a wa
 
 // Apps like Instagram and WeChat open links in their own browser, which forgets you when it closes.
 const IN_APP_BROWSER = /Instagram|FBAN|FBAV|MicroMessenger|Line\/|Snapchat|BytedanceWebview|musical_ly/i.test(navigator.userAgent || '');
-const PLACES = ['Hang Hau', 'Tseung Kwan O', 'Mong Kok', 'Sai Kung', 'Campus canteen'];
+const PLACES = ['Hang Hau', 'Tseung Kwan O', 'Mong Kok', 'Sai Kung', 'On campus'];
 
 // ---------------------------------------------------------------- helpers
 
@@ -554,13 +554,13 @@ function whatWorksBlock(hang) {
   if (!ui.whatOpen && said.length) {
     return `<section class="block">
       <h2>What works for you?</h2>
-      <p>You told Minibus: ${esc(said.join(', '))}. Your friends don't see this.</p>
+      <p>You told Minibus: ${esc(said.map((x) => x[0].toLowerCase() + x.slice(1)).join(', '))}. Your friends don't see this.</p>
       <button class="btn small" type="button" id="what-edit" data-act="what-edit">Change</button>
     </section>`;
   }
   return `<section class="block">
     <h2>What works for you?</h2>
-    <p>Your friends don't see your answers here. Minibus uses them to suggest things everyone can do. If the suggestions change right after someone answers, friends may guess that person's limit.</p>
+    <p>Your friends don't see your answers here. Minibus uses them to suggest things everyone can do. If the suggestions change right after someone fills this in, friends may guess that person's limit.</p>
     <fieldset class="field">
       <legend>What are you in the mood for?</legend>
       <div class="chips" role="group" aria-label="Food">${L.HUNGER.map((m) => chip('hunger', m.key, m.label, hang.mine.hunger === m.key)).join('')}</div>
@@ -1009,7 +1009,7 @@ function chatScreen() {
       <p>It sounds like you all want to meet. Want me to plan it? I'll find a time that works and suggest 3 things everyone can do. You can tell me privately what works for you, like no spicy food or not hungry. Your friends won't see it.</p>
     </div>
     <div class="bubble bot private">
-      <p class="who">Minibus, only to Mandy</p>
+      <p class="who">Minibus, only to you (Mandy)</p>
       <p>What works for you this week? For example: not hungry, low energy, no spicy food, up to $100.</p>
     </div>
     <div class="bubble bot">
@@ -1726,7 +1726,7 @@ app.addEventListener('click', (event) => {
     if (!fresh) return;
     pendingFree.set(fresh.id, new Set([...myFree(fresh), ...timetableFree(fresh)]));
     redraw();
-    toast('Added the times your timetable shows you are free. Tap any time to change it.');
+    toast('Added your free times from the timetable. Tap any time to change it.');
     return void flushFree();
   }
   if (a === 'size-edit') {

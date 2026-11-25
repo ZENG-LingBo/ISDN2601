@@ -164,7 +164,7 @@ Before a test, give every participant a short consent form. It should say:
 - when everything will be deleted, and how to contact you
 - that the data is stored on a server that may be outside Hong Kong
 - that names aren't shown with answers before a plan is confirmed, but friends may still be able to guess who said yes from the totals
-- that friends don't see the food limits, spending and mood you tell Minibus, but if the suggestions change right after someone answers, friends may guess that person's limit
+- that friends don't see the food limits, spending and mood you tell Minibus, but if the suggestions change right after someone sets a limit, friends may guess that person's limit
 - that you, the researcher, can see each person's answers with their name in the data download, and that the report will call groups by number (Group 1, Group 2), not by anyone's name
 - that Google Fonts sees each visitor's IP address, and that Google Calendar sees the plan details if they add it there
 
