@@ -19,7 +19,7 @@ One design reviewer looked at the deck for generic, generated-looking design.
 
 Also changed to follow the writing rules: "flake" became "cancel plans at the last minute", "too keen" became "too eager", and "plans die" became "plans fall through". The script went from 277 to 260 words to fit in about 1:50.
 
-## Cycle 1: prototype round 1 (26 Nov, 00:20–01:30)
+## Cycle 1: prototype round 1 (26 Nov, 00:15–00:40)
 
 Four reviewers worked in parallel: design, technical, business and feasibility. All four said the prototype was not ready for real users yet, for fixable reasons. Separately, a text judge checked the deck, script and README three times against Apple's and Google's writing guidance: FAIL, FAIL, then PASS.
 
