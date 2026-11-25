@@ -39,10 +39,10 @@ The cycles ran faster than first planned, so the schedule below shows what actua
 | 00:15–00:40 | 1 | Prototype v1 reviewed by design, technical, business and feasibility. 22 findings fixed. |
 | 00:40–00:55 | 2 | Same reviewers again, plus the first text judge on the app. 21 findings fixed. |
 | 00:55–01:05 | 3 | Same reviewers again. 16 findings fixed. Check-in added. |
-| 01:05– | 4 | A new reviewer who has seen nothing before reviews the whole prototype. Text judge on the app again. |
-| next | 5 | Simulated usability test: an agent plays 5 different first-time students doing real tasks and reports where each gets stuck. |
-| next | 6 | Accessibility check: keyboard only, screen reader labels, contrast, zoom to 200%. |
-| next | 7 | Last look at the pitch deck and script before 9:00, by a reviewer who hasn't seen them. |
+| 01:05–01:20 | 4 | A new reviewer who has seen nothing before reviewed the whole prototype. 3 P1s fixed. Text judge on the app: PASS after round 4. |
+| 01:30–02:30 | 5 | Simulated usability test: an agent played 5 different first-time students doing real tasks. Fixed together with cycle 6. |
+| 01:30–02:30 | 6 | Accessibility check: keyboard only, screen reader labels, contrast, zoom to 200%. 4 P1s, 9 P2s fixed across both cycles. |
+| 01:20 | 7 | Last look at the pitch deck and script by a reviewer who hadn't seen them. Timing fixed. |
 | until about 06:15 | 8+ | More find, rank, fix, check cycles on whatever ranks highest. Push after every cycle. |
 
 The deck and script for 9:00 are frozen once they pass. Only the prototype keeps changing after that.

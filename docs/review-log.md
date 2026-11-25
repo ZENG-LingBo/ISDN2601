@@ -179,3 +179,35 @@ A pitch coach who hadn't seen the deck before checked it against the grading ite
 | P3 | Checks only the student can do. | Checklist: put your name on the cover, open the HKFYG press release to confirm the numbers, check the icon and arrows in Present mode. |
 
 Kept as they were (the coach said not to change them): the How Might We question, the opening and ending, the empathy map, and the numbers. Deck republished as version 9.
+
+## Cycles 5 and 6: usability and accessibility (26 Nov, 01:30–02:30)
+
+Two reviewers who hadn't seen the earlier rounds checked the prototype at the same time.
+
+- **Usability (cycle 5).** An agent played 5 first-time students (a quick replier, a late joiner, someone who can't come, a group maker, and someone coming back after 2 days) and did real tasks in the demo and the server version. Verdict: not ready yet. The main problems were hidden rules (picking a time counted as "I'm in"), the time grid without clock times, and screens that didn't say what had changed.
+- **Accessibility (cycle 6).** Keyboard only, screen reader names and announcements, contrast, and zoom to 200%. Verdict: close to WCAG 2.1 AA. The main problems were focus dropping to the top of the page after a tap, errors that only showed in a toast, and redraws that moved focus while someone was typing.
+
+| Priority | Finding | Change |
+|---|---|---|
+| P1 | Tapping a time quietly counted as "I'm in". People who only wanted to look at times were counted as yes. | The grid stays off until you say if you're in. The intro says "Say you're in first." |
+| P1 | After tapping a button that disappeared (like "I'm in"), focus went to the top of the page. | Focus moves to the status heading, or the page heading if there's none. On every new screen, focus starts on the heading. |
+| P1 | Errors only showed in a toast that disappeared, and screen readers didn't always read them. | Errors also go to an alert region. Messages are read through a live region that is always on the page. |
+| P1 | Near the start, "I can't come" couldn't be undone: the confirmed time had closed, so "Yes, I can make it" did nothing. Found by the new browser walkthrough. | The confirmed time can be added back until the plan ends. The "someone can't come" notice goes away if the same person comes back. Tests added. |
+| P2 | Lunch, afternoon and evening had no clock times. | Times show clock hours everywhere: "Thu 26 Nov, evening (7–10pm)". Column headers show them too. |
+| P2 | With 2 others in and 1 of them saying no, totals could show who said yes. | Totals show only once 2 others are in and 3 others have answered. Tests changed. |
+| P2 | After a move, the status still said "The plan is confirmed" and the group message looked the same as before. | The heading says "The plan moved to a new time", and the group message says "New time: … (It was …)". Test added. |
+| P2 | After "I can't come", the message to send was hidden below the fold. | A "You're off this plan" card comes first, with the message and a Done button. |
+| P2 | Coming back after 2 days, nothing said what had changed. | A "Since you last looked" box lists new answers, confirmations and moves since your last visit on that device. |
+| P2 | Someone still picking times when the plan was confirmed lost their grid. | The grid stays for them, with "Add other times you could make, in case the plan needs to move." |
+| P2 | A friend's update redrew the page while someone was typing, and lost the selected budget and the text cursor. | Updates wait until you leave the field. Redraws keep radio choices and the cursor. Nothing redraws if nothing changed. |
+| P2 | The seats line ("The seat with the red outline shows…") was hard to read. | "Needed: 3 people free at the same time. So far: 2." |
+| P2 | Tapping a suggested place also voted for it. | Suggested places are added without a vote. Test added. |
+| P3 | The plan name wasn't a heading; page titles didn't say which screen you were on. | The plan name is the page heading. Titles name the screen, like "Dinner somewhere cheap · O-camp gang · Minibus". |
+| P3 | The check-in code overflowed at 320px and was read as one number. | The code shrinks on small screens and is read digit by digit. |
+| P3 | Time cells and vote buttons had screen reader names that didn't start with the visible text. | Names start with what's shown ("You, 3 free", "Vote · 2"). |
+| P3 | Time ranges broke across lines ("7–" / "10pm"). | They stay on one line. |
+| P3 | Help text wasn't linked to fields; "How many people" didn't say to count yourself. | Help is linked with aria-describedby. "Count yourself too." The share screen says to answer the plan yourself. |
+
+Not done: a QR code for check-in (needs your OK to add a library), and push notifications.
+
+63 unit and server tests pass. The browser walkthrough now also checks focus on new screens, the grid waiting for "I'm in", no error alerts on a normal confirm, and "I can't come" followed by joining again.
