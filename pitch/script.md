@@ -21,36 +21,37 @@ The script is about 240 words when the numbers are read out in full. At a calm 1
 > Meet Mandy, a Year 2 student at HKUST. In Year 1 she made four close friends. Now they have
 > different timetables. She misses them, but no one ever picks a date.
 
-## Slide 3: Background (0:27–0:45)
+## Slide 3: Background (0:27–0:43)
 
-> Mandy is not alone. This year, 83.7% of young people in Hong Kong reported moderate to high
+> Mandy is not alone. 83.7% of young people in Hong Kong reported moderate to high
 > loneliness. And 68% of UK adults aged 18 to 34 admit they cancel plans at the last minute.
 
 *Say “eighty-three point seven percent” slowly. The 2021 figure and the US number are on the slide, so you don't need to say them.*
 
-## Slide 4: Say yes, then regret it (0:45–0:57)
+## Slide 4: Say yes, then regret it (0:43–0:53)
 
-> Here’s the strange part. We say yes because saying no feels rude. When a friend cancels, one in
+> We say yes because saying no feels rude. When a friend cancels, one in
 > three of us feels relieved… and then guilty.
 
 *Smile a little on “relieved”. Most people in the room know this feeling.*
 
-## Slide 5: Why plans fall through (0:57–1:12)
+## Slide 5: Why plans fall through (0:53–1:10)
 
-> Why do plans fall through? No one is in charge. The plan has no set time or place. People just
-> say “soon”. And we’re afraid of looking too eager, but friends want to hear from us more than we think.
+> Why do plans fall through? No one is in charge. There’s no set time or place. We’re afraid of
+> looking too eager. And it’s always dinner. Friends who can’t eat spicy food, or are saving
+> money, just say “whatever”.
 
-*Count the three reasons on your fingers.*
+*Count the four reasons on your fingers. Pause for a moment before “And it’s always dinner.”*
 
-## Slide 6: Empathy map (1:12–1:24)
+## Slide 6: Empathy map (1:10–1:22)
 
-> So Mandy says “Next week for sure!”, likes the message, and waits. She thinks, “If I keep
+> So Mandy says “Next week for sure!”, and “whatever” to dinner. She thinks, “If I keep
 > asking, I’ll seem desperate.” She feels lonely, then relieved, then guilty.
 
-## Slide 7: Problem statement and How Might We (1:24–1:52)
+## Slide 7: Problem statement and How Might We (1:22–1:52)
 
 > My problem statement: university friend groups want to spend their free time together, but
-> their plans fall through in the group chat.
+> their plans fall through in the group chat, and friends with food or money limits stay quiet.
 >
 > **How might we turn “we should hang out” into real meetups for university friend groups,
 > in order to keep their friendships close?**
@@ -66,10 +67,19 @@ questions?” The last line is your ending.*
 
 Cut these, in this order. Each one saves 1 to 2 seconds, and the story still works:
 
-1. Slide 4: “Here’s the strange part.” Start with “We say yes…”.
-2. Slide 3: “This year,”.
+1. Slide 5: “Why do plans fall through?” The slide title already says it. Start with “No one is in charge.”
+2. Slide 2: “She misses them, but”. End with “No one ever picks a date.”
 
-Don't cut the How Might We question or the last line.
+Don't cut the How Might We question, the new “always dinner” lines, or the last line.
+
+## What changed on 26 Nov
+
+A new reason was added: even when friends want to meet, choosing what to do stalls. Plans turn into
+a meal, and friends with food or money limits stay quiet and say “whatever” (Harvey, 1974). Slide 5
+now has 4 reasons, the empathy map has 2 new items, slide 2 has a fifth pain point, and the problem
+statement on slide 7 has one new phrase. The How Might We question didn't change. To keep the
+time, two lines were cut for good: “Here’s the strange part.” on slide 4 and “This year,” on slide 3.
+The research is in `research/background-study.md`, section 5.
 
 ## Optional line, only if it's true
 
@@ -119,6 +129,12 @@ In another poll, 36% said they're usually disappointed when plans are cancelled,
 It's from an online survey of 600 people aged 12 to 24 by the Hong Kong Federation of Youth Groups, using the UCLA loneliness scale. It isn't a random sample.
 
 **If someone asks about the 86% guilt figure:** it's about people who cancel, not people who feel relieved when a friend cancels. “Relieved, then guilty” describes the persona's feelings. Say that.
+
+**“Where does the ‘always dinner’ point come from?”**
+I noticed it in my own friend groups first, then looked for research. The Abilene paradox (Harvey, 1974) describes a group agreeing to a plan most of them don't want, because nobody says so. In a Scottish survey, 44% of people with a food allergy didn't always tell restaurant staff, and teenagers worried most about making a fuss (Food Standards Scotland, 2020). I haven't found Hong Kong data on this yet, so it's a question for my interviews.
+
+**“Isn't that just people being fussy?”**
+The point is that they don't say anything. They go along with the plan, or they quietly stop coming. The group never finds out why.
 
 **“How does this fit ‘Leisure in 2030’?”**
 The brief asks how free time can move from killing time to meaningful downtime. Right now, students often spend that time alone on their phones. This project is about helping friends spend that time together.

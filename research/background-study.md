@@ -59,7 +59,35 @@ next step in a real project is to interview HKUST students to confirm the patter
 
 ---
 
-## 5. Design-thinking outputs (used in the deck)
+## 5. Choosing what to do (added 26 Nov 2026)
+
+**The insight.** Even when friends want to meet, choosing *what* to do stalls. Most plans
+default to a meal. Some friends can't eat spicy food, have allergies or other food limits, are
+saving money, or don't want to eat at all. They often stay quiet so they won't seem difficult,
+and say 是但 ("whatever"). The group ends up at the same dinner, or doesn't meet.
+
+This started as an observation from the student's own friend groups. It hasn't been checked
+with interviews yet. The sources below support each part of it.
+
+| Finding | Source | Notes |
+|---|---|---|
+| A group can agree to a plan that most of its members don't want, because each person thinks the others want it and nobody says otherwise. Harvey names this the Abilene paradox, after a family trip that none of them wanted to take. | Harvey, J. B. (1974). The Abilene paradox: The management of agreement. *Organizational Dynamics, 3*(1), 63–80. [doi:10.1016/0090-2616(74)90005-9](https://doi.org/10.1016/0090-2616(74)90005-9) | An essay with case stories, not an experiment. Used as the name for the pattern. Pages and DOI checked through a citing article; the paper itself wasn't opened. |
+| Students believed they were less comfortable with campus drinking than the average student. Most students thought this, so the "average student" they pictured didn't exist. Feeling out of step went with feeling less connected to campus. | Prentice, D. A., & Miller, D. T. (1993). Pluralistic ignorance and alcohol use on campus. *Journal of Personality and Social Psychology, 64*(2), 243–256. [doi:10.1037/0022-3514.64.2.243](https://doi.org/10.1037/0022-3514.64.2.243) | 4 studies with US university students. The research evidence that a group can wrongly think everyone else is happy with the default. |
+| In group discussions, people talk more about what everyone already knows than about what only one person knows. | Stasser, G., & Titus, W. (1985). Pooling of unshared information in group decision making. *Journal of Personality and Social Psychology, 48*(6), 1467–1478. | Lab study. A private food limit is "unshared information", so it's the least likely thing to come up. |
+| **44%** of people with a food allergy who answered the survey wouldn't always tell the person serving them in a restaurant or café. Teenagers were the most likely to worry about making a fuss or feeling embarrassed. | Food Standards Scotland with Young Scot (2020): [news release](https://www.foodstandards.gov.scot/news-and-alerts/new-campaign-to-encourage-young-people-to-talk-about-food-allergies) · [survey results](https://www.foodstandards.gov.scot/science-and-evidence/food-allergies-survey-results) | Self-selected online survey in Scotland. It's about restaurant staff, not friends. Used in the design-process deck and the empathy map, not on the pitch’s slide 5. |
+| More than **70%** of 445 young people in Hong Kong said dining out together was what they most wanted to do once COVID-19 rules were lifted. | Hong Kong Baptist University, Department of Marketing (2020, 5 May): [press release](https://www.hkbu.edu.hk/en/whats-new/press-release/2020/0505-young-people-keen-to-dine-together-and-travel-overseas-post-pandemic-says-hkbu-marketing-survey.html) | Online survey, 16–21 April 2020, aged 18 to 30. Shows that a meal is the default plan. Taken during the pandemic. Checked through search results; the page itself couldn't be opened from this environment. |
+
+**Not found.** No study of how often friend groups in Hong Kong choose food, or how often
+someone stays quiet about a food or money limit. No Hong Kong figure for food allergies in
+adults (the Hong Kong studies found are about children). These are questions for the interviews.
+
+**Searched but not used.** An IFIC (2024) figure that two-thirds of US Gen Z follow a diet was
+only found through trade press, with an unclear age range. A Doves Farm survey on food
+intolerance and social invitations is commercial. Neither is on the slides.
+
+---
+
+## 6. Design-thinking outputs (used in the deck)
 
 ### Target user
 
@@ -75,29 +103,45 @@ gym goers, pet owners, urban families, walkers, young elderly, short waiting tim
 ### Persona: Mandy, 20, Year 2, HKUST
 
 A composite persona built from the research above, not a real person. Four close friends from
-Year 1 O-camp; now different timetables, part-time jobs and long commutes. Quote: “We all want
-to. It just never happens.”
+Year 1 O-camp; now different timetables, part-time jobs and long commutes. She can't eat spicy
+food, and money is tight. Quote: “We all want to meet. It just never happens.”
 
 ### Pain points
 
 1. Plans stay vague: “soon”, “after midterms”.
-2. Nobody wants to be the one who pushes.
+2. Nobody wants to be the one who keeps asking.
 3. Five timetables, jobs and commutes never line up.
 4. Relief when the plan is cancelled, then guilt.
+5. It's always dinner. She stays quiet about what she can't eat or afford, and says “whatever”. (Added 26 Nov, section 5.)
 
 ### Empathy map
 
 | Says | Thinks |
 |---|---|
-| “We should hang out soon!!” · “I’m free after midterms.” · “Yes! Next week for sure.” | “If I push, I’ll seem desperate.” · “Maybe they don’t really care.” · “Someone else will pick a day.” |
+| “Yes! Next week for sure.” · “是但, anything’s fine.” | “If I keep asking, I’ll seem desperate.” · “I don’t want to be the difficult one.” |
 | **Does** | **Feels** |
-| Likes the message, then goes quiet · Waits for someone to pick a day · Scrolls friends’ stories alone | Lonely and a bit left out · Relieved when plans fall through · Then guilty, and scared of drifting apart |
+| Waits for someone else to pick a day · Goes along with dinner again | Lonely and left out · Relieved when plans fall through, then guilty |
+
+The pitch deck shows these eight items. Earlier versions also had “We should hang out soon!!”,
+“Maybe they don’t really care”, “Someone else will pick a day”, “Likes the message, then goes
+quiet” and “Scrolls friends’ stories alone”.
 
 ### Problem statement
 
-> University friend groups want to spend time together, but their plans die in the group chat.
-> No one owns the plan, it never gets a time or place, and cancelling feels like relief. So free
-> time gets spent scrolling alone, and close friends drift apart.
+Current version (pitch slide 7, updated 26 Nov):
+
+> University friend groups want to spend their free time together, but their plans fall through
+> in the group chat, and friends with food or money limits stay quiet. Instead, they spend it
+> alone on their phones.
+
+How it changed:
+
+| Version | Text | Why it changed |
+|---|---|---|
+| 1. First draft | University friend groups want to spend time together, but their plans die in the group chat. No one owns the plan, it never gets a time or place, and cancelling feels like relief. So free time gets spent scrolling alone, and close friends drift apart. | Too long to say in one breath. “Die” and “drift apart” are metaphors. The causes belong on the earlier slides. |
+| 2. Cycle 0 (text and design review) | The problem: university friend groups want to spend time together, but their plans fall through in the group chat. Instead, they spend their free time alone on their phones. | The pitch coach (cycle 7) found the pitch never said “problem statement”, and “free time”, the link to the leisure theme, came at the end. |
+| 3. Cycle 7 (pitch coach) | Problem statement: university friend groups want to spend their free time together, but their plans fall through in the group chat. Instead, they spend it alone on their phones. | The new insight (section 5): even when plans move forward, friends with food or money limits stay quiet. |
+| 4. Now | See above. | — |
 
 ### How might we
 
@@ -117,11 +161,16 @@ Check against the lecturers’ rules:
 | Not only “providing information” | Yes | The outcome is a behaviour (meeting), not knowledge |
 | Follows the template | Yes | How might we [turn “we should hang out” into real meetups] for [university friend groups] in order to [keep their friendships close]? |
 
+After the new insight (section 5), the HMW was checked again and kept. “Real meetups” already
+means meetups that people come to, and a dinner half the group can't enjoy isn't one. A
+narrower HMW was added for ideas (the last one below).
+
 Narrower HMWs for later ideation (not in the pitch):
 
 - How might we make it feel natural for one friend to take the lead, for university friend groups, in order to move a plan forward?
 - How might we help a friend group settle on a time and place quickly, for busy university students, in order to turn “soon” into a date?
 - How might we make showing up feel better than the relief of cancelling, for university students, in order to keep them choosing to meet?
+- How might we help university friend groups choose something everyone can enjoy, in order to include every friend without anyone having to speak up?
 
 ### Link to the course theme
 

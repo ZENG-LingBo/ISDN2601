@@ -174,7 +174,7 @@ h1, h2, h3 { font-family: 'DM Sans', Arial, sans-serif; letter-spacing: -1px; }
 .arrow { width: 48px; height: 28px; background: var(--ink); align-self: center; }
 
 /* ---------- why plans fall through ---------- */
-.reasons { display: flex; flex-direction: row; gap: 72px; margin-top: 64px; }
+.reasons { display: flex; flex-direction: row; gap: 48px; margin-top: 64px; }
 .reason { flex: 1; display: flex; flex-direction: column; gap: 20px; border-top: 4px solid var(--ink); padding-top: 28px; }
 .reason-title { font-size: 40px; font-weight: 700; line-height: 1.15; color: var(--ink); }
 .reason-text { font-size: 30px; line-height: 1.35; color: var(--ink); }
