@@ -28,7 +28,7 @@ The script is about 240 words when the numbers are read out in full. At a calm 1
 
 *Say “eighty-three point seven percent” slowly. The 2021 figure and the US number are on the slide, so you don't need to say them.*
 
-## Slide 4: Say yes, then regret it (0:43–0:53)
+## Slide 4: Relieved when plans fall through (0:43–0:53)
 
 > We say yes because saying no feels rude. When a friend cancels, one in
 > three of us feels relieved… and then guilty.
