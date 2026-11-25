@@ -118,7 +118,7 @@ In another poll, 36% said they're usually disappointed when plans are cancelled,
 **“How was the 83.7% measured?”**
 It's from an online survey of 600 people aged 12 to 24 by the Hong Kong Federation of Youth Groups, using the UCLA loneliness scale. It isn't a random sample.
 
-**If someone asks about the 86% guilt figure:** it's about people who cancel, not people who feel relieved when a friend cancels. “Relieved, then guilty” describes the persona's feelings; if someone asks, say that.
+**If someone asks about the 86% guilt figure:** it's about people who cancel, not people who feel relieved when a friend cancels. “Relieved, then guilty” describes the persona's feelings. Say that.
 
 **“How does this fit ‘Leisure in 2030’?”**
 The brief asks how free time can move from killing time to meaningful downtime. Right now, students often spend that time alone on their phones. This project is about helping friends spend that time together.
