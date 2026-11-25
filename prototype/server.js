@@ -415,7 +415,7 @@ export async function createMinibusServer({
       if (!listeners.has(crewId)) listeners.set(crewId, new Set());
       const set = listeners.get(crewId);
       if (set.size >= MAX_STREAMS_PER_CREW || openStreams >= MAX_STREAMS || (streamsByIp.get(ip) || 0) >= MAX_STREAMS_PER_IP) {
-        return fail(req, res, 503, 'busy', 'Too many open pages right now.');
+        return fail(req, res, 503, 'busy', 'Too many open pages right now. Try again in a few minutes.');
       }
       openStreams += 1;
       streamsByIp.set(ip, (streamsByIp.get(ip) || 0) + 1);

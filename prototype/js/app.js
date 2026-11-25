@@ -1071,7 +1071,7 @@ function joinScreen(hang) {
       ${hang ? "<p>Minibus is named after Hong Kong's red minibuses, which leave once enough people get on.</p>" : ''}
       ${store.kind === 'server' ? `<details class="manage">
         <summary>Joined before on another phone or browser?</summary>
-        <p>Open your private link if you saved it. If you didn't, join again with a slightly different name, like "Mei C". The person who made the group can remove your old name after 6 hours.</p>
+        <p>Open your private link if you saved it. If you didn't, join again with a slightly different name, like "Mei C". The person who made the group (or the earliest member, if they've left) can remove your old name after 6 hours.</p>
       </details>` : ''}
       ${view.crew.demo ? '<p>This is the demo group. Join as yourself and answer like you normally would.</p>' : ''}
     </section>`;
@@ -1136,7 +1136,7 @@ function crewScreen() {
 
   ${view.members.some((m) => m.canRemove) ? `<details class="block manage" id="manage-box" ${ui.removeAsk ? 'open' : ''}>
     <summary id="manage-summary">Manage members</summary>
-    <p>You made this group, so you can remove someone who joined more than 6 hours ago. This helps if someone lost their phone and joined again under a new name. Their answers are deleted.</p>
+    <p>You can remove someone who joined more than 6 hours ago. This helps if someone lost their phone and joined again under a new name. Removing someone deletes their answers.</p>
     ${membersList()}
   </details>` : ''}
 
