@@ -12,7 +12,8 @@ export const DAYS_AHEAD = 7;
 export const CLOSE_BEFORE_MS = 2 * HOUR_MS; // a time can't be picked less than 2 hours before it starts
 export const DECIDE_AFTER_MS = 48 * HOUR_MS; // after this, a plan with enough people is confirmed without waiting for everyone
 export const MIN_FOR_COUNTS = 2; // counts per time stay hidden until this many OTHER people are in...
-export const MIN_ANSWERED_FOR_COUNTS = 3; // ...and this many other people have answered, so a yes can't be singled out
+export const MIN_ANSWERED_FOR_COUNTS = 3;
+export const MOVED_NOTE_MS = 24 * 3600 * 1000; // "the plan moved" shows for a day // ...and this many other people have answered, so a yes can't be singled out
 export const REMOVE_AFTER_MS = 6 * HOUR_MS; // someone who never answered can be removed after this
 export const AUTO_LEAD_MS = 12 * HOUR_MS; // Minibus only confirms or moves a plan on its own if it's at least this far away
 export const CHECKIN_OPENS_BEFORE_MS = 30 * 60 * 1000; // check-in opens 30 minutes before the plan
@@ -598,6 +599,12 @@ export function reduce(prev, action, nowMs) {
       if (action.on !== null && typeof action.on !== 'boolean') throw new ActionError('invalid', 'Something went wrong. Try again.');
       r.on = action.on;
     }
+    if (action.decline !== undefined && typeof action.decline !== 'boolean') throw new ActionError('invalid', 'Something went wrong. Try again.');
+    if (action.decline === true && hang.lock) {
+      // "No, I can't" make the confirmed time: you stay in, and your other times still count if the plan moves.
+      r.declined = hang.lock.slot;
+      r.free = r.free.filter((id) => id !== hang.lock.slot);
+    }
     if (action.free !== undefined) {
       if (!Array.isArray(action.free)) throw new ActionError('invalid', 'Something went wrong. Try again.');
       const valid = new Set(hangSlots(hang));
@@ -609,7 +616,10 @@ export function reduce(prev, action, nowMs) {
       // Joining after the start is allowed (you can still check in), but without a check-in
       // a late joiner can't decide "Did you meet?" for the people who were there.
       if (hang.lock && r.free.includes(hang.lock.slot) && !before.has(hang.lock.slot) && nowMs >= slotTime(hang.lock.slot)) r.lateJoin = nowMs;
+      // Taking the confirmed time out of your times is the same as saying you can't make it.
+      if (hang.lock && before.has(hang.lock.slot) && !r.free.includes(hang.lock.slot)) r.declined = hang.lock.slot;
     }
+    if (hang.lock && r.free.includes(hang.lock.slot)) delete r.declined;
     const goingBefore = hang.lock && isClosed(hang.lock.slot, nowMs) ? summarize(state, hang.id, nowMs).lockPeople : null;
     member.r[hang.id] = r;
     // Too late to move the plan: tell the group plainly that someone can't make it.
@@ -757,9 +767,15 @@ export function buildView(state, meId, nowMs) {
               iCheckedIn: Boolean(me) && s.checkedIn.includes(me.id),
             }
           : null,
-        note: hang.note ? { type: hang.note.type, from: hang.note.from, to: hang.note.to, still: hang.note.still, by: hang.note.by ? nameOf(hang.note.by) : undefined } : null,
+        note: hang.note && !(hang.note.type === 'moved' && nowMs - hang.note.at > MOVED_NOTE_MS) ? { type: hang.note.type, from: hang.note.from, to: hang.note.to, still: hang.note.still, by: hang.note.by ? nameOf(hang.note.by) : undefined } : null,
         outcome: hang.outcome ? { met: hang.outcome.met, checked: Boolean(hang.outcome.checked), yes: s.metYes, no: s.metNo } : null,
-        mine: { on: mine.on, free: mine.free, likes: mine.likes, met: typeof mine.met === 'boolean' ? mine.met : null },
+        mine: {
+          on: mine.on,
+          free: mine.free,
+          likes: mine.likes,
+          met: typeof mine.met === 'boolean' ? mine.met : null,
+          declined: Boolean(hang.lock && mine.declined === hang.lock.slot), // said they can't make the confirmed time
+        },
       };
     });
   return {

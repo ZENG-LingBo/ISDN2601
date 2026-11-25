@@ -130,13 +130,18 @@ async function context(opts = {}) {
   await jason.click('#on-yes');
   await jason.click(cell);
   await jason.waitForSelector('text=Enough people are free', { timeout: 8000 });
-  await jason.waitForSelector('#go-status');
+  await jason.waitForSelector('#confirm');
+  const below = await jason.evaluate(() => {
+    const y = (sel) => document.querySelector(sel).getBoundingClientRect().top;
+    return y('#confirm') > y('.grid') && y('#confirm') < y('#p-name');
+  });
+  check(below, 'the confirm button should come straight after the grid, before the places');
   const yAfter = await pageY(jason, cell);
   check(Math.abs(yAfter - yBefore) < 60, `the grid jumped by ${Math.round(yAfter - yBefore)}px after the first answer`);
   step('server: the page did not jump when Jason answered for the first time');
   check(await jason.locator('#copy-joined').count(), 'after answering, the private link box should show');
   await shot(jason, '06-ready-dark');
-  step('server: Jason said yes and picked the same time; the plan is ready, with a "Go to confirm" cue and the private link box below');
+  step('server: Jason said yes and picked the same time; the plan is ready, the confirm button is right below the grid, and the private link box is below');
 
   await mandy.waitForSelector('text=Enough people are free', { timeout: 8000 });
   step('server: Mandy saw it update live');

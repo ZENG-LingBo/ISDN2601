@@ -620,3 +620,35 @@ test('someone who joins after the start can check in, but without a check-in can
   assert.throws(() => L.reduce(state, { type: 'outcome', hangId: H, memberId: TOM, met: true }, after), { code: 'not_going' });
   assert.equal(state.hangs[H].outcome.met, false);
 });
+
+test('"No, I can\'t" make the confirmed time keeps you in, so your other times can still move the plan', () => {
+  let state = withFriends(crew());
+  for (const id of [MANDY, JASON, MEI, TOM]) state = respond(state, id, true, [THU_EVE, SAT_EVE]);
+  if (!state.hangs[H].lock) state = L.reduce(state, { type: 'lock', hangId: H, memberId: MANDY }, NOW);
+  assert.equal(state.hangs[H].lock.slot, THU_EVE);
+
+  // Jason can't make Thursday. 3 others still can, so the plan stays.
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: JASON, decline: true }, NOW);
+  assert.equal(state.hangs[H].lock.slot, THU_EVE);
+  const jason = L.buildView(state, JASON, NOW).hangs[0];
+  assert.equal(jason.mine.on, true, 'still in');
+  assert.equal(jason.mine.declined, true);
+  assert.deepEqual(jason.mine.free, [SAT_EVE], 'his other times stay');
+
+  // Tom drops Thursday too. Saturday has 3 people, counting Jason, so the plan moves there.
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: TOM, free: [SAT_EVE] }, NOW);
+  assert.equal(state.hangs[H].lock.slot, SAT_EVE);
+  const after = L.buildView(state, JASON, NOW).hangs[0];
+  assert.equal(after.lock.imGoing, true);
+  assert.equal(after.mine.declined, false, 'a new time asks again');
+});
+
+test('taking the confirmed time out of your times counts as "can\'t make it", and adding it back undoes it', () => {
+  let state = confirmedThursday([SAT_EVE]);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [SAT_EVE] }, NOW);
+  const lock = state.hangs[H].lock;
+  if (lock && lock.slot === THU_EVE) assert.equal(L.buildView(state, MEI, NOW).hangs[0].mine.declined, true);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [SAT_EVE, THU_EVE] }, NOW);
+  assert.equal(L.buildView(state, MEI, NOW).hangs[0].mine.declined, false);
+  assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, decline: 'yes' }, NOW), { code: 'invalid' });
+});

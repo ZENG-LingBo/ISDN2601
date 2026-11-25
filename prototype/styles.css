@@ -81,7 +81,7 @@ body {
   margin: 0;
   color: var(--ink);
   font-family: var(--font-body);
-  font-size: 17px;
+  font-size: 1.0625rem; /* 17px at the default size, and grows with the reader's text size */
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
 }
@@ -254,6 +254,7 @@ a {
   color: var(--ink);
   font: inherit;
   font-weight: 600;
+  text-align: center;
   text-decoration: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -361,6 +362,10 @@ input[aria-invalid='true'] {
   border-color: var(--danger);
 }
 
+input[aria-invalid='true']:focus-visible {
+  outline-color: var(--danger);
+}
+
 select {
   min-height: 44px;
   padding: 0.4rem 0.6rem;
@@ -420,6 +425,7 @@ select {
   cursor: pointer;
 }
 
+.chip[aria-pressed='true'],
 .chip.radio:has(input:checked) {
   border-color: var(--green);
   background: var(--green-soft);
@@ -433,11 +439,12 @@ select {
 
 .inline-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
 .inline-form input {
-  flex: 1;
+  flex: 1 1 9rem;
   min-width: 0;
 }
 
@@ -479,10 +486,10 @@ select {
 .dest {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 2.2rem;
+  font-size: clamp(1.6rem, 10vw, 2.2rem);
   line-height: 1.05;
   color: var(--board-red);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .placard-rows {
@@ -675,14 +682,24 @@ select {
 }
 
 .cell.best {
-  border-color: var(--ink);
+  border-color: var(--red);
   border-width: 3px;
+}
+
+.cell-best {
+  font-weight: 600;
+  color: var(--red);
 }
 
 .cell:disabled {
   cursor: default;
   background: transparent;
   border-style: dashed;
+}
+
+.cell.closed:disabled {
+  border-color: transparent;
+  color: var(--ink-2);
 }
 
 .cell-mark {
@@ -695,6 +712,11 @@ select {
 
 .grid-note {
   font-weight: 500;
+}
+
+.saved {
+  font-weight: 600;
+  color: var(--green);
 }
 
 /* ---------- places ---------- */
@@ -749,6 +771,8 @@ select {
   font-weight: 600;
   min-width: 0;
   overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .plan-status {
@@ -785,16 +809,6 @@ select {
   min-height: 44px;
 }
 
-.ready-cue {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  padding: 0.75rem 0.9rem;
-  border: 2px solid var(--green);
-  border-radius: var(--radius);
-}
 
 /* The private link is NOT something to paste in the group chat, so it doesn't look like the chat messages. */
 .private-box {
@@ -802,7 +816,7 @@ select {
   flex-direction: column;
   gap: 0.6rem;
   padding: 0.9rem 1rem;
-  border: 2px dashed var(--ink-2);
+  border: 2px solid var(--line);
   border-radius: var(--radius);
 }
 
@@ -934,27 +948,25 @@ select {
   font-weight: 500;
   z-index: 20;
   display: none;
-  cursor: pointer;
+  pointer-events: none; /* taps go through to the page underneath */
 }
 
 .toast.show {
   display: block;
 }
 
-.since {
-  border: 2px solid var(--line);
-  border-radius: var(--radius);
-  padding: 0.8rem 1rem;
-}
-
-.since h2 {
+.banner h2 {
   font-size: 1rem;
   margin: 0 0 0.3rem;
 }
 
-.since ul {
-  margin: 0;
+.banner ul {
+  margin: 0 0 0.3rem;
   padding-left: 1.2rem;
+}
+
+.banner > :last-child {
+  margin-bottom: 0;
 }
 
 h1:focus,
@@ -971,5 +983,34 @@ h1:focus-visible,
 @media (prefers-reduced-motion: reduce) {
   .btn:active {
     transform: none;
+  }
+}
+
+/* Home: your groups are easy to tap */
+.list a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* Very narrow, or large text (200% zoom, or a big default text size): the day goes on its
+   own line above its 3 times, so the time buttons keep a usable size. */
+@media (max-width: 19em) {
+  .grid-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .grid-row .day {
+    grid-column: 1 / -1;
+    padding-top: 0.4rem;
+  }
+  .grid-head > span:first-child {
+    display: none;
+  }
+  .grid-head .clock {
+    white-space: normal;
+  }
+  .placard-rows div {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 }
