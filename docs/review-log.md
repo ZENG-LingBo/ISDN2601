@@ -354,3 +354,5 @@ A new reviewer re-ran the full week for a group of 5 with a fake clock, ran the 
 | P3 | No warning about which time Minibus confirms if nobody confirms a soon one. "You met" for someone who answered "No, we didn't". The group page showed plans without dates. "Were going" before the plan had ended. The stuck card suggested lowering the number when it couldn't go lower, and adding times to people who said no. | All fixed. |
 
 83 unit and server tests pass. The walkthrough passes. The reviewer's probe and panel scripts were run again after the fix.
+
+Text judge on the new wording: FAIL on 2 strings in round 1 (both left out the 12-hour rule, or could be read two ways), then PASS in round 2.
