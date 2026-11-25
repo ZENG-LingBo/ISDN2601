@@ -781,3 +781,41 @@ test('a group of 3 sees totals once both others have answered and are in', () =>
   state = respond(state, MEI, true, [THU_EVE, SAT_EVE]);
   assert.equal(L.buildView(state, MANDY, NOW).hangs[0].showCounts, true);
 });
+
+test('the third person to join a group of 5 does not see totals from the first 2 answers', () => {
+  let state = crew({ size: 5 });
+  state = L.reduce(state, { type: 'join', memberId: JASON, name: 'Jason' }, NOW);
+  state = respond(state, MANDY, true, [THU_EVE]);
+  state = respond(state, JASON, true, [THU_EVE]);
+  state = L.reduce(state, { type: 'join', memberId: TOM, name: 'Tom' }, NOW);
+  const tom = L.buildView(state, TOM, NOW).hangs[0];
+  assert.equal(tom.showCounts, false);
+  assert.ok(tom.slots.every((s) => s.count === 0));
+});
+
+test('only people who are in can lower the number needed', () => {
+  let state = withFriends(crew({ size: 4, seats: 4 }));
+  state = respond(state, MANDY, true, [SAT_EVE]);
+  state = respond(state, JASON, true, [SAT_EVE]);
+  state = respond(state, MEI, false, []);
+  const later = state.hangs[H].decideBy + HOUR;
+  assert.equal(L.summarize(state, H, later).stuck, true);
+  assert.throws(() => L.reduce(state, { type: 'setSeats', hangId: H, memberId: MEI, seats: 2 }, later), { code: 'closed' });
+  assert.throws(() => L.reduce(state, { type: 'setSeats', hangId: H, memberId: TOM, seats: 2 }, later), { code: 'closed' });
+  assert.equal(L.reduce(state, { type: 'setSeats', hangId: H, memberId: JASON, seats: 2 }, later).hangs[H].lock.slot, SAT_EVE);
+});
+
+test('after 2 check-ins, someone can still join and check in before the plan ends', () => {
+  let state = confirmedThursday();
+  const at = L.slotTime(THU_EVE, 'start') + 5 * 60 * 1000;
+  state = L.reduce(state, { type: 'showCode', hangId: H, memberId: MANDY }, at);
+  state = L.reduce(state, { type: 'checkin', hangId: H, memberId: MEI, code: L.checkinCode(state, H, at, 0, MANDY) }, at);
+  assert.equal(state.hangs[H].outcome.met, true);
+  // Tom said no earlier, but he turns up after all.
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: TOM, on: true, free: [THU_EVE] }, at + 20 * 60 * 1000);
+  state = L.reduce(state, { type: 'showCode', hangId: H, memberId: MANDY }, at + 21 * 60 * 1000);
+  state = L.reduce(state, { type: 'checkin', hangId: H, memberId: TOM, code: L.checkinCode(state, H, at + 21 * 60 * 1000, 0, MANDY) }, at + 21 * 60 * 1000);
+  assert.ok(L.summarize(state, H, at + 21 * 60 * 1000).checkedIn.includes(TOM));
+  // After the plan ends, answers are closed again.
+  assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: TOM, on: false }, L.slotTime(THU_EVE, 'end') + 1), { code: 'closed' });
+});

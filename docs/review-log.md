@@ -339,3 +339,18 @@ A new reviewer who had seen none of the earlier rounds ran a full week for a gro
 80 unit and server tests pass. The walkthrough passes. The reviewer's stuck-plan and privacy scripts were run again after the fix.
 
 Text judge on the new wording: FAIL on 2 strings in round 1 ("friends may still be able to guess" didn't say what, and a "Cancel" button in the can't-make-it panel could be read as cancelling your place), then PASS in round 2. The panel's buttons now all use "make": "I can't make this time", "I can't make any time", "I can still make it".
+
+## Cycle 14: re-running the full week (26 Nov, 03:40–03:50)
+
+A new reviewer re-ran the full week for a group of 5 with a fake clock, ran the demo 3 times, and checked the cycle 13 change. Most of the week worked: signed-out viewers see no names, the last-2-hours message switches on time, the move and "Did you meet?" work. Verdict: not ready yet, because of 1 privacy problem that cycle 13 introduced. Fixed now.
+
+| Priority | Finding | Change |
+|---|---|---|
+| P1 | The third person to join a group of 5 saw exact totals after only 2 answers. Cycle 13's rule for groups of 3 counted the people who had joined so far, not the group size. | The rule uses the group's size. Test added. |
+| P2 | After 48 hours, the reminder disappeared from the "No time works yet" card, exactly when someone hadn't answered. | The card shows how many have answered and the reminder. |
+| P2 | Once 2 people had checked in, friends who arrived later couldn't check in: nobody could show the code anymore. | People who are already checked in can still show the code until the plan ends, and others can still say they can make it. Test added. |
+| P2 | Anyone, even someone who said no or never answered, could lower the number needed, and that confirmed the plan straight away. | Only people who are in can lower it, and the form says that saving may confirm a time. Test added. |
+| P2 | The "Can't make … ?" panel listed up to 19 full-width buttons, sorted by how many were free, with the heading off screen. | Times are small chips in date order, and focus moves to the heading. Picked times look like picked grid cells. |
+| P3 | No warning about which time Minibus confirms if nobody confirms a soon one. "You met" for someone who answered "No, we didn't". The group page showed plans without dates. "Were going" before the plan had ended. The stuck card suggested lowering the number when it couldn't go lower, and adding times to people who said no. | All fixed. |
+
+83 unit and server tests pass. The walkthrough passes. The reviewer's probe and panel scripts were run again after the fix.

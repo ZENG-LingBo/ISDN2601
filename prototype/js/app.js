@@ -483,7 +483,7 @@ function seats(hang) {
   let text = '';
   if (hang.lock) {
     filled = hang.lock.people.length;
-    text = hang.outcome || hang.status === 'check' ? `${people(filled)} were going.` : `${people(filled)} going.`;
+    text = (hang.outcome && !hang.lock.checkinOpen) || hang.status === 'check' ? `${people(filled)} were going.` : `${people(filled)} going.`;
   } else if (hang.best) {
     filled = hang.best.count;
     text = `Needed: ${people(hang.seats)} free at the same time. So far: ${hang.best.count}.`;
@@ -626,20 +626,29 @@ function statusTitle(text) {
   return `<h2 id="status-title" tabindex="-1">${esc(text)}</h2>`;
 }
 
+// What someone can do about a plan where no time works, depending on their answer.
+function stuckAdvice(hang) {
+  if (hang.mine.on !== true) return '';
+  const lower = hang.seats > L.LIMITS.seatsMin;
+  return lower ? ' Add more times you could make, or lower the number of people needed.' : ' Add more times you could make.';
+}
+
 function openStatus(hang) {
   if (hang.stuck) {
     return `<section class="status ask">
       ${statusTitle('No time works yet')}
-      <p>${hang.waiting ? '48 hours have passed' : 'Everyone has answered'}, but no time has ${people(hang.seats)} free. Add more times you could make, or lower the number of people needed.</p>
+      <p>${hang.waiting ? '48 hours have passed' : 'Everyone has answered'}, but no time has ${people(hang.seats)} free.${stuckAdvice(hang)}</p>
+      ${hang.waiting ? `<p>${esc(answeredLine(hang))}</p>${remindBlock(hang)}` : ''}
       ${ui.seatsEdit
         ? `<form id="seats-form" class="field" novalidate>
             <label for="h-seats">How many people need to be free?</label>
+            <p class="help" id="h-seats-help">If enough people are free at one time with the new number, Minibus confirms that time.</p>
             <div class="inline-form">
-              <input id="h-seats" name="seats" type="number" inputmode="numeric" min="${L.LIMITS.seatsMin}" max="${hang.seats - 1}" value="${hang.seats - 1}">
+              <input id="h-seats" name="seats" type="number" inputmode="numeric" min="${L.LIMITS.seatsMin}" max="${hang.seats - 1}" value="${hang.seats - 1}" aria-describedby="h-seats-help">
               <button class="btn primary" type="submit" id="seats-save">Save</button>
             </div>
           </form>`
-        : hang.seats > L.LIMITS.seatsMin ? '<button class="btn" type="button" id="seats-edit" data-act="seats-edit">Lower the number needed</button>' : ''}
+        : hang.seats > L.LIMITS.seatsMin && hang.mine.on === true ? '<button class="btn" type="button" id="seats-edit" data-act="seats-edit">Lower the number needed</button>' : ''}
     </section>`;
   }
   return `<section class="status">
@@ -655,7 +664,7 @@ function readyStatus(hang) {
     ${statusTitle('Enough people are free')}
     <p class="big">${esc(slotText(hang.best.id))}</p>
     <p>${esc(`${people(hang.best.count)} are free then.`)} ${esc(answeredLine(hang))}</p>
-    ${isSoon(hang.best.id) ? '<p>This time is less than 12 hours away, so Minibus won\'t confirm it on its own.</p>' : ''}
+    ${isSoon(hang.best.id) ? '<p>This time is less than 12 hours away, so Minibus won\'t confirm it on its own. If nobody confirms it, Minibus waits for a time that\'s at least 12 hours away.</p>' : ''}
     ${onBoard
       ? '<button class="btn primary wide" type="button" id="confirm" data-act="lock">Confirm this time now</button><p>Anyone who is in can confirm it.</p>'
       : hang.mine.on === null ? '<p>Say you\'re in to confirm the plan now.</p>' : ''}
@@ -777,15 +786,12 @@ function swapBlock(hang) {
   if (!ui.swapPick) ui.swapPick = new Set(hang.mine.free.filter((s) => s !== lockSlot));
   const others = (s) => s.count - (hang.mine.free.includes(s.id) ? 1 : 0); // don't count yourself
   // Times other people can make come first, then the soonest. Times you already picked always show.
-  const open = hang.slots
-    .filter((s) => !s.closed && s.id !== lockSlot)
-    .sort((a, b) => b.count - a.count || L.slotTime(a.id) - L.slotTime(b.id));
-  const options = open;
+  const options = hang.slots.filter((s) => !s.closed && s.id !== lockSlot).sort((a, b) => L.slotTime(a.id) - L.slotTime(b.id));
   return `<div class="swap">
-    <h3>Can't make ${esc(slotText(lockSlot))}?</h3>
+    <h3 id="swap-title" tabindex="-1">Can't make ${esc(slotText(lockSlot))}?</h3>
     <p>Pick any other times you can make, then tap "I can't make this time". If enough people can make one of your times, the plan moves there.</p>
     <div class="swap-list" role="group" aria-label="Other times you can make">
-      ${options.map((s) => `<button class="btn toggle" type="button" id="pick-${esc(s.id)}" data-act="swap-pick" data-slot="${esc(s.id)}" aria-pressed="${ui.swapPick.has(s.id)}">${esc(slotText(s.id))}${others(s) ? ` (${people(others(s))} free)` : ''}</button>`).join('')}
+      ${options.map((s) => `<button class="chip" type="button" id="pick-${esc(s.id)}" data-act="swap-pick" data-slot="${esc(s.id)}" aria-pressed="${ui.swapPick.has(s.id)}">${esc(slotText(s.id))}${others(s) ? ` · ${others(s)} free` : ''}</button>`).join('')}
     </div>
     <div class="actions stack">
       <button class="btn primary" type="button" id="swap-save" data-act="swap-save">I can't make this time</button>
@@ -822,10 +828,16 @@ function afterStatus(hang) {
       </div>`
     : '';
   if (hang.status === 'happened') {
-    const wentOrGoing = hang.lock.imGoing || hang.lock.iCheckedIn;
+    const open = hang.lock.checkinOpen; // the plan hasn't ended yet
+    let title = 'The group met';
+    if (hang.lock.iCheckedIn) title = 'You met';
+    else if (hang.lock.imGoing && open) title = 'Your friends have checked in';
+    else if (hang.lock.imGoing && !(hang.outcome && !hang.outcome.checked && hang.mine.met === false)) title = 'You met';
+    else if (hang.outcome && !hang.outcome.checked) title = 'This plan counts as met';
     return `<section class="status done">
-      ${statusTitle(wentOrGoing ? 'You met' : 'The group met')}
-      ${hang.lock.checkinOpen && hang.lock.imGoing && !hang.lock.iCheckedIn ? checkinBlock(hang) : ''}
+      ${statusTitle(title)}
+      ${open && (hang.lock.imGoing || hang.lock.iCheckedIn) ? checkinBlock(hang) : ''}
+      ${open && !hang.lock.imGoing && view.me ? '<button class="btn" type="button" id="join-time" data-act="join-time">I can make it too</button>' : ''}
       <p>${hang.outcome && hang.outcome.checked ? `${esc(joinNames(hang.lock.checkedIn))} checked in. ` : ''}That's ${L.slotHours(hang.lock.slot)} more hours together. Your group has met ${view.hours.times} ${view.hours.times === 1 ? 'time' : 'times'} so far.</p>
       ${answers}${addMine}
       ${again}
@@ -1095,7 +1107,7 @@ function crewScreen() {
   <section class="block">
     <div class="row-head"><h2>Plans</h2><a class="btn small" href="#newplan-${esc(view.crew.id)}">Start a new plan</a></div>
     <ul class="plans">${view.hangs.map((hang) => `<li><a href="#plan-${esc(view.crew.id)}-${esc(hang.id)}">
-      <span class="plan-idea">${esc(hang.idea)}</span>
+      <span class="plan-idea">${esc(hang.idea)}${hang.lock ? `<span class="plan-date">${esc(L.dayLabel(hang.lock.slot.slice(0, 10)))}</span>` : ''}</span>
       <span class="plan-status">${esc(statusWords(hang))}</span>
     </a></li>`).join('')}</ul>
   </section>
@@ -1172,7 +1184,7 @@ function statusWords(hang) {
     case 'check':
       return 'Did you meet?';
     case 'happened':
-      return 'You met';
+      return hang.lock && (hang.lock.imGoing || hang.lock.iCheckedIn) ? 'You met' : 'The group met';
     case 'fizzled':
       return "Didn't meet";
     case 'expired':
@@ -1556,7 +1568,7 @@ app.addEventListener('click', (event) => {
     ui.swapOpen = a === 'swap-open';
     ui.swapPick = null;
     redraw();
-    document.getElementById(ui.swapOpen ? 'swap-save' : 'swap-open')?.focus();
+    document.getElementById(ui.swapOpen ? 'swap-title' : 'swap-open')?.focus();
     return;
   }
   if (a === 'swap-pick') {

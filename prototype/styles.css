@@ -597,8 +597,14 @@ select {
 
 .swap-list {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 0.45rem;
+}
+
+.plan-date {
+  display: block;
+  font-weight: 400;
+  text-decoration: none;
 }
 
 .swap-list .btn {

@@ -573,6 +573,8 @@ export function reduce(prev, action, nowMs) {
   if (type === 'setSeats') {
     if (hang.lock || hang.outcome) throw new ActionError('closed', "This plan is already confirmed.");
     const seats = clampInt(action.seats, LIMITS.seatsMin, LIMITS.seatsMax, hang.seats);
+    const s0 = summarize(state, hang.id, nowMs);
+    if (s0.answeredIds.some((id) => id !== member.id) && r.on !== true) throw new ActionError('closed', "Only people who are in can change the number of people needed.");
     // Once others have answered, changing the number could be used to work out their answers.
     // The one exception: everyone has answered and no time works, so the group can need fewer people.
     const s = summarize(state, hang.id, nowMs);
@@ -621,7 +623,9 @@ export function reduce(prev, action, nowMs) {
   }
 
   if (type === 'respond') {
-    if (hang.outcome) throw new ActionError('closed', 'This plan is over. Start a new one.');
+    // After 2 check-ins the plan counts as met, but until it ends people can still join or drop out.
+    const stillOn = hang.outcome && hang.outcome.checked && hang.lock && !hasEnded(hang.lock.slot, nowMs);
+    if (hang.outcome && !stillOn) throw new ActionError('closed', 'This plan is over. Start a new one.');
     // A save that was sent before the last one we kept is out of date. Ignore it.
     // seq is the phone's clock in microseconds. One far in the future (a fast clock, or made up)
     // is ignored, so it can't block later saves.
@@ -763,8 +767,10 @@ export function buildView(state, meId, nowMs) {
       // Someone who isn't signed in (or hasn't joined) sees no totals at all before the plan is
       // confirmed, so a member can't open the plan signed out and compare. Members see totals once
       // at least 2 others are in and at least 3 others have answered, so no one yes stands out.
-      const othersInGroup = Object.keys(state.members).length - (me ? 1 : 0);
-      const needAnswered = Math.min(MIN_ANSWERED_FOR_COUNTS, othersInGroup); // a group of 3 has only 2 others
+      // A group of 3 has only 2 others. Use the group's size, not how many have joined so far, or the
+      // third person to join would see exact totals from the first 2 answers.
+      const othersInGroup = Math.max(state.crew.size, Object.keys(state.members).length) - 1;
+      const needAnswered = Math.min(MIN_ANSWERED_FOR_COUNTS, othersInGroup);
       const showCounts = Boolean(hang.lock) || (Boolean(me) && othersIn >= MIN_FOR_COUNTS && othersAnswered >= needAnswered);
       // A ready plan needs its best time shown, but not every other time's total.
       const showBest = showCounts || (Boolean(me) && s.ready);
