@@ -4,12 +4,15 @@
 //   PORT=3000 DATA_FILE=/tmp/minibus.json node server.js
 //   MINIBUS_BACKEND=local node server.js   # serve the on-device demo instead
 //   TRUST_PROXY=1 node server.js            # behind a proxy that sets X-Forwarded-For
+//   ADMIN_TOKEN=long-random-text node server.js   # turns on the export and delete endpoints
+//   MINIBUS_OPERATOR="Your name, HKUST ISDN 1001" MINIBUS_CONTACT="you@example.com" \
+//   MINIBUS_DELETE_BY="31 Dec 2026" node server.js   # fills in the privacy notice
 //
 // It serves the same app as the hosted demo, but plans live here, so friends on
 // different phones share them. It runs the exact same rules (js/logic.js).
 
 import http from 'node:http';
-import { readFile, rename, mkdir, open } from 'node:fs/promises';
+import { readFile, writeFile, rename, mkdir, open } from 'node:fs/promises';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { networkInterfaces } from 'node:os';
 import path from 'node:path';
@@ -22,6 +25,8 @@ const MAX_CREWS = 2000;
 const MAX_STREAMS_PER_CREW = 50;
 const MEMBER_WRITES_PER_MINUTE = 120;
 const IP_CREATES_PER_MINUTE = 30;
+const IP_JOINS_PER_MINUTE = 120; // a whole class might join from one campus network
+const IP_READS_PER_MINUTE = 600;
 const SAVE_DELAY_MS = 200;
 const SAVE_MAX_WAIT_MS = 2000;
 const SETTLE_EVERY_MS = 10 * 60 * 1000;
@@ -40,7 +45,7 @@ const SECURITY_HEADERS = {
   'referrer-policy': 'no-referrer',
 };
 
-const ACTIONS = ['createHang', 'respond', 'addPlace', 'like', 'lock', 'outcome', 'leave', 'setSize'];
+const ACTIONS = ['createHang', 'respond', 'addPlace', 'like', 'lock', 'outcome', 'leave', 'setSize', 'remove', 'track'];
 
 function hashKey(key) {
   return createHash('sha256').update(String(key)).digest();
@@ -57,12 +62,22 @@ function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function attr(value) {
+  return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function isCrewEntry(entry) {
+  return isPlainObject(entry) && isPlainObject(entry.state) && isPlainObject(entry.state.crew) && isPlainObject(entry.state.hangs) && isPlainObject(entry.state.members) && isPlainObject(entry.keys);
+}
+
 // backend: 'server' (normal) or 'local' (serve the on-device demo, same as the hosted version).
 export async function createMinibusServer({
   dataFile = path.join(ROOT, 'data', 'store.json'),
   now = () => Date.now(),
   backend = 'server',
   trustProxy = false,
+  adminToken = '',
+  notice = {},
   log = console,
 } = {}) {
   // ---------- storage ----------
@@ -70,8 +85,21 @@ export async function createMinibusServer({
   try {
     const parsed = JSON.parse(await readFile(dataFile, 'utf8'));
     if (!isPlainObject(parsed) || !isPlainObject(parsed.crews)) throw new Error('missing "crews"');
-    for (const entry of Object.values(parsed.crews)) L.migrate(entry.state);
+    // Keep every group that reads fine. Set aside only the ones that don't.
+    const bad = {};
+    for (const [id, entry] of Object.entries(parsed.crews)) {
+      if (L.isId(id) && isCrewEntry(entry)) L.migrate(entry.state);
+      else {
+        bad[id] = entry;
+        delete parsed.crews[id];
+      }
+    }
     db = parsed;
+    if (Object.keys(bad).length) {
+      const aside = `${dataFile}.unreadable-groups-${now()}.json`;
+      await writeFile(aside, JSON.stringify(bad)).catch(() => {});
+      log.error(`${Object.keys(bad).length} group(s) in ${dataFile} could not be read. Saved them to ${aside}.`);
+    }
   } catch (e) {
     if (e.code !== 'ENOENT') {
       // Never overwrite a file we couldn't read. Keep it for recovery and start empty.
@@ -134,9 +162,7 @@ export async function createMinibusServer({
 
   // Apply time-based changes (deadline, moved plans). Save and tell open pages if anything changed.
   function settleCrew(crewId, entry) {
-    const before = JSON.stringify(entry.state);
-    L.settle(entry.state, now());
-    if (JSON.stringify(entry.state) !== before) {
+    if (L.settleChanged(entry.state, now())) {
       scheduleSave();
       notify(crewId);
     }
@@ -157,12 +183,22 @@ export async function createMinibusServer({
     return b.count <= limit;
   }
 
+  // Behind a proxy, the last X-Forwarded-For entry is the one the proxy added. Earlier entries
+  // come from the client and can be faked.
   function clientIp(req) {
     if (trustProxy) {
-      const fwd = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-      if (fwd) return fwd;
+      const parts = String(req.headers['x-forwarded-for'] || '').split(',').map((x) => x.trim()).filter(Boolean);
+      if (parts.length) return parts[parts.length - 1];
     }
     return req.socket.remoteAddress || 'unknown';
+  }
+
+  function isAdmin(req) {
+    if (!adminToken) return false;
+    const given = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    const a = hashKey(adminToken);
+    const b = hashKey(given);
+    return Boolean(given) && timingSafeEqual(a, b);
   }
 
   // ---------- helpers ----------
@@ -218,9 +254,14 @@ export async function createMinibusServer({
   async function indexHtml() {
     if (!indexCache) {
       const fragment = await readFile(path.join(ROOT, 'index.html'), 'utf8');
+      const noticeMeta = ['operator', 'contact', 'deleteBy']
+        .filter((k) => notice[k])
+        .map((k) => `<meta name="minibus-${k}" content="${attr(notice[k])}">`)
+        .join('');
       indexCache =
         '<!doctype html><html lang="en" class="standalone"><head><meta charset="utf-8">' +
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">' +
+        noticeMeta +
         '</head><body>' +
         fragment.replace('<meta name="minibus-backend" content="local">', `<meta name="minibus-backend" content="${backend === 'local' ? 'local' : 'server'}">`) +
         '</body></html>';
@@ -247,6 +288,22 @@ export async function createMinibusServer({
     }
     if (reading && p === '/api/health') return send(req, res, 200, { ok: true });
 
+    // ---------- admin (only when ADMIN_TOKEN is set) ----------
+    if (p === '/api/admin/export' && reading) {
+      if (!isAdmin(req)) return fail(req, res, 404, 'not_found', 'Not found.');
+      const crews = Object.fromEntries(Object.entries(db.crews).map(([id, entry]) => [id, entry.state])); // no keys
+      return send(req, res, 200, { exportedAt: now(), crews }, { 'content-disposition': 'attachment; filename="minibus-export.json"' });
+    }
+    const adminDelete = /^\/api\/admin\/crews\/([a-z0-9]{6,40})$/.exec(p);
+    if (adminDelete && req.method === 'DELETE') {
+      if (!isAdmin(req)) return fail(req, res, 404, 'not_found', 'Not found.');
+      if (!Object.prototype.hasOwnProperty.call(db.crews, adminDelete[1])) return fail(req, res, 404, 'not_found', 'No such group.');
+      delete db.crews[adminDelete[1]];
+      notify(adminDelete[1]);
+      scheduleSave();
+      return send(req, res, 200, { ok: true });
+    }
+
     if (p === '/api/crews' && req.method === 'POST') {
       if (!allow(`ip:${clientIp(req)}`, IP_CREATES_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
       if (Object.keys(db.crews).length >= MAX_CREWS) return fail(req, res, 507, 'full', 'This server is full.');
@@ -259,13 +316,14 @@ export async function createMinibusServer({
       return send(req, res, 201, { ...ids, key });
     }
 
-    const m = /^\/api\/crews\/([a-z0-9]{6,40})(?:\/(join|actions|events)|\/hangs\/([a-z0-9]{6,40})\/calendar\.ics)?$/.exec(p);
+    const m = /^\/api\/crews\/([a-z0-9]{6,40})(?:\/(join|actions|events|reset-key)|\/hangs\/([a-z0-9]{6,40})\/calendar\.ics)?$/.exec(p);
     if (!m) return fail(req, res, 404, 'not_found', 'Not found.');
     const [, crewId, sub, icsHang] = m;
     if (!Object.prototype.hasOwnProperty.call(db.crews, crewId)) return fail(req, res, 404, 'not_found', "This group doesn't exist. Check the link.");
     const entry = db.crews[crewId];
 
     if (!sub && !icsHang && reading) {
+      if (!allow(`read:${clientIp(req)}`, IP_READS_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
       settleCrew(crewId, entry);
       return send(req, res, 200, L.buildView(entry.state, authMember(req, entry), now()));
     }
@@ -303,7 +361,7 @@ export async function createMinibusServer({
     if (req.method !== 'POST') return fail(req, res, 405, 'method', 'Method not allowed.');
 
     if (sub === 'join') {
-      if (!allow(`ip:${clientIp(req)}`, IP_CREATES_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
+      if (!allow(`join:${clientIp(req)}`, IP_JOINS_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
       const body = await readBody(req);
       const memberId = L.newId();
       entry.state = L.reduce(entry.state, { type: 'join', memberId, name: body.name }, now());
@@ -316,7 +374,7 @@ export async function createMinibusServer({
 
     if (sub === 'actions') {
       const me = authMember(req, entry);
-      if (!me) return fail(req, res, 403, 'not_member', "You're not in this group on this device. Open the group link and join, or use your personal link.");
+      if (!me) return fail(req, res, 403, 'not_member', "You're not in this group on this device. Open the group link and join, or use your private link.");
       if (!allow(`member:${me}`, MEMBER_WRITES_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many changes at once. Wait a minute and try again.');
       const body = await readBody(req);
       const action = isPlainObject(body.action) ? { ...body.action } : {};
@@ -324,9 +382,20 @@ export async function createMinibusServer({
       if (action.type === 'addPlace') action.placeId = L.newId(); // the server picks ids, not the client
       entry.state = L.reduce(entry.state, { ...action, memberId: me }, now());
       if (action.type === 'leave') delete entry.keys[me];
+      if (action.type === 'remove') delete entry.keys[action.targetId];
       scheduleSave();
-      notify(crewId);
+      if (action.type !== 'track') notify(crewId);
       return send(req, res, 200, { ok: true });
+    }
+
+    // A new private link. The old one stops working.
+    if (sub === 'reset-key') {
+      const me = authMember(req, entry);
+      if (!me) return fail(req, res, 403, 'not_member', "You're not in this group on this device.");
+      const key = newKey();
+      entry.keys[me] = hashKey(key).toString('hex');
+      scheduleSave();
+      return send(req, res, 200, { key });
     }
 
     return fail(req, res, 404, 'not_found', 'Not found.');
@@ -368,6 +437,12 @@ if (isMain) {
     dataFile: process.env.DATA_FILE || undefined,
     backend: process.env.MINIBUS_BACKEND === 'local' ? 'local' : 'server',
     trustProxy: process.env.TRUST_PROXY === '1',
+    adminToken: process.env.ADMIN_TOKEN || '',
+    notice: {
+      operator: process.env.MINIBUS_OPERATOR || '',
+      contact: process.env.MINIBUS_CONTACT || '',
+      deleteBy: process.env.MINIBUS_DELETE_BY || '',
+    },
   });
   server.listen(port, host, () => {
     console.log(`Minibus is running on http://localhost:${port}`);

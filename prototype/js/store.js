@@ -67,6 +67,15 @@ export const identity = {
   },
 };
 
+// Details for the privacy notice, set by whoever runs the server.
+export function noticeDetails() {
+  const get = (name) => {
+    const meta = document.querySelector(`meta[name="minibus-${name}"]`);
+    return meta ? meta.content : '';
+  };
+  return { operator: get('operator'), contact: get('contact'), deleteBy: get('deleteBy') };
+}
+
 export function backendKind() {
   const meta = document.querySelector('meta[name="minibus-backend"]');
   return meta && meta.content === 'server' ? 'server' : 'local';
@@ -159,6 +168,7 @@ class LocalStore {
   async act(crewId, action) {
     const state = this.read(crewId);
     if (!state) throw new L.ActionError('not_found', "This group isn't saved on this device.");
+    if (action.type === 'track') return; // usage counts are only kept by the server version, for user tests
     const me = identity.get(crewId);
     if (!me) throw new L.ActionError('not_member', 'Join the group first.');
     this.write(L.reduce(state, { ...action, memberId: me.memberId }, this.now(state)));
@@ -248,17 +258,17 @@ class ServerStore {
     this.kind = 'server';
   }
 
-  async request(method, path, { body, crewId } = {}) {
+  async request(method, path, { body, crewId, as, keepalive } = {}) {
     const headers = {};
     if (body) headers['content-type'] = 'application/json';
-    const me = crewId ? identity.get(crewId) : null;
+    const me = as || (crewId ? identity.get(crewId) : null);
     if (me && me.key) {
       headers['x-minibus-member'] = me.memberId;
       headers['x-minibus-key'] = me.key;
     }
     let res;
     try {
-      res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+      res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined, keepalive: Boolean(keepalive) });
     } catch {
       throw new L.ActionError('offline', "Can't reach Minibus. Check your internet connection and try again.");
     }
@@ -289,9 +299,21 @@ class ServerStore {
     identity.remember(crewId, out.crewName);
   }
 
-  async act(crewId, action) {
-    await this.request('POST', `/api/crews/${encodeURIComponent(crewId)}/actions`, { body: { action }, crewId });
+  async act(crewId, action, { keepalive = false } = {}) {
+    await this.request('POST', `/api/crews/${encodeURIComponent(crewId)}/actions`, { body: { action }, crewId, keepalive });
     if (action.type === 'leave') identity.forget(crewId);
+  }
+
+  // Look at a group as the person a private link belongs to, without switching yet.
+  async peek(crewId, memberId, key) {
+    return this.request('GET', `/api/crews/${encodeURIComponent(crewId)}`, { as: { memberId, key } });
+  }
+
+  // Make a new private link. The old one stops working.
+  async resetKey(crewId) {
+    const out = await this.request('POST', `/api/crews/${encodeURIComponent(crewId)}/reset-key`, { crewId });
+    const me = identity.get(crewId);
+    identity.set(crewId, { ...me, key: out.key });
   }
 
   // Live updates. If the live connection drops, check every 15 seconds until it's back.
@@ -333,7 +355,8 @@ class ServerStore {
     return `${location.href.split('#')[0]}#me-${crewId}-${me.memberId}-${me.key}`;
   }
 
-  claim(crewId, memberId, key) {
+  claim(crewId, memberId, key, name) {
     identity.set(crewId, { memberId, key });
+    identity.remember(crewId, name || 'Group');
   }
 }

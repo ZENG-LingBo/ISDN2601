@@ -190,16 +190,34 @@ test('before a plan is confirmed, nobody can tell who said what', () => {
   assert.ok(!json.includes('"r":'), 'no raw answers in the view');
   assert.ok(!json.includes('waitingNames'), 'no list of who has not answered');
   const hang = view.hangs[0];
-  assert.equal(hang.onBoard, 1);
+  assert.equal(hang.onBoard, null, 'how many said yes is not shared before the plan is confirmed');
+  assert.equal(hang.answered, 1);
   assert.equal(hang.showCounts, false, 'with only 1 person in, counts per time would give them away');
   assert.ok(hang.slots.every((s) => s.count === 0));
   assert.equal(hang.best, null);
-  assert.ok(view.members.every((m) => Object.keys(m).sort().join() === 'id,name'));
+  assert.ok(view.members.every((m) => Object.keys(m).sort().join() === 'canRemove,id,name'));
 
   state = respond(state, MEI, true, [THU_EVE]);
   const view2 = L.buildView(state, MANDY, NOW);
   assert.equal(view2.hangs[0].showCounts, true);
   assert.equal(view2.hangs[0].best.count, 2);
+});
+
+test('totals only show once 2 OTHER people are in', () => {
+  let state = withFriends(crew());
+  state = respond(state, MANDY, true, [THU_EVE]);
+  state = respond(state, JASON, true, [THU_EVE]);
+  // Jason is one of the 2, so for him only Mandy is "other": he could work out her times.
+  assert.equal(L.buildView(state, JASON, NOW).hangs[0].showCounts, false);
+  // Tom sees 2 other people in, so totals are safe to show.
+  assert.equal(L.buildView(state, TOM, NOW).hangs[0].showCounts, true);
+});
+
+test('before 2 other people are in, a yes and a no look the same to everyone else', () => {
+  const a = respond(respond(withFriends(crew()), MANDY, true, [THU_EVE]), MEI, false, []);
+  const b = respond(respond(withFriends(crew()), MANDY, false, []), MEI, true, [THU_EVE]);
+  const strip = (v) => JSON.stringify(v.hangs[0], (k, val) => (k === 'mine' ? undefined : val));
+  assert.equal(strip(L.buildView(a, TOM, NOW)), strip(L.buildView(b, TOM, NOW)));
 });
 
 test('once confirmed, it shows only who is going', () => {
@@ -237,12 +255,56 @@ test('names must be unique in a group and groups have a size limit', () => {
   assert.throws(() => L.reduce(state, { type: 'join', memberId: 'memy000001', name: 'one more' }, NOW), { code: 'full' });
 });
 
-test('leaving deletes your name and answers', () => {
-  let state = withFriends(crew());
+test('leaving deletes your name and answers, and the group gets smaller', () => {
+  let state = withFriends(crew({ size: 5 }));
   state = respond(state, JASON, true, [THU_EVE]);
   state = L.reduce(state, { type: 'leave', memberId: JASON }, NOW);
   assert.equal(state.members[JASON], undefined);
   assert.ok(!JSON.stringify(state).includes('"Jason"'));
+  assert.equal(state.crew.size, 4);
+});
+
+test('someone who never answered can be removed; someone who answered cannot', () => {
+  let state = withFriends(crew({ size: 5 }));
+  state = respond(state, JASON, true, [THU_EVE]);
+  const view = L.buildView(state, MANDY, NOW);
+  assert.deepEqual(view.members.filter((m) => m.canRemove).map((m) => m.name).sort(), ['Mei', 'Tom']);
+  assert.throws(() => L.reduce(state, { type: 'remove', memberId: MANDY, targetId: JASON }, NOW), { code: 'has_answers' });
+  assert.throws(() => L.reduce(state, { type: 'remove', memberId: MANDY, targetId: MANDY }, NOW), { code: 'not_found' });
+  state = L.reduce(state, { type: 'remove', memberId: MANDY, targetId: TOM }, NOW);
+  assert.equal(state.members[TOM], undefined);
+  assert.equal(state.crew.size, 4);
+});
+
+test('usage counts for a user test hold no personal data', () => {
+  let state = crew();
+  state = L.reduce(state, { type: 'track', hangId: H, memberId: MANDY, what: 'share' }, NOW);
+  state = L.reduce(state, { type: 'track', hangId: H, memberId: MANDY, what: 'share' }, NOW);
+  state = L.reduce(state, { type: 'track', hangId: H, memberId: MANDY, what: 'anything-else' }, NOW);
+  assert.deepEqual(state.hangs[H].stats, { share: 2 });
+});
+
+test('the first answer time is kept, for measuring how fast people reply', () => {
+  let state = withFriends(crew());
+  state = respond(state, JASON, true, [THU_EVE]);
+  state = respond(state, JASON, true, [THU_EVE, FRI_LUNCH], NOW + HOUR);
+  assert.equal(state.members[JASON].r[H].at, NOW);
+  assert.equal(state.members[JASON].r[H].updatedAt, NOW + HOUR);
+});
+
+test('the deadline is a round hour, and settle says when something changed', () => {
+  const state = crew();
+  assert.equal(state.hangs[H].decideBy % HOUR, 0);
+  assert.ok(state.hangs[H].decideBy >= NOW + L.DECIDE_AFTER_MS);
+  const ready = confirmedThursday();
+  assert.equal(L.settleChanged(ready, NOW), false, 'nothing new to do');
+});
+
+test('a confirmed plan that nobody was going to in the end counts as not met', () => {
+  let state = confirmedThursday();
+  const soon = Date.parse('2026-11-26T10:00:00Z'); // too late to move
+  for (const id of [MANDY, JASON, MEI]) state = L.reduce(state, { type: 'respond', hangId: H, memberId: id, on: false }, soon);
+  assert.equal(L.summarize(state, H, L.slotTime(THU_EVE, 'end') + HOUR).status, 'fizzled');
 });
 
 test('group size can be changed, but not below the number of people in it', () => {
@@ -262,6 +324,7 @@ test('did you meet: only after the plan ends, and only from people who went', ()
   assert.throws(() => L.reduce(state, { type: 'outcome', hangId: H, memberId: TOM, met: false }, after), { code: 'not_going' });
   state = L.reduce(state, { type: 'outcome', hangId: H, memberId: MANDY, met: true }, after);
   assert.equal(L.summarize(state, H, after).status, 'happened');
+  assert.equal(L.buildView(state, TOM, after).hangs[0].onBoard, 3, 'after confirming, the number who said yes is shared');
   const hours = L.crewHours(state);
   assert.equal(hours.hours, 3);
   assert.equal(hours.times, 1);

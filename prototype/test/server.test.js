@@ -52,7 +52,11 @@ async function newCrew(extra = {}) {
 
 before(async () => {
   dir = await mkdtemp(path.join(tmpdir(), 'minibus-'));
-  ({ inst: instance, base } = await start(path.join(dir, 'store.json')));
+  ({ inst: instance, base } = await start(path.join(dir, 'store.json'), {
+    adminToken: 'admin-secret-for-tests',
+    trustProxy: true,
+    notice: { operator: 'Mandy <Chan>', contact: 'mandy@example.com', deleteBy: '31 Dec 2026' },
+  }));
 });
 
 after(async () => {
@@ -97,7 +101,8 @@ test('full flow: create, join, answer, confirm, calendar', async () => {
 
   let view = await call('GET', `/api/crews/${crewId}`, undefined, jason);
   assert.equal(view.data.me.name, 'Jason');
-  assert.equal(view.data.hangs[0].onBoard, 1);
+  assert.equal(view.data.hangs[0].onBoard, null);
+  assert.equal(view.data.hangs[0].answered, 1);
   assert.equal(view.data.hangs[0].showCounts, false);
   assert.ok(!JSON.stringify(view.data).includes('"r":'));
 
@@ -212,4 +217,76 @@ test('live updates arrive over server-sent events', async () => {
   const { value } = await reader.read();
   assert.match(new TextDecoder().decode(value), /event: change/);
   controller.abort();
+});
+
+test('the privacy notice details are filled in from settings, safely', async () => {
+  const res = await call('GET', '/');
+  assert.match(res.data, /<meta name="minibus-operator" content="Mandy &lt;Chan&gt;">/);
+  assert.match(res.data, /<meta name="minibus-deleteBy" content="31 Dec 2026">/);
+});
+
+test('admin export and delete need the admin token', async () => {
+  const a = await newCrew({ crewName: 'export me' });
+  assert.equal((await call('GET', '/api/admin/export')).status, 404);
+  const res = await fetch(`${base}/api/admin/export`, { headers: { authorization: 'Bearer admin-secret-for-tests' } });
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.crews[a.crewId].crew.name, 'export me');
+  assert.ok(!JSON.stringify(data).includes(a.key), 'no member keys in the export');
+  assert.ok(!JSON.stringify(data).includes('"keys"'));
+  let del = await fetch(`${base}/api/admin/crews/${a.crewId}`, { method: 'DELETE', headers: { authorization: 'Bearer wrong' } });
+  assert.equal(del.status, 404);
+  del = await fetch(`${base}/api/admin/crews/${a.crewId}`, { method: 'DELETE', headers: { authorization: 'Bearer admin-secret-for-tests' } });
+  assert.equal(del.status, 200);
+  assert.equal((await call('GET', `/api/crews/${a.crewId}`)).status, 404);
+});
+
+test('a new private link replaces the old one', async () => {
+  const a = await newCrew();
+  const res = await call('POST', `/api/crews/${a.crewId}/reset-key`, {}, a);
+  assert.equal(res.status, 200);
+  const fresh = { memberId: a.memberId, key: res.data.key };
+  assert.equal((await call('GET', `/api/crews/${a.crewId}`, undefined, a)).data.me, null, 'old key no longer works');
+  assert.equal((await call('GET', `/api/crews/${a.crewId}`, undefined, fresh)).data.me.name, 'A');
+});
+
+test('behind a proxy, only the last forwarded address counts', async () => {
+  const statuses = [];
+  for (let i = 0; i < 32; i++) {
+    const res = await fetch(`${base}/api/crews`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': `10.0.0.${i}, 203.0.113.7` },
+      body: JSON.stringify({ crewName: 'g', idea: 'x', creatorName: 'A' }),
+    });
+    statuses.push(res.status);
+  }
+  assert.ok(statuses.includes(429), 'faking the first address does not get around the limit');
+});
+
+test('one damaged group is set aside and the rest still load', async () => {
+  const sub = await mkdtemp(path.join(dir, 'partial-'));
+  const file = path.join(sub, 'store.json');
+  const good = await createMinibusServer({ dataFile: file, log: quiet });
+  const created = await new Promise((resolve) => {
+    good.server.listen(0, '127.0.0.1', async () => {
+      const r = await fetch(`http://127.0.0.1:${good.server.address().port}/api/crews`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ crewName: 'fine', idea: 'x', creatorName: 'A' }),
+      });
+      resolve(await r.json());
+    });
+  });
+  await good.flush();
+  await stop(good);
+  const saved = JSON.parse(await readFile(file, 'utf8'));
+  saved.crews.brokengroup1 = { state: null };
+  await writeFile(file, JSON.stringify(saved));
+  const errors = [];
+  const again = await createMinibusServer({ dataFile: file, log: { error: (m) => errors.push(m) } });
+  assert.ok(again.db.crews[created.crewId], 'the good group is still there');
+  assert.equal(again.db.crews.brokengroup1, undefined);
+  assert.equal(errors.length, 1);
+  assert.ok((await readdir(sub)).some((f) => f.startsWith('store.json.unreadable-groups-')));
+  await new Promise((r) => again.server.close(r));
 });

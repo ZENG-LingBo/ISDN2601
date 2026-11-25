@@ -61,3 +61,45 @@ Four reviewers worked in parallel: design, technical, business and feasibility. 
 ### Tests
 
 38 unit and server tests pass (up from 27). The browser walkthrough covers both versions, two friends live, inline errors, quick taps, the "Can you make it?" prompt and the 320 px width.
+
+## Cycle 2: prototype round 2 (26 Nov, 00:40–01:20)
+
+The same four reviewers checked their round 1 findings and looked for new problems. The text judge read every word in the app for the first time.
+
+| Reviewer | Verdict before the fixes below |
+|---|---|
+| Design | 13 of 15 fixed. Not ready: the page jumped after a friend's first answer. |
+| Technical | 9 of 11 fixed, no security or data-loss problems left. Ready with conditions: totals could still reveal who said yes. |
+| Business | A strong direction for the next stage. The README promised more than the app does. Next feature: QR check-in. |
+| Feasibility | Feasible. Missing: a way to download the data, and a fuller privacy notice. |
+| Text (app) | FAIL: 17 lines, including telling people to paste their private link into the group chat. |
+
+### Fixed
+
+| Priority | From | Finding | Change |
+|---|---|---|---|
+| P1 | Technical | The second person to join could still work out the first person's answer and free times from totals. | Totals show only once 2 *other* people are in (the viewer doesn't count). How many said yes isn't shared until the plan is confirmed; only how many answered. New test: a yes and a no look the same to everyone else. |
+| P1 | Design | The page jumped after a friend's first answer, so the next tap hit the wrong thing. | The screen order is decided once when the plan opens and kept for the visit. The walkthrough checks the grid stays put. |
+| P1 | Text | "Copied. Now paste it into your group chat." appeared after copying the private link. | "Copied. Open it on your other phone." |
+| P2 | Technical | Opening someone else's private link silently replaced who you are. | Minibus asks "Switch to Mandy?" first. "Make a new private link" makes the old one stop working. |
+| P2 | Technical | Leaving didn't lower the group size, so the plan waited for nobody. | Leaving or removing someone lowers the group size. |
+| P2 | Feasibility, technical | Someone who lost their phone stayed in the group forever. | Anyone can remove a member who joined but never answered anything. |
+| P2 | Feasibility | No way to download the data or delete a group. | `/api/admin/export` and `DELETE /api/admin/crews/:id`, both only with `ADMIN_TOKEN`. The export has no private keys. |
+| P2 | Feasibility | The privacy notice didn't say who runs it, why, until when, or who to contact. | Set with `MINIBUS_OPERATOR`, `MINIBUS_CONTACT` and `MINIBUS_DELETE_BY`. README has a consent checklist and deletion steps. |
+| P2 | Feasibility | Answers had no timestamps; nothing was counted. | First and latest answer times. Counts of copied messages, calendar taps, moves and resets per plan. |
+| P2 | Design | Focus dropped to the top of the page when the pressed button disappeared. | Focus moves to the new status heading. |
+| P2 | Design | The demo box was the first thing a tester saw. | Folded into a closed "Demo controls" section. |
+| P2 | Feasibility | Nobody was prompted to save their private link. | After joining, a banner offers "Copy my private link". |
+| P3 | Technical | The proxy address check trusted the first entry, which clients can fake. | Uses the last entry. Test added. |
+| P3 | Technical | One damaged group set aside the whole data file. | Only the damaged group is set aside. Test added. |
+| P3 | Technical | Grid saves could arrive out of order; taps weren't sent when the page was hidden. | Saves are sent one after another. Waiting taps are sent when the page is hidden or closed. |
+| P3 | Technical | Reading a group had no limit and did extra work on every request. | Per-address read limit. The server only saves and notifies when something actually changed. |
+| P3 | Technical | If everyone going dropped out in the last 2 hours, "Did you meet?" stayed open forever. | That plan now shows "You didn't meet this time". |
+| P3 | Design | Odd deadlines like "00:37", empty "0 people free" options, wrapping day labels, a small back link, two overlapping "change" buttons. | Deadlines are a round hour. Empty options hidden. Day labels fit at 320 px. 44 px back link. One "Change my times" button. |
+| P3 | Feasibility | Join limit too tight for a class on one network. | Joins have their own, higher limit. |
+| — | Text | Word-list slips, idioms and long sentences (16 more lines). | All fixed. |
+| — | Business | README overclaims. | README rewritten to match what the app does, including its limits. |
+
+### Tests
+
+50 unit and server tests pass (up from 38). The walkthrough adds three checks: the page doesn't jump on a first answer, opening someone else's private link asks first, and the demo controls start folded.

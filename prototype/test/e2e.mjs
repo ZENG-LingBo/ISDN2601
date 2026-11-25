@@ -119,9 +119,15 @@ async function context(opts = {}) {
   check(hidden.trim() === '', `with 1 person in, counts should be hidden, saw "${hidden}"`);
   step('server: Jason joined; his question comes first and counts stay hidden while only 1 person is in');
 
+  const cell = `button.cell[data-slot="${slot}"]`;
+  const pageY = (page, sel) => page.$eval(sel, (el) => el.getBoundingClientRect().top + window.scrollY);
+  const yBefore = await pageY(jason, cell);
   await jason.click('#on-yes');
-  await jason.click(`button.cell[data-slot="${slot}"]`);
+  await jason.click(cell);
   await jason.waitForSelector('text=Enough people are free', { timeout: 8000 });
+  const yAfter = await pageY(jason, cell);
+  check(Math.abs(yAfter - yBefore) < 60, `the grid jumped by ${Math.round(yAfter - yBefore)}px after the first answer`);
+  step('server: the page did not jump when Jason answered for the first time');
   await shot(jason, '06-ready-dark');
   step('server: Jason said yes and picked the same time, so the plan is ready');
 
@@ -147,6 +153,15 @@ async function context(opts = {}) {
   await mandy.waitForSelector('#copy-personal');
   await shot(mandy, '10-group-page');
   step('server: the group page offers a private link for other devices');
+
+  const mandysLink = (await mandy.textContent('#personal-text')).trim();
+  await jason.goto(mandysLink);
+  await jason.waitForSelector('text=Switch to Mandy?');
+  await shot(jason, '10b-switch-prompt-dark');
+  await jason.click('#switch-no');
+  await jason.waitForSelector('.members');
+  check(/Jason \(you\)/.test(await jason.textContent('.members')), 'Jason should still be Jason after saying no');
+  step("server: opening Mandy's private link on Jason's phone asks first, and Jason stayed Jason");
 
   await mandyCtx.close();
   await jasonCtx.close();
@@ -174,6 +189,8 @@ async function context(opts = {}) {
   await page.waitForSelector('text=Enough people are free');
   step('demo: picking the best time made the plan ready');
 
+  check(!(await page.locator('#demo-box').getAttribute('open') !== null), 'demo controls should start folded');
+  await page.click('#demo-box > summary');
   await page.selectOption('#play-as', { label: 'Jason' });
   await page.waitForTimeout(200);
   check((await page.locator('#play-as option:checked').textContent()) === 'Jason', 'should now be playing Jason');

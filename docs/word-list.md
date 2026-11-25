@@ -9,7 +9,10 @@ One word for each thing, used the same way everywhere: in the app, the messages 
 | time, times | slot, slots | "Fri 27 Nov, evening" is one time. |
 | free | available | "When are you free?" |
 | place | spot, venue | |
-| I'm in / Not this time | hop on, yeah fr | The two answers to "Are you going?" |
+| I'm in / Not this time | hop on, yeah fr | The two answers to "Are you in?" |
+| in (before the plan is confirmed), going (after) | on board | "3 people are in" while choosing; "Going: Mandy, Jason" once confirmed. |
+| private link | personal link, magic link | The link that lets you use the group on another phone. |
+| too late | closed, past | A time that starts in less than 2 hours. |
 | confirm, confirmed | lock, lock in, it leaves, it's happening | "The plan is confirmed." |
 | people who are in | people on board, seats taken | |
 | change your times | swap | "Can't make it? Change your times instead of cancelling." |
@@ -27,4 +30,4 @@ One word for each thing, used the same way everywhere: in the app, the messages 
 - Numbers as numerals: "3 people", not "three people".
 - Dates as "Fri 27 Nov", times of day as "lunch", "afternoon" or "evening".
 - No emoji in the interface.
-- Error messages say what happened and what to do: "That name is already taken in this group. Try adding your last initial."
+- Error messages say what happened and what to do: "Someone in this group is already called Mei. Try adding your last initial."

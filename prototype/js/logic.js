@@ -33,7 +33,10 @@ export const LIMITS = {
   seatsMax: 12,
 };
 
-export const BUDGETS = ['', 'under $50', '$50–100', '$100–200', '$200+'];
+export const BUDGETS = ['', 'Under $50', '$50–100', '$100–200', '$200+'];
+
+// Things the app counts per plan, to measure a user test. No personal data.
+export const TRACKED = ['share', 'remind', 'confirmed', 'calendar'];
 
 // Hall (2019): two people need about 50 hours together to become casual friends,
 // 90 to become friends, and more than 200 to become close friends.
@@ -192,11 +195,12 @@ function makeHang({ hangId, memberId, idea, seats, budget }, nowMs) {
     startDate: startDateFor(nowMs),
     createdBy: memberId,
     createdAt: nowMs,
-    decideBy: nowMs + DECIDE_AFTER_MS,
+    decideBy: Math.ceil((nowMs + DECIDE_AFTER_MS) / HOUR_MS) * HOUR_MS, // a round hour is easier to read
     places: [],
     lock: null,
     note: null,
     outcome: null,
+    stats: {},
   };
 }
 
@@ -290,7 +294,8 @@ export function summarize(state, hangId, nowMs) {
 
   let status = 'open';
   if (hang.outcome) status = hang.outcome.met ? 'happened' : 'fizzled';
-  else if (hang.lock) status = hasEnded(hang.lock.slot, nowMs) ? 'check' : 'locked';
+  else if (hang.lock && hasEnded(hang.lock.slot, nowMs)) status = lockPeople.length ? 'check' : 'fizzled';
+  else if (hang.lock) status = 'locked';
   else if (!anyOpen) status = 'expired';
   else if (ready) status = 'ready';
 
@@ -329,6 +334,18 @@ function lockTo(hang, summary, slot, nowMs, reason) {
 //   or go back to choosing a time if none does;
 // - confirm a plan that's ready once everyone has answered, or once the 48-hour deadline passes.
 export function settle(state, nowMs) {
+  settleChanged(state, nowMs);
+  return state;
+}
+
+function bump(hang, key) {
+  if (!hang.stats) hang.stats = {};
+  hang.stats[key] = (hang.stats[key] || 0) + 1;
+}
+
+// Same as settle, but says whether anything changed, so the server only saves when needed.
+export function settleChanged(state, nowMs) {
+  let changed = false;
   for (const hang of Object.values(state.hangs)) {
     if (hang.outcome) continue;
     const summary = summarize(state, hang.id, nowMs);
@@ -337,17 +354,24 @@ export function settle(state, nowMs) {
       if (isClosed(hang.lock.slot, nowMs)) continue; // too late to move it now
       if (summary.lockPeople.length >= hang.seats) {
         const place = summary.topPlace;
-        hang.lock.placeId = place ? place.id : null; // follow the group's favourite place until then
+        const placeId = place ? place.id : null; // follow the group's favourite place until then
+        if (hang.lock.placeId !== placeId) {
+          hang.lock.placeId = placeId;
+          changed = true;
+        }
         continue;
       }
+      changed = true;
       const from = hang.lock.slot;
       const next = bestSlotAtLeast(summary, hang.seats);
       if (next) {
         lockTo(hang, summary, next, nowMs, 'moved');
         hang.note = { type: 'moved', from, to: next.id, at: nowMs };
+        bump(hang, 'moved');
       } else {
         hang.lock = null;
         hang.note = { type: 'unlocked', from, at: nowMs };
+        bump(hang, 'unlocked');
       }
       continue;
     }
@@ -356,9 +380,10 @@ export function settle(state, nowMs) {
       const reason = summary.everyoneAnswered ? 'auto' : 'deadline';
       lockTo(hang, summary, summary.best, nowMs, reason);
       hang.note = { type: reason, to: summary.best.id, at: nowMs };
+      changed = true;
     }
   }
-  return state;
+  return changed;
 }
 
 // ---------- actions ----------
@@ -385,6 +410,22 @@ export function reduce(prev, action, nowMs) {
 
   if (type === 'leave') {
     delete state.members[member.id];
+    const left = Object.keys(state.members).length;
+    state.crew.size = Math.max(LIMITS.sizeMin, left, state.crew.size - 1);
+    return settle(state, nowMs);
+  }
+
+  // Remove someone who joined but never answered anything (for example, they lost their phone).
+  // Anyone who has answered can only leave by themselves.
+  if (type === 'remove') {
+    if (!isId(action.targetId) || !has(state.members, action.targetId) || action.targetId === member.id) {
+      throw new ActionError('not_found', "That person isn't in this group.");
+    }
+    const target = state.members[action.targetId];
+    const answeredSomething = Object.values(target.r).some((x) => typeof x.on === 'boolean');
+    if (answeredSomething) throw new ActionError('has_answers', `${target.name} has answered a plan, so only they can leave.`);
+    delete state.members[target.id];
+    state.crew.size = Math.max(LIMITS.sizeMin, Object.keys(state.members).length, state.crew.size - 1);
     return settle(state, nowMs);
   }
 
@@ -404,8 +445,15 @@ export function reduce(prev, action, nowMs) {
   const hang = getHang(state, action.hangId);
   const r = clone(response(member, hang.id));
 
+  if (type === 'track') {
+    if (TRACKED.includes(action.what)) bump(hang, action.what);
+    return state;
+  }
+
   if (type === 'respond') {
     if (hang.outcome) throw new ActionError('closed', 'This plan is over. Start a new one.');
+    if (!r.at) r.at = nowMs; // first answer, for measuring how fast people reply
+    r.updatedAt = nowMs;
     if (action.on !== undefined) {
       if (action.on !== null && typeof action.on !== 'boolean') throw new ActionError('invalid', 'Something went wrong. Try again.');
       r.on = action.on;
@@ -437,7 +485,7 @@ export function reduce(prev, action, nowMs) {
   }
 
   if (type === 'like') {
-    if (!hang.places.some((p) => p.id === action.placeId)) throw new ActionError('not_found', 'That place was removed.');
+    if (!hang.places.some((p) => p.id === action.placeId)) throw new ActionError('not_found', "That place isn't on this plan anymore.");
     r.likes = r.likes.filter((id) => id !== action.placeId);
     if (action.on) r.likes.push(action.placeId);
     member.r[hang.id] = r;
@@ -494,7 +542,10 @@ export function buildView(state, meId, nowMs) {
       const s = summarize(state, hang.id, nowMs);
       const mine = me ? response(me, hang.id) : { on: null, free: [], likes: [] };
       const place = hang.lock && hang.lock.placeId ? hang.places.find((p) => p.id === hang.lock.placeId) : null;
-      const showCounts = Boolean(hang.lock) || s.onBoardIds.length >= MIN_FOR_COUNTS;
+      // Totals show only once at least 2 OTHER people are in, so nobody can work out a single person's answer.
+      const othersIn = s.onBoardIds.filter((id) => !me || id !== me.id).length;
+      // Once a plan is ready, enough people share a time anyway, so totals give nothing more away.
+      const showCounts = Boolean(hang.lock) || othersIn >= MIN_FOR_COUNTS || s.ready;
       return {
         id: hang.id,
         idea: hang.idea,
@@ -507,7 +558,9 @@ export function buildView(state, meId, nowMs) {
         expected: s.expected,
         joined: s.joined,
         answered: s.answeredIds.length,
-        onBoard: s.onBoardIds.length,
+        // How many said yes is only shared once the plan is confirmed. Before that, "answered" alone
+        // can't be split into yes and no.
+        onBoard: hang.lock ? s.onBoardIds.length : null,
         waiting: s.waiting,
         notJoined: Math.max(0, s.expected - s.joined),
         days: hangDays(hang),
@@ -527,13 +580,19 @@ export function buildView(state, meId, nowMs) {
           : null,
         note: hang.note ? { type: hang.note.type, from: hang.note.from, to: hang.note.to, by: hang.note.by ? nameOf(hang.note.by) : undefined } : null,
         outcome: hang.outcome ? { met: hang.outcome.met } : null,
+        stats: hang.stats || {},
         mine: { on: mine.on, free: mine.free, likes: mine.likes },
       };
     });
   return {
     crew: { id: state.crew.id, name: state.crew.name, size: state.crew.size, demo: state.crew.demo },
     me: me ? { id: me.id, name: me.name } : null,
-    members: Object.values(state.members).map((m) => ({ id: m.id, name: m.name })),
+    // canRemove: joined but never answered any plan (for example, they lost their phone).
+    members: Object.values(state.members).map((m) => ({
+      id: m.id,
+      name: m.name,
+      canRemove: Boolean(me) && m.id !== me.id && !Object.values(m.r).some((x) => typeof x.on === 'boolean'),
+    })),
     hangs,
     hours: crewHours(state),
     now: nowMs,
@@ -625,7 +684,7 @@ export function createDemoState(ids, nowMs) {
       crewName: 'O-camp gang',
       size: 5,
       creatorName: DEMO_FRIENDS[0],
-      idea: 'dinner somewhere cheap',
+      idea: 'Dinner somewhere cheap',
       seats: 3,
       budget: '$50–100',
       demo: true,

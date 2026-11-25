@@ -632,8 +632,12 @@ select {
   .grid-row {
     grid-template-columns: 3.4rem repeat(3, minmax(0, 1fr));
   }
-  .grid-head span {
+  .grid-head span,
+  .day {
     font-size: 0.85rem;
+  }
+  .day {
+    white-space: nowrap;
   }
 }
 
@@ -769,22 +773,69 @@ select {
   background: var(--green);
 }
 
-.back {
-  padding-top: 0.5rem;
+.back a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 
-/* The demo controls are for whoever is showing the prototype, so they look different from the app. */
-.demo-bar {
+#status-title:focus {
+  outline: none;
+}
+
+#status-title:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+}
+
+.banner.joined {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  padding: 0.75rem 0.9rem;
+  font-weight: 400;
+}
+
+.members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.members li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-height: 44px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.member-ask {
+  padding-block: 0.5rem;
+}
+
+/* The demo controls are for whoever is showing the prototype, so they look different from the app
+   and start folded away. */
+.demo-bar {
+  padding: 0 0.9rem;
   border: 2px dashed var(--ink-2);
   border-radius: var(--radius);
 }
 
-.demo-title {
-  font-weight: 700;
+.demo-bar summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.demo-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-bottom: 0.9rem;
 }
 
 .demo-row {
