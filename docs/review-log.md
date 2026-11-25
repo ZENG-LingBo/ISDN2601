@@ -318,4 +318,6 @@ A new reviewer checked the cycle 11 change with two real browsers, a fake clock 
 
 Not done: tests for the rate limits themselves, and for the 30-second save retry (it would make the tests slow).
 
+Text judge on the new wording: FAIL in rounds 1 and 2, then PASS in round 3. It found that the removal text said "only the person who made the group", but if the maker leaves, the member who joined earliest takes over. All 3 places that describe the rule now say so. It also asked for "Removing someone deletes their answers" instead of "Their answers are deleted".
+
 76 unit and server tests pass. The walkthrough passes. The reviewer's repro scripts were run again after the fix.
