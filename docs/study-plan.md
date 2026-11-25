@@ -9,7 +9,7 @@ When a friend group says "we should hang out", does Minibus help them actually m
 ## Who takes part
 
 - 4 to 6 friend groups of 4 to 6 people each, aged 18 or over.
-- Each group has a plan they talked about in the group chat but never made, right now or in the last month.
+- Each group talked about a plan in their group chat in the last month but never set a time.
 - At least 2 groups that aren't your own friends.
 - A mix of iPhone and Android.
 
@@ -34,14 +34,14 @@ Ask every participant 3 questions:
 
 ## During the week
 
-Each group starts one real plan in its own chat. Don't remind them to use the app. What to measure:
+Each group starts one real plan in its own chat. Don't remind the Minibus groups to use the app. What to measure:
 
 | Step | Minibus (from the export) | WhatsApp group (ask the organiser) |
 |---|---|---|
 | Opened the link | link opens | — |
 | Answered | answers, time of each first answer | poll votes |
 | Picked a time | first confirmation and how it happened | did the group agree on a time? |
-| Changed plans | how often the plan moved or went back to choosing a time, each person's "can't make this time" answer, and the plan's last notice | did anyone drop out? |
+| Changed plans | how often the plan moved or went back to choosing a time, each person's "can't make this time" answer, and the notice the plan showed last | did anyone cancel? |
 | Met | check-ins, "did you meet?" answers | did they meet? (confirm with 2 people) |
 
 Download the export every day ([how](../prototype/README.md#back-up-and-download-the-data)).
@@ -52,7 +52,7 @@ Download the export every day ([how](../prototype/README.md#back-up-and-download
 
 - What happened with the plan, in your own words?
 - Was there a moment you felt awkward or pushy? When?
-- Did seeing totals instead of names change what you answered?
+- Did seeing only numbers, not names, change what you answered?
 - Would you use this again for the next plan? Why or why not?
 
 ## What to report

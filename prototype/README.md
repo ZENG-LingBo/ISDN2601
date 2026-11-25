@@ -13,12 +13,12 @@ This is a prototype for the next stage of an ISDN 1001 project at HKUST. It resp
 1. One person starts a plan and pastes a ready-made message into the group chat.
 2. Each friend opens the link, types their name, and says whether they're in.
 3. People who are in tap the times they're free over the next 7 days: lunch (12:30–2pm), afternoon (3–6pm) or evening (7–10pm). You can't tap a time until you say you're in, so picking a time never counts as a yes by accident.
-4. Anyone can suggest a place, and everyone can vote. Typing a place in votes for it; tapping one of the suggested places only adds it.
-5. The plan is confirmed when enough people are free at the same time and everyone has answered. If not everyone answers, Minibus confirms it once 48 hours have passed (if that falls at night, it waits until 9am), as long as enough people are free at the same time. Minibus only confirms a time on its own if it's at least 12 hours away, because nobody gets a notification. For a sooner time, someone who is in confirms it. If everyone has answered and no time works, the plan says so, and the group can lower the number of people needed. 3 hours after a plan is made, people who are in see a reminder they can send to the group while someone hasn't answered. The demo shows it straight away.
-6. If you can't make the confirmed time, tap "Can't make it? Change my times" instead of cancelling. If the plan is confirmed or moved to a time you didn't pick, Minibus asks "Can you make it?", and you can tap "No, I can't". Either way, you stay in the plan, and your other times still count. If the confirmed time no longer has enough people, the plan moves to another time at least 12 hours away that does. If there isn't one, the group goes back to choosing a time. When the plan moves, a notice shows the old and new time for 24 hours.
-7. In the 2 hours before the plan starts, it can't move. If you can't make it then, tap "I can't make it". This takes you out of the plan. The group sees how many people are still going, and Minibus writes a message for you to send. You can tap "I can make it too" until the plan ends.
+4. Anyone can suggest a place, and everyone can vote. If you type a place, it also counts as your vote. If you tap a suggested place, it's only added to the list.
+5. The plan is confirmed when enough people are free at the same time and everyone has answered. If not everyone answers, Minibus waits 48 hours. Then it confirms the plan if enough people are free at the same time. If the 48 hours end at night, it waits until 9am. Minibus only confirms a time on its own if it's at least 12 hours away, because nobody gets a notification. For a sooner time, someone who is in confirms it. If everyone has answered and no time works, the plan says so, and the group can lower the number of people needed. If someone still hasn't answered 3 hours after the plan is made, people who are in see a reminder they can send to the group. The demo shows it straight away.
+6. If you can't make the confirmed time, tap "Can't make it? Change my times" instead of cancelling. If the plan is confirmed or moved to a time you didn't pick, Minibus asks "Can you make it?", and you can tap "No, I can't". Either way, you stay in the plan, and your other times still count. If the confirmed time no longer has enough people, the plan moves to another time that has enough people and is at least 12 hours away. If there isn't one, the group goes back to choosing a time. For 24 hours after the plan moves, a notice shows the old and new times.
+7. In the 2 hours before the plan starts, it can't move. If you find out in those 2 hours that you can't make it, tap "Can't make it? Tell the group", then "I can't make it". This takes you out of the plan. The plan shows how many people are still going, and Minibus writes a message for you to send. You can tap "I can make it too" until the plan ends.
 8. When the group meets, one person shows a 4-digit check-in code and the others type it in. Check-in opens 30 minutes before the plan and closes when it ends. The code changes every minute. Showing the code also checks you in. Once 2 people have checked in, the plan counts as met.
-9. If fewer than 2 people check in, the people who were going can say afterwards whether they met. Every answer is kept. The plan counts as met if at least 1 person says "Yes, we met" and at least as many say yes as say no. People who joined after the plan started can only answer if they checked in. These answers are self-reported.
+9. If fewer than 2 people check in, the people who were going can say afterwards whether they met. Every answer is kept. The plan counts as met if at least 1 person says "Yes, we met" and at least as many say yes as say no. People who said they could make it only after the plan started can answer only if they checked in. These answers are self-reported.
 
 ## How it uses the research
 
@@ -26,9 +26,9 @@ This is a prototype for the next stage of an ISDN 1001 project at HKUST. It resp
 |---|---|
 | In a group chat, no one is in charge of the plan (Darley & Latané, 1968). | Minibus collects answers, picks the time and writes the reminder message. Someone still has to send the messages (with Copy, Share or WhatsApp buttons), but the reminder comes from Minibus, not from them. The join screen doesn't say who started the plan. |
 | People who decide when and where they'll do something are more likely to follow through (Gollwitzer & Sheeran, 2006). That research is about individuals; Minibus applies the idea to groups. | Every confirmed plan has one time. If there's no place yet, the confirmed plan asks for one. |
-| People are afraid of looking too eager (Boothby et al., 2018; Liu et al., 2023). | Names aren't shown with answers until the plan is confirmed. Before that, people see how many have answered (not how many said yes). The number free at each time only shows to members, and only once 2 other people are in and 3 other people have answered, so no one's yes stands out. Once enough people are free at one time, members also see that time and how many are free. In a small group, totals can still hint at who said yes. |
+| People are afraid of looking too eager (Boothby et al., 2018; Liu et al., 2023). | Names aren't shown with answers until the plan is confirmed. Before that, people see how many have answered (not how many said yes). The number of people free at each time only shows to members, and only once 2 other people are in and 3 other people have answered, so no one's yes stands out. Once enough people are free at one time, members also see that time and how many are free. In a small group, totals can still hint at who said yes. |
 | People say yes too easily, then feel relieved when plans are cancelled (Givi & Kirk, 2023; YouGov, 2019). | If you can't make a confirmed plan, you're asked to change your times instead of cancelling. If the confirmed time no longer has enough people, the plan moves to another time that does. |
-| 2 friends need about 200 hours together to become close friends (Hall, 2019). | The group page shows how many times the group met, and about how many hours that was. Plans count as met when 2 people check in, or when at least as many people who went say "Yes, we met" as say "No, we didn't". |
+| 2 friends need about 200 hours together to become close friends (Hall, 2019). | The group page shows how many times the group met, and about how many hours that was. Plans count as met when 2 people check in, or when at least 1 person who went says "Yes, we met" and the yes answers are at least as many as the no answers. |
 
 ## Testing it with real groups
 
@@ -117,7 +117,15 @@ The group id is the part after `#crew-` in the group's link. In a plan link (`#p
 
 ## Privacy
 
-Minibus stores the name you type, the group name, the plan ideas, places you suggest, your answers, the times you're free, your place votes, whether you can't make the confirmed time, your check-in time, whether you met, when you joined, when you first answered and last changed your answer, and which messages you copied. It doesn't ask for a phone number, email or location.
+Minibus stores:
+
+- your name, the group name, the plan ideas and the places people suggest
+- your answers: whether you're in, the times you're free, your place votes, and whether you said you can't make the confirmed time
+- your check-in time and whether you met
+- when you joined, first answered and last changed your answer
+- which messages you copied
+
+Minibus doesn't ask for a phone number, email or location.
 
 - The create and join screens show a short notice. With the variables above, it says who runs the test, why, when everything is deleted, and who to contact.
 - Each person can delete their name and answers with "Leave and delete my answers" on the group page. The group name and plan ideas stay until the group is deleted.
