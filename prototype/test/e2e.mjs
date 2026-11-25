@@ -207,8 +207,8 @@ async function context(opts = {}) {
   // What works for you: private mood and limits, then 3 suggestions everyone can do.
   check((await page.textContent('#page-title')).trim() === 'Something everyone can do', 'a plan without an idea should say so');
   check((await page.locator('.idea').count()) === 3, 'there should be 3 suggestions');
-  await page.click('#mood-chill');
-  await page.waitForSelector('#mood-chill[aria-pressed="true"]');
+  await page.click('#energy-chill');
+  await page.waitForSelector('#energy-chill[aria-pressed="true"]');
   await page.click('#diet-no-seafood');
   await page.waitForSelector('#diet-no-seafood[aria-pressed="true"]');
   const pickId = await page.$eval('.idea button', (b) => b.id);

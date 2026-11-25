@@ -47,19 +47,23 @@ export const BUDGETS = ['', 'Under $50', '$50–100', '$100–200', '$200+'];
 // Nobody else sees these. The list doesn't ask about religion or health beyond "food allergy".
 export const DIETS = [
   { key: 'no-spicy', label: 'No spicy food' },
-  { key: 'vegetarian', label: 'Vegetarian' },
+  { key: 'vegetarian', label: 'No meat (vegetarian)' },
   { key: 'no-beef', label: 'No beef' },
   { key: 'no-pork', label: 'No pork' },
   { key: 'no-seafood', label: 'No seafood' },
   { key: 'allergy', label: 'Food allergy' },
 ];
 export const SPEND_LIMITS = [50, 100, 200]; // most you want to spend, in HK$. No answer means any.
-export const MOODS = [
+export const HUNGER = [
   { key: 'hungry', label: 'Hungry' },
   { key: 'not-hungry', label: 'Not hungry' },
+];
+export const ENERGY = [
   { key: 'chill', label: 'Low energy' },
   { key: 'active', label: 'Up for something active' },
 ];
+// Moods only count once this many people have given one, so a single mood can't be spotted.
+export const MIN_MOODS = 3;
 const BUDGET_CAPS = { 'Under $50': 50, '$50–100': 100, '$100–200': 200 };
 
 // Things to do in Hong Kong, so a plan doesn't have to start with an idea.
@@ -67,6 +71,7 @@ const BUDGET_CAPS = { 'Under $50': 50, '$50–100': 100, '$100–200': 200 };
 // price: about how much each person spends, in HK$.
 // fails: the limits a meal can't meet. Places with a big menu, where everyone picks their own, fail fewer.
 export const ACTIVITIES = [
+  { id: 'canteen', name: 'Campus canteen', detail: 'Cheap, with lots of choice', food: 'main', energy: 'low', price: 40, fails: [] },
   { id: 'food-court', name: 'Food court', detail: 'Everyone picks their own stall', food: 'main', energy: 'low', price: 70, fails: [] },
   { id: 'hotpot', name: 'Hotpot', detail: 'Pick a non-spicy soup, and everyone chooses what to cook', food: 'main', energy: 'low', price: 180, fails: [] },
   { id: 'cha-chaan-teng', name: 'Cha chaan teng', detail: 'Big menu, quick and cheap', food: 'main', energy: 'low', price: 60, fails: ['vegetarian'] },
@@ -84,9 +89,9 @@ export const ACTIVITIES = [
   { id: 'movie', name: 'Movie', detail: 'Pick something everyone wants to see', food: 'none', energy: 'low', price: 100, fails: [] },
   { id: 'museum', name: 'Museum or gallery', detail: 'M+ or the Museum of Art', food: 'none', energy: 'low', price: 50, fails: [] },
   { id: 'arcade', name: 'Arcade', detail: 'Games and prizes', food: 'none', energy: 'med', price: 80, fails: [] },
-  { id: 'bowling', name: 'Bowling', detail: 'Easy to play, even if you never have', food: 'none', energy: 'med', price: 80, fails: [] },
+  { id: 'bowling', name: 'Bowling', detail: "Easy, even if you've never played", food: 'none', energy: 'med', price: 80, fails: [] },
   { id: 'escape-room', name: 'Escape room', detail: 'Solve puzzles as a team', food: 'none', energy: 'med', price: 200, fails: [] },
-  { id: 'beach', name: 'Beach afternoon', detail: 'Clear Water Bay or Shek O', food: 'optional', energy: 'med', price: 30, fails: [] },
+  { id: 'beach', name: 'Beach trip', detail: 'Clear Water Bay or Shek O', food: 'optional', energy: 'med', price: 30, fails: [] },
   { id: 'hike', name: 'Easy hike', detail: "Dragon's Back or a trail near you", food: 'none', energy: 'high', price: 20, fails: [] },
   { id: 'cycling', name: 'Cycling by the river', detail: 'Rent bikes in Tai Wai', food: 'none', energy: 'high', price: 80, fails: [] },
   { id: 'sports', name: 'Badminton or basketball', detail: 'On campus or at a sports centre', food: 'none', energy: 'high', price: 30, fails: [] },
@@ -104,18 +109,18 @@ function moodScore(a, moods) {
   return score;
 }
 
-// The 3 things Minibus suggests for a plan, worked out from the private limits and moods of
-// everyone who is in. Everyone sees the same 3. Nobody sees whose limit ruled something out.
+// The 3 things Minibus suggests for a plan. Everyone in the group sees the same 3.
+// They use the limits of everyone who has joined, not only people who said yes, so the list never
+// shows who is in. Moods only count once at least MIN_MOODS people have given one.
 export function suggestions(state, hangId) {
   const hang = state.hangs[hangId];
-  const members = Object.values(state.members);
-  const inGroup = members.filter((m) => response(m, hangId).on === true);
-  const group = inGroup.length ? inGroup : members.filter((m) => m.id === hang.createdBy);
+  const group = Object.values(state.members);
   const diets = new Set(group.flatMap((m) => (m.limits && Array.isArray(m.limits.diet) ? m.limits.diet : [])));
   const caps = group.map((m) => m.limits && m.limits.spend).filter((x) => typeof x === 'number');
   if (BUDGET_CAPS[hang.budget]) caps.push(BUDGET_CAPS[hang.budget]);
   const cap = caps.length ? Math.min(...caps) : Infinity;
-  const moods = group.map((m) => response(m, hangId).mood).filter(Boolean);
+  const moodsBy = group.map((m) => [response(m, hangId).hunger, response(m, hangId).energy].filter(Boolean)).filter((x) => x.length);
+  const moods = moodsBy.length >= MIN_MOODS ? moodsBy.flat() : [];
   const ranked = ACTIVITIES.filter((a) => a.price <= cap)
     .filter((a) => a.food !== 'main' || !a.fails.some((d) => diets.has(d)))
     .map((a) => ({ a, score: moodScore(a, moods) + (hash32(`${hang.id}|${a.id}`) % 100) / 1000 }))
@@ -585,6 +590,10 @@ export function settleChanged(state, nowMs) {
       } else {
         hang.lock = null;
         hang.note = { type: 'unlocked', from, at: nowMs };
+        if (hang.suggest && hang.chosen) {
+          hang.chosen = null; // what to do is open again too
+          hang.idea = '';
+        }
         bump(hang, 'unlocked');
       }
       continue;
@@ -758,20 +767,21 @@ export function reduce(prev, action, nowMs) {
     if (seqOk(action.seq) && seqOk(r.seq) && action.seq < r.seq) return state;
     if (seqOk(action.seq)) r.seq = action.seq;
     else if (!seqOk(r.seq)) delete r.seq;
-    if (!r.at) r.at = nowMs; // first answer, for measuring how fast people reply
+    if (!r.at && (action.on !== undefined || action.free !== undefined)) r.at = nowMs; // first answer, for measuring how fast people reply
     r.updatedAt = nowMs;
     if (action.on !== undefined) {
       if (action.on !== null && typeof action.on !== 'boolean') throw new ActionError('invalid', 'Something went wrong. Try again.');
       r.on = action.on;
     }
     if (action.decline !== undefined && typeof action.decline !== 'boolean') throw new ActionError('invalid', 'Something went wrong. Try again.');
-    if (action.mood !== undefined) {
-      if (action.mood !== null && !MOODS.some((m) => m.key === action.mood)) throw new ActionError('invalid', 'Something went wrong. Try again.');
-      r.mood = action.mood;
+    for (const [field, options] of [['hunger', HUNGER], ['energy', ENERGY]]) {
+      if (action[field] === undefined) continue;
+      if (action[field] !== null && !options.some((m) => m.key === action[field])) throw new ActionError('invalid', 'Something went wrong. Try again.');
+      r[field] = action[field];
     }
     if (action.picks !== undefined) {
       if (!Array.isArray(action.picks)) throw new ActionError('invalid', 'Something went wrong. Try again.');
-      r.picks = [...new Set(action.picks.filter((id) => ACTIVITIES.some((a) => a.id === id)))].slice(0, 5);
+      r.picks = [...new Set(action.picks.filter((id) => ACTIVITIES.some((a) => a.id === id)))].slice(-5); // the newest 5
     }
     if (action.anyOk !== undefined) {
       if (typeof action.anyOk !== 'boolean') throw new ActionError('invalid', 'Something went wrong. Try again.');
@@ -914,9 +924,11 @@ export function buildView(state, meId, nowMs) {
         idea: hang.idea || SUGGEST_TITLE,
         suggest: Boolean(hang.suggest && !hang.chosen),
         // Members see the 3 suggestions and how many would go. Nobody sees anyone else's limits or mood.
+        // The "would go" numbers follow the same rule as the time totals.
         suggestions: me && hang.suggest && !hang.chosen
-          ? s.suggested.map((x) => ({ id: x.a.id, name: x.a.name, detail: x.a.detail, price: x.a.price, food: x.a.food, count: x.count, mine: Array.isArray(mine.picks) && mine.picks.includes(x.a.id) }))
+          ? s.suggested.map((x) => ({ id: x.a.id, name: x.a.name, detail: x.a.detail, price: x.a.price, food: x.a.food, count: showCounts ? x.count : null, mine: Array.isArray(mine.picks) && mine.picks.includes(x.a.id) }))
           : [],
+        suggestionsShared: Boolean(showCounts),
         seats: hang.seats,
         budget: hang.budget,
         createdAt: hang.createdAt,
@@ -960,7 +972,8 @@ export function buildView(state, meId, nowMs) {
           likes: mine.likes,
           met: typeof mine.met === 'boolean' ? mine.met : null,
           declined: Boolean(hang.lock && mine.declined === hang.lock.slot), // said they can't make the confirmed time
-          mood: mine.mood || null,
+          hunger: mine.hunger || null,
+          energy: mine.energy || null,
           picks: Array.isArray(mine.picks) ? mine.picks : [],
           anyOk: mine.anyOk === true,
         },
@@ -1105,8 +1118,8 @@ export function createDemoState(ids, nowMs) {
   state = reduce(state, { type: 'respond', memberId: memberIds[1], hangId, on: true, free: pick(5, 8, 10) }, nowMs);
   // What Jason and Mei told Minibus privately. Nobody else sees this.
   state = reduce(state, { type: 'setLimits', memberId: memberIds[1], diet: ['no-spicy'], spend: null }, nowMs);
-  state = reduce(state, { type: 'respond', memberId: memberIds[0], hangId, mood: 'hungry' }, nowMs);
-  state = reduce(state, { type: 'respond', memberId: memberIds[1], hangId, mood: 'chill' }, nowMs);
+  state = reduce(state, { type: 'respond', memberId: memberIds[0], hangId, hunger: 'hungry' }, nowMs);
+  state = reduce(state, { type: 'respond', memberId: memberIds[1], hangId, energy: 'chill' }, nowMs);
   const ideas = suggestions(state, hangId);
   state = reduce(state, { type: 'respond', memberId: memberIds[0], hangId, picks: [ideas[0].id] }, nowMs);
   state = reduce(state, { type: 'respond', memberId: memberIds[1], hangId, picks: ideas.slice(0, 2).map((a) => a.id) }, nowMs);

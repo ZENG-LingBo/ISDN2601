@@ -1121,3 +1121,11 @@ h1:focus-visible,
 .bubble.bot .btn {
   margin-top: 0.7rem;
 }
+
+.bubble.private {
+  border-style: dashed;
+}
+
+.chips + .chips {
+  margin-top: 0.45rem;
+}

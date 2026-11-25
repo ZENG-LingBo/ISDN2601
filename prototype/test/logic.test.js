@@ -839,18 +839,17 @@ test('after 2 check-ins, someone can still join and check in before the plan end
 
 // ---------- Minibus 2030: private limits and suggestions ----------
 
-function suggestPlan(seats = 3) {
-  let state = withFriends(crew({ idea: '', seats, budget: '' }));
+function suggestPlan(seats = 3, size = 4) {
+  let state = withFriends(crew({ idea: '', seats, budget: '', size }));
   assert.equal(state.hangs[H].suggest, true, 'an empty idea means Minibus suggests');
   return state;
 }
 
-test('suggestions leave out meals that someone who is in cannot eat, and things over budget', () => {
+test('suggestions leave out meals that anyone in the group cannot eat, and things over budget', () => {
   let state = suggestPlan();
   for (const id of [MANDY, JASON, MEI]) state = respond(state, id, true, [THU_EVE]);
   state = L.reduce(state, { type: 'setLimits', memberId: JASON, diet: ['vegetarian', 'no-spicy'], spend: 100 }, NOW);
-  // Ask for many suggestions' worth of moods, so meals rank high.
-  for (const id of [MANDY, JASON, MEI]) state = L.reduce(state, { type: 'respond', hangId: H, memberId: id, mood: 'hungry' }, NOW);
+  for (const id of [MANDY, JASON, MEI]) state = L.reduce(state, { type: 'respond', hangId: H, memberId: id, hunger: 'hungry' }, NOW);
   const ideas = L.suggestions(state, H);
   assert.equal(ideas.length, 3);
   for (const a of ideas) {
@@ -861,25 +860,45 @@ test('suggestions leave out meals that someone who is in cannot eat, and things 
   assert.ok(ideas.some((a) => a.food !== 'main'), 'and something that is not a meal');
 });
 
-test('someone who is not in does not change the suggestions', () => {
+test('a $50 limit still gets a meal', () => {
   let state = suggestPlan();
-  for (const id of [MANDY, JASON]) state = respond(state, id, true, [THU_EVE]);
-  const before = L.suggestions(state, H).map((a) => a.id);
-  state = L.reduce(state, { type: 'setLimits', memberId: TOM, diet: ['vegetarian'], spend: 50 }, NOW);
-  state = respond(state, TOM, false, []);
-  assert.deepEqual(L.suggestions(state, H).map((a) => a.id), before);
+  state = L.reduce(state, { type: 'setLimits', memberId: MANDY, diet: [], spend: 50 }, NOW);
+  for (const id of [MANDY, JASON, MEI]) state = L.reduce(state, { type: 'respond', hangId: H, memberId: id, hunger: 'hungry' }, NOW);
+  assert.ok(L.suggestions(state, H).some((a) => a.food === 'main' && a.price <= 50));
 });
 
-test('nobody else can see your limits or your mood', () => {
+test('the suggestions never depend on whether someone said yes or no', () => {
+  let state = suggestPlan();
+  state = L.reduce(state, { type: 'setLimits', memberId: TOM, diet: ['vegetarian'], spend: 50 }, NOW);
+  const yes = respond(state, TOM, true, [THU_EVE]);
+  const no = respond(state, TOM, false, []);
+  assert.deepEqual(L.suggestions(yes, H).map((a) => a.id), L.suggestions(no, H).map((a) => a.id));
+});
+
+test('moods only count once 3 people have given one', () => {
+  let state = suggestPlan();
+  const base = L.suggestions(state, H).map((a) => a.id);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: JASON, energy: 'active' }, NOW);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, energy: 'active' }, NOW);
+  assert.deepEqual(L.suggestions(state, H).map((a) => a.id), base, '2 moods change nothing');
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: TOM, energy: 'active' }, NOW);
+  assert.ok(L.suggestions(state, H).some((a) => a.energy === 'high'), 'with 3, active things rise');
+  assert.equal(state.members[JASON].r[H].at, undefined, 'a mood is not counted as a first answer');
+});
+
+test('nobody else can see your limits or your mood, and "would go" numbers follow the totals rule', () => {
   let state = suggestPlan();
   state = respond(state, MEI, true, [THU_EVE]);
   state = L.reduce(state, { type: 'setLimits', memberId: MEI, diet: ['allergy'], spend: 50 }, NOW);
-  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, mood: 'not-hungry' }, NOW);
-  const json = JSON.stringify(L.buildView(state, MANDY, NOW));
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, hunger: 'not-hungry', picks: [L.suggestions(state, H)[0].id] }, NOW);
+  const mandy = L.buildView(state, MANDY, NOW);
+  const json = JSON.stringify(mandy);
   assert.ok(!json.includes('allergy') && !json.includes('not-hungry'));
+  assert.ok(mandy.hangs[0].suggestions.every((a) => a.count === null), 'no numbers before totals are allowed');
+  assert.equal(mandy.hangs[0].suggestionsShared, false);
   const mine = L.buildView(state, MEI, NOW);
   assert.deepEqual(mine.myLimits, { diet: ['allergy'], spend: 50 });
-  assert.equal(mine.hangs[0].mine.mood, 'not-hungry');
+  assert.equal(mine.hangs[0].mine.hunger, 'not-hungry');
   assert.equal(L.buildView(state, null, NOW).hangs[0].suggestions.length, 0, 'people who have not joined see no suggestions');
 });
 
@@ -890,25 +909,31 @@ test('when the plan is confirmed, the suggestion most people would go to becomes
   state = L.reduce(state, { type: 'respond', hangId: H, memberId: MANDY, picks: [ideas[2].id] }, NOW);
   state = L.reduce(state, { type: 'respond', hangId: H, memberId: JASON, picks: [ideas[2].id, ideas[0].id] }, NOW);
   state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, anyOk: true }, NOW);
-  const view = L.buildView(state, MANDY, NOW).hangs[0];
-  assert.equal(view.suggestions.find((a) => a.id === ideas[2].id).count, 3);
   state = L.reduce(state, { type: 'lock', hangId: H, memberId: MANDY }, NOW);
   assert.equal(state.hangs[H].chosen, ideas[2].id);
   const after = L.buildView(state, MANDY, NOW).hangs[0];
   assert.equal(after.idea, ideas[2].name);
   assert.equal(after.suggest, false);
   assert.match(L.lockedMessage(after, 'https://x.test/#p'), new RegExp(`The plan is confirmed: ${ideas[2].name}`));
+  // If the plan goes back to choosing a time, what to do is open again too.
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: JASON, free: [] }, NOW);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [] }, NOW);
+  assert.equal(state.hangs[H].lock, null);
+  assert.equal(state.hangs[H].chosen, null);
+  assert.equal(L.buildView(state, MANDY, NOW).hangs[0].suggest, true);
 });
 
-test('a plan with an idea never changes its idea, and bad limits are refused', () => {
+test('a plan with an idea never changes its idea, and bad answers are refused', () => {
   let state = withFriends(crew());
   state = respond(state, MANDY, true, [SAT_EVE]);
   assert.equal(state.hangs[H].suggest, false);
   assert.equal(L.buildView(state, MANDY, NOW).hangs[0].suggestions.length, 0);
   assert.throws(() => L.reduce(state, { type: 'setLimits', memberId: MANDY, diet: [], spend: 75 }, NOW), { code: 'invalid' });
-  assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: MANDY, mood: 'angry' }, NOW), { code: 'invalid' });
+  assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: MANDY, hunger: 'angry' }, NOW), { code: 'invalid' });
   const odd = L.reduce(state, { type: 'setLimits', memberId: MANDY, diet: ['vegetarian', 'nonsense', 'vegetarian'] }, NOW);
   assert.deepEqual(odd.members[MANDY].limits, { diet: ['vegetarian'], spend: null });
+  const many = L.reduce(state, { type: 'respond', hangId: H, memberId: MANDY, picks: L.ACTIVITIES.slice(0, 8).map((a) => a.id) }, NOW);
+  assert.deepEqual(many.members[MANDY].r[H].picks, L.ACTIVITIES.slice(3, 8).map((a) => a.id), 'the newest 5 picks are kept');
 });
 
 test('the share message for a plan without an idea explains the private limits', () => {

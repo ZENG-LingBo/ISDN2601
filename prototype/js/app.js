@@ -394,7 +394,7 @@ function privacyNote() {
   const n = noticeDetails();
   const parts = [];
   if (n.operator) parts.push(`Minibus is a student project run by ${n.operator}.`);
-  parts.push(`${n.operator ? 'It' : 'Minibus'} saves your name, your answers and the times you're free. It uses them only for your group's plans${n.operator ? ' and to check whether the app works' : ''}.`);
+  parts.push(`${n.operator ? 'It' : 'Minibus'} saves your name, your answers, the times you're free, and anything you tell it privately, like food you can't eat. It uses them only for your group's plans${n.operator ? ' and to check whether the app works' : ''}.`);
   parts.push('Use a first name or a nickname.');
   if (store.kind === 'server') {
     if (n.deleteBy) parts.push(`Everything will be deleted by ${n.deleteBy}.`);
@@ -459,8 +459,9 @@ function ideaFields(prefix) {
 }
 
 function whatLine(hang) {
+  if (!hang.suggestionsShared) return 'Decided when the plan is confirmed';
   const top = hang.suggestions.reduce((best, a) => (a.count > (best ? best.count : 0) ? a : best), null);
-  return top ? `Most picked: ${top.name}` : 'Not decided yet';
+  return top ? `Most picked so far: ${top.name}` : 'Not picked yet';
 }
 
 function placard(hang, asHeading = true) {
@@ -538,21 +539,37 @@ function answerBlock(hang) {
 }
 
 // Private: mood for this plan, and food limits and spending for every plan in this group.
+// Shown to everyone who hasn't said no, so answering it doesn't hint at a yes.
 function whatWorksBlock(hang) {
-  if (!hang.suggest || hang.mine.on !== true) return '';
+  if (!hang.suggest || hang.mine.on === false) return '';
   const lim = view.myLimits || { diet: [], spend: null };
   const chip = (act, key, label, on) =>
     `<button type="button" class="chip" id="${act}-${esc(key)}" data-act="${act}" data-key="${esc(key)}" aria-pressed="${on}">${esc(label)}</button>`;
+  const said = [
+    ...L.HUNGER.filter((m) => m.key === hang.mine.hunger).map((m) => m.label),
+    ...L.ENERGY.filter((m) => m.key === hang.mine.energy).map((m) => m.label),
+    ...L.DIETS.filter((d) => lim.diet.includes(d.key)).map((d) => d.label),
+    ...(lim.spend !== null ? [`up to $${lim.spend}`] : []),
+  ];
+  if (!ui.whatOpen && said.length) {
+    return `<section class="block">
+      <h2>What works for you?</h2>
+      <p>You told Minibus: ${esc(said.join(', '))}. Your friends don't see this.</p>
+      <button class="btn small" type="button" id="what-edit" data-act="what-edit">Change</button>
+    </section>`;
+  }
   return `<section class="block">
     <h2>What works for you?</h2>
-    <p>Only Minibus sees this. It uses it to suggest things everyone can do. Nobody sees who chose what.</p>
+    <p>Your friends don't see your answers here. Minibus uses them to suggest things everyone can do. If the suggestions change right after someone answers, friends may guess that person's limit.</p>
     <fieldset class="field">
-      <legend>How you feel about this plan</legend>
-      <div class="chips">${L.MOODS.map((m) => chip('mood', m.key, m.label, hang.mine.mood === m.key)).join('')}</div>
+      <legend>What are you in the mood for?</legend>
+      <div class="chips" role="group" aria-label="Food">${L.HUNGER.map((m) => chip('hunger', m.key, m.label, hang.mine.hunger === m.key)).join('')}</div>
+      <div class="chips" role="group" aria-label="Energy">${L.ENERGY.map((m) => chip('energy', m.key, m.label, hang.mine.energy === m.key)).join('')}</div>
     </fieldset>
     <fieldset class="field">
       <legend>Food you can't or won't eat</legend>
       <div class="chips">${L.DIETS.map((d) => chip('diet', d.key, d.label, lim.diet.includes(d.key))).join('')}</div>
+      <p class="help">For a food allergy, Minibus leaves out some places, but it can't check every dish. Check the menu yourself.</p>
     </fieldset>
     <fieldset class="field">
       <legend>Most you want to spend</legend>
@@ -572,7 +589,7 @@ function suggestionsBlock(hang) {
         <div class="idea-text">
           <p class="idea-name">${esc(a.name)}</p>
           <p>${esc(a.detail)}. About $${a.price} each.</p>
-          <p>${a.count} ${a.count === 1 ? 'person' : 'people'} would go</p>
+          ${a.count === null ? '' : `<p>${a.count} ${a.count === 1 ? 'person' : 'people'} would go</p>`}
         </div>
         ${canPick ? `<button type="button" class="btn toggle small" id="idea-${esc(a.id)}" data-act="pick-idea" data-key="${esc(a.id)}" aria-pressed="${a.mine}" aria-label="${esc(`I'd go to ${a.name}`)}">I'd go</button>` : ''}
       </li>`,
@@ -580,15 +597,17 @@ function suggestionsBlock(hang) {
     .join('');
   return `<section class="block">
     <h2>What to do</h2>
-    <p>Minibus suggests 3 things everyone can do, based on what people told it privately. ${canPick ? "Tap the ones you'd go to." : "Say you're in to pick the ones you'd go to."}</p>
+    <p>Minibus suggests 3 things that suit everyone in the group, based on what people told it privately. ${canPick ? "Tap the ones you'd go to." : "Say you're in to pick the ones you'd go to."}${hang.suggestionsShared ? '' : " You'll see how many people would go once enough people have answered."}</p>
+    ${canPick && hang.mine.picks.length && !hang.suggestions.some((a) => hang.mine.picks.includes(a.id)) ? '<p class="banner">The suggestions changed. Pick again.</p>' : ''}
     <ul class="ideas">${items}</ul>
     ${canPick ? `<button type="button" class="btn toggle" id="any-ok" data-act="any-ok" aria-pressed="${hang.mine.anyOk}">Any of these is fine</button>` : ''}
     <p class="help">When the plan is confirmed, the one most people would go to becomes the plan.</p>
   </section>`;
 }
 
-// Demo only: fill the grid from a pretend class timetable (classes at lunch on Mon, Wed and Fri,
-// and in the afternoon on Tue and Thu). By 2030, Minibus could read your real timetable if you allow it.
+// Demo only: add free times from a pretend timetable (classes at lunch on Mon, Wed and Fri and every
+// weekday afternoon, a club on Tuesday evening, and a part-time job on Saturday). By 2030, Minibus could
+// read your real timetable if you allow it.
 function timetableFree(hang) {
   return hang.slots
     .filter((x) => !x.closed)
@@ -597,8 +616,9 @@ function timetableFree(hang) {
       const [date, type] = id.split('_');
       const [y, m, d] = date.split('-').map(Number);
       const day = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 is Sunday
-      if (type === 'lunch' && [1, 3, 5].includes(day)) return false;
-      if (type === 'aft' && [2, 4].includes(day)) return false;
+      if (type === 'lunch' && [1, 3, 5, 6].includes(day)) return false;
+      if (type === 'aft' && [1, 2, 3, 4, 5, 6].includes(day)) return false;
+      if (type === 'eve' && day === 2) return false;
       return true;
     });
 }
@@ -639,7 +659,7 @@ function gridBlock(hang) {
     ${store.kind === 'local' && !notYet && !hang.lock ? `<div class="actions">
       <button class="btn small" type="button" id="fill-timetable" data-act="fill-timetable" aria-describedby="fill-timetable-help">Fill from my timetable</button>
     </div>
-    <p class="help" id="fill-timetable-help">In the demo, this uses a pretend class timetable. A real version would read your timetable only if you allow it.</p>` : ''}
+    <p class="help" id="fill-timetable-help">In the demo, this adds free times from a pretend class timetable. A real version would read your timetable only if you allow it.</p>` : ''}
     <div class="grid" role="group" aria-label="When are you free?">
       <div class="grid-row grid-head" aria-hidden="true"><span></span>${L.SLOT_TYPES.map((t) => `<span>${esc(t.label[0].toUpperCase() + t.label.slice(1))}<span class="clock">${esc(t.clock)}</span></span>`).join('')}</div>
       ${rows}
@@ -940,6 +960,9 @@ function planScreen() {
   if (ui.orderFor !== hang.id) {
     ui.orderFor = hang.id;
     ui.answerFirst = hang.mine.on === null;
+    // The private block starts folded if you've already answered it.
+    const lim = view.myLimits || { diet: [], spend: null };
+    ui.whatOpen = !(hang.mine.hunger || hang.mine.energy || lim.diet.length || lim.spend !== null);
   }
   if (store.kind === 'server') countOpen(hang.id);
   const top = `${demoBar(hang)}${inAppHint()}${placard(hang)}${seats(hang)}${notices(hang)}`;
@@ -961,9 +984,11 @@ function planScreen() {
   // and the order stays the same while they answer.
   // The status goes straight after the grid, so "Confirm this time now" is close to the times you just picked.
   // For a plan without an idea yet: what works for you (private), then the 3 suggestions, before confirming.
+  // "Where?" waits until there's something to do.
   const what = whatWorksBlock(hang);
-  if (ui.answerFirst) return `${top}${answerBlock(hang)}${what}${gridBlock(hang)}${suggestionsBlock(hang)}${status}${placesBlock(hang)}${joinedBanner(hang)}${back}`;
-  return `${top}${status}${answerBlock(hang)}${what}${gridBlock(hang)}${suggestionsBlock(hang)}${placesBlock(hang)}${joinedBanner(hang)}${back}`;
+  const places = hang.suggest ? '' : placesBlock(hang);
+  if (ui.answerFirst) return `${top}${answerBlock(hang)}${what}${gridBlock(hang)}${suggestionsBlock(hang)}${status}${places}${joinedBanner(hang)}${back}`;
+  return `${top}${status}${answerBlock(hang)}${what}${gridBlock(hang)}${suggestionsBlock(hang)}${places}${joinedBanner(hang)}${back}`;
 }
 
 // ---------------------------------------------------------------- other screens
@@ -981,10 +1006,18 @@ function chatScreen() {
     <div class="bubble"><p class="who">Tom</p><p>deal</p></div>
     <div class="bubble bot">
       <p class="who">Minibus</p>
-      <p>It sounds like you all want to meet. Want me to plan it? I'll find a time that works and suggest 3 things everyone can do. You can tell me privately what works for you, like no spicy food or not hungry. Nobody else will see it.</p>
-      <button class="btn primary" type="button" id="chat-plan" data-act="start-demo">Plan it</button>
+      <p>It sounds like you all want to meet. Want me to plan it? I'll find a time that works and suggest 3 things everyone can do. You can tell me privately what works for you, like no spicy food or not hungry. Your friends won't see it.</p>
+    </div>
+    <div class="bubble bot private">
+      <p class="who">Minibus, only to Mandy</p>
+      <p>What works for you this week? For example: not hungry, low energy, no spicy food, up to $100.</p>
+    </div>
+    <div class="bubble bot">
+      <p class="who">Minibus</p>
+      <p>The plan is confirmed: Board game café, Sat 28 Nov, afternoon (3–6pm). Going: Jason, Mei, Tom and Mandy.</p>
     </div>
   </section>
+  <div class="actions"><button class="btn primary" type="button" id="chat-plan" data-act="start-demo">Try it in the demo</button></div>
   <p class="back"><a id="back-link" href="#start">Back to the home page</a></p>`;
 }
 
@@ -1658,20 +1691,29 @@ app.addEventListener('click', (event) => {
       go(`plan-${out.crewId}-${out.hangId}`);
     });
   }
-  if (a === 'mood' || a === 'diet' || a === 'spend' || a === 'pick-idea' || a === 'any-ok') {
+  if (a === 'what-edit') {
+    ui.whatOpen = true;
+    redraw();
+    document.getElementById('hunger-hungry')?.focus();
+    return;
+  }
+  if (['hunger', 'energy', 'diet', 'spend', 'pick-idea', 'any-ok'].includes(a)) {
     return void run(async () => {
       const key = target.dataset.key;
       const fresh = currentHang() || hang;
       const lim = view.myLimits || { diet: [], spend: null };
-      if (a === 'mood') {
-        await act({ type: 'respond', mood: fresh.mine.mood === key ? null : key, seq: nextSeq() });
+      if (a === 'hunger' || a === 'energy') {
+        await act({ type: 'respond', [a]: fresh.mine[a] === key ? null : key, seq: nextSeq() });
       } else if (a === 'diet') {
         const diet = lim.diet.includes(key) ? lim.diet.filter((d) => d !== key) : [...lim.diet, key];
         await act({ type: 'setLimits', diet, spend: lim.spend });
       } else if (a === 'spend') {
         await act({ type: 'setLimits', diet: lim.diet, spend: key === 'any' ? null : Number(key) });
       } else if (a === 'pick-idea') {
-        const picks = fresh.mine.picks.includes(key) ? fresh.mine.picks.filter((x) => x !== key) : [...fresh.mine.picks, key];
+        // Only picks for the 3 on screen count, so an old pick can't block a new one.
+        const listed = fresh.suggestions.map((x) => x.id);
+        const current = fresh.mine.picks.filter((x) => listed.includes(x));
+        const picks = current.includes(key) ? current.filter((x) => x !== key) : [...current, key];
         await act({ type: 'respond', picks, seq: nextSeq() });
       } else {
         await act({ type: 'respond', anyOk: !fresh.mine.anyOk, seq: nextSeq() });
@@ -1682,9 +1724,9 @@ app.addEventListener('click', (event) => {
   if (a === 'fill-timetable') {
     const fresh = currentHang() || hang;
     if (!fresh) return;
-    pendingFree.set(fresh.id, new Set(timetableFree(fresh)));
+    pendingFree.set(fresh.id, new Set([...myFree(fresh), ...timetableFree(fresh)]));
     redraw();
-    toast('Filled from your timetable. Tap any time to change it.');
+    toast('Added the times your timetable shows you are free. Tap any time to change it.');
     return void flushFree();
   }
   if (a === 'size-edit') {
@@ -1794,7 +1836,7 @@ app.addEventListener('click', (event) => {
         break;
       case 'again': {
         const hangId = L.newId();
-        await store.act(route.crewId, { type: 'createHang', hangId, idea: fresh.idea, seats: fresh.seats, budget: fresh.budget });
+        await store.act(route.crewId, { type: 'createHang', hangId, idea: fresh.suggest ? '' : fresh.idea, seats: fresh.seats, budget: fresh.budget });
         go(`shared-${route.crewId}-${hangId}`);
         break;
       }

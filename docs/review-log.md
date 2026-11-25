@@ -434,14 +434,26 @@ Many students will type names, group names and plan ideas in Chinese, so a scrip
 
 ## Cycle 20: the 2030 version (26 Nov, from 07:31)
 
-Your feedback: the theme is 2030, so the solution should look further ahead. The prototype also assumed the group already knew what to do. Most meetups end up as "eat, eat, eat", and people with food limits (no spicy food, allergies), people on a budget, or people who just aren't hungry tend to stay quiet so they don't seem difficult. So the group says 是但 and ends up at the same dinner, or doesn't meet.
+Your feedback: the theme is 2030, so the solution should look further ahead. The prototype also assumed the group already knew what to do. Most meetups end up as "eat, eat, eat", and people with food limits (no spicy food, allergies), people on a budget, or people who just aren't hungry tend to stay quiet so they don't seem difficult. So the group says 是但 ("whatever") and ends up at the same dinner, or doesn't meet.
 
 What changed:
 
 - **A plan can start without an idea.** Leave "What's the plan?" empty, and the plan becomes "Something everyone can do".
-- **What works for you, privately.** Each person who is in can tap how they feel (hungry, not hungry, low energy, up for something active), food they can't or won't eat, and the most they want to spend. Nobody else sees it. The list doesn't ask about religion. "No pork" and "No beef" cover most needs without asking why.
+- **What works for you, privately.** Each person can tap whether they're hungry, how much energy they have, food they can't or won't eat, and the most they want to spend. Friends don't see it, but they may guess from how the suggestions change. The list doesn't ask about religion. "No pork" and "No beef" cover most needs without asking why.
 - **3 suggestions everyone can do.** Minibus picks from about 20 things to do in Hong Kong, tagged with price, food and energy. It leaves out meals that someone who is in can't eat, and anything over the lowest budget. It ranks the rest by everyone's mood, and it always tries to include one meal and one thing that isn't a meal. People tap "I'd go", or "Any of these is fine". When the plan is confirmed, the most picked one becomes the plan's name.
 - **Fill from my timetable (demo).** One tap fills the time grid from a pretend class timetable. This stands in for reading a real timetable in 2030, with permission.
 - **Minibus in the group chat (mock-up).** A demo screen shows Minibus as an assistant inside the group chat. It notices "we should hang out" and offers to plan it, with private answers.
 
 90 unit and server tests pass (6 new). The walkthrough now also covers the chat mock-up, private mood and limits, picking a suggestion, and the plan taking its name.
+
+**Checks on the 2030 version.** The text judge and a new reviewer both found the same serious problem. Only people who said yes counted toward the suggestions, so when a friend said yes and set a mood, a limit or an "I'd go", the list or its numbers changed. That showed they were in, before the protected totals appeared. The reviewer also found the list often showed that person's exact mood and spending limit.
+
+| Priority | Finding | Change |
+|---|---|---|
+| P1 | The suggestions and their "would go" numbers showed who said yes. | The suggestions use the limits of everyone who has joined, so yes or no never changes them. Moods only count once 3 people have given one. The "would go" numbers follow the totals rule. Tests added. |
+| P1 | When nobody was in yet, the person who made the plan had their limits used even after they said no. | Fixed by the same change. |
+| P1 | The app and README said "Nobody sees who chose what" and "Nobody sees anyone else's limits or mood". | Now: "Your friends don't see your answers here… If the suggestions change right after someone answers, friends may guess that person's limit." The README explains how the suggestions protect privacy and what they can still hint at. |
+| P2 | An "I'd go" tap could be lost after 5 old picks. Picks vanished without notice when the list changed. The chosen activity stayed after the plan went back to choosing. "Plan the same thing again" copied the placeholder name. A $50 limit never got a meal. "Food allergy" sounded like a safety promise. | All fixed. There's a new $40 campus canteen, and a note says "Check the menu yourself". |
+| P3 | The page was long. "Mood" allowed only one choice. "Fill from my timetable" replaced your taps and marked 16 of 21 times as free. The chat mock-up didn't show the private message or the result. | "Where?" waits until there's something to do. The private block folds to one line when you come back. Food and energy are separate rows. The timetable adds to your taps from a busier pretend timetable. The mock-up shows the private message and the confirmed plan. |
+
+92 unit and server tests pass. The walkthrough passes.
