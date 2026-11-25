@@ -380,3 +380,18 @@ Text judge on the new wording: FAIL in rounds 1 and 2, then PASS in round 3. It 
 ## Load test (26 Nov, 04:25)
 
 To check the server can handle a class test, a script ran 6 groups of 5 on one server at the same time. All 30 people had live updates open, and everyone answered and changed their times 8 times. Result: 510 requests in half a second, all successful. Half of them took 16 ms or less, and 95% took 109 ms or less. Every live update arrived.
+
+## Cycle 16: a fresh final text verdict (26 Nov, 04:25–04:37)
+
+The text judge used in every earlier round had seen each change as it happened, so a new judge who had seen nothing read all the text from scratch: every string in the app, both READMEs, the study plan, the word list, the newest review-log sections, and the pitch script and slides (checking only for real errors, because they're final for 9:00).
+
+Round 1: FAIL on 11 short items. The slides had no errors, and every number in the docs matched the code. The main items:
+
+- The grid note "once a few more people have answered" wasn't true for a group of 3. It now says "To make answers harder to guess, Minibus shows how many people are free at each time only once enough people have answered and said they're in. In a small group, that may not happen before the plan is confirmed." The exact rule stays in the README, not in the app, because showing it would make answers easier to guess.
+- The root README said friends answer "privately". It now matches the honest privacy wording.
+- The pitch's backup answer about YouGov 2023 said "most people still want to meet", but 36% isn't most. It now says "twice as many people are disappointed as pleased".
+- Smaller fixes: the in-app browser hint, the "Did you meet?" totals, the drop-out message for the group chat, the "server full" error, the word list, and the writing rules list.
+
+Round 2: PASS. Its 3 optional suggestions were also taken.
+
+84 unit and server tests pass. The walkthrough passes.

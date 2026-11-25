@@ -558,7 +558,7 @@ function gridBlock(hang) {
   if (notYet) bestLine = '';
   else if (hang.lock) bestLine = `Confirmed: ${slotText(hang.lock.slot)}. Add other times you could make, in case the plan needs to move.`;
   else if (hang.best) bestLine = `Best time so far: ${slotText(hang.best.id)}, with ${people(hang.best.count)} free.`;
-  else if (!hang.showCounts) bestLine = 'To keep answers private, Minibus shows how many people are free at each time only once enough people have answered. In a small group, that may not happen before the plan is confirmed.';
+  else if (!hang.showCounts) bestLine = "To make answers harder to guess, Minibus shows how many people are free at each time only once enough people have answered and said they're in. In a small group, that may not happen before the plan is confirmed.";
   return `<section class="block">
     <h2>When are you free?</h2>
     <p>${notYet ? "Say you're in first. Then tap all the times you're free in the next 7 days." : "Tap all the times you're free in the next 7 days."}</p>
@@ -1623,7 +1623,7 @@ app.addEventListener('click', (event) => {
         const still = fresh.lock.people.length - 1;
         ui.swapOpen = false;
         await act({ type: 'respond', on: false, free: fresh.mine.free.filter((x) => x !== fresh.lock.slot), seq: nextSeq() });
-        ui.lateMessage = { hangId: fresh.id, memberId: view.me.id, text: `Sorry everyone, I can't make "${fresh.idea}" anymore. ${still} ${still === 1 ? 'person is' : 'people are'} still going.${still > 0 ? ' Have fun!' : ''}` };
+        ui.lateMessage = { hangId: fresh.id, memberId: view.me.id, text: `Sorry everyone, I can't make "${fresh.idea}" anymore. ${still === 0 ? 'Nobody else is going.' : `${still} ${still === 1 ? 'person is' : 'people are'} still going. Have fun!`}` };
         redraw();
         document.getElementById('copy-late')?.focus();
         break;
