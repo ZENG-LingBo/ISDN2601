@@ -521,7 +521,7 @@ function answerBlock(hang) {
   const on = hang.mine.on;
   return `<section class="block">
     <h2>Are you in?</h2>
-    <p>Until the plan is confirmed, nobody sees your name with your answer. People only see totals, like "3 free". In a small group, friends may still be able to guess your answer.</p>
+    <p>Until the plan is confirmed, nobody sees your name with your answer. People only see totals, like "3 free". Friends may still be able to guess your answer from the totals, especially in a small group.</p>
     <div class="choice" role="group" aria-label="Are you in?">
       <button class="btn toggle" type="button" id="on-yes" data-act="on" data-on="1" aria-pressed="${on === true}">I'm in</button>
       <button class="btn toggle" type="button" id="on-no" data-act="on" data-on="0" aria-pressed="${on === false}">Not this time</button>
@@ -785,7 +785,7 @@ function swapBlock(hang) {
   const lockSlot = hang.lock.slot;
   if (!ui.swapPick) ui.swapPick = new Set(hang.mine.free.filter((s) => s !== lockSlot));
   const others = (s) => s.count - (hang.mine.free.includes(s.id) ? 1 : 0); // don't count yourself
-  // Times other people can make come first, then the soonest. Times you already picked always show.
+  // Every open time, in date order.
   const options = hang.slots.filter((s) => !s.closed && s.id !== lockSlot).sort((a, b) => L.slotTime(a.id) - L.slotTime(b.id));
   return `<div class="swap">
     <h3 id="swap-title" tabindex="-1">Can't make ${esc(slotText(lockSlot))}?</h3>
@@ -1184,7 +1184,9 @@ function statusWords(hang) {
     case 'check':
       return 'Did you meet?';
     case 'happened':
-      return hang.lock && (hang.lock.imGoing || hang.lock.iCheckedIn) ? 'You met' : 'The group met';
+      if (hang.lock && hang.lock.iCheckedIn) return 'You met';
+      if (hang.lock && hang.lock.imGoing) return hang.lock.checkinOpen ? 'Your friends have checked in' : 'You met';
+      return 'The group met';
     case 'fizzled':
       return "Didn't meet";
     case 'expired':

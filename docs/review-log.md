@@ -356,3 +356,21 @@ A new reviewer re-ran the full week for a group of 5 with a fake clock, ran the 
 83 unit and server tests pass. The walkthrough passes. The reviewer's probe and panel scripts were run again after the fix.
 
 Text judge on the new wording: FAIL on 2 strings in round 1 (both left out the 12-hour rule, or could be read two ways), then PASS in round 2.
+
+## Cycle 15: a systematic privacy test (26 Nov, 03:50–04:23)
+
+Cycles 13 and 14 both found privacy problems by hand, so this time a reviewer tested privacy by brute force. A script built every combination of who has joined and what each person answered, for groups of 3 to 6, with 2 to 4 people needed: 146,000 states, 950,000 views and 2 million "one more person answers" changes. For each view, it checked whether the viewer could work out one particular friend's answer.
+
+What held: when totals are hidden, the screen shows nothing else about anyone's times (0 problems in 224,000 hidden views), and signed-out viewers never learn more than members.
+
+| Priority | Finding | Change |
+|---|---|---|
+| P1 | In a group of 3, totals appeared only when both others had said yes, so totals appearing was itself the answer (24–38% of answers worked out). Cycle 13 added this exception. | The exception is gone: totals always need 3 other answers. A group of 3 sees the best time once the plan is ready, but no per-time totals before then. A rerun showed 0% for groups of 3 with 3 people needed. |
+| P2 | Any member could lower the group size to switch on that exception, read the totals, and set it back. | Closed by the same change. Test added. |
+| P2 | The README said "in a group of 4 or 5, friends can sometimes work out who said yes". The real numbers are higher: up to about 1 in 4 answers from one screen, and when the totals change just after one more person answers, about a third of answers in a group of 4 and up to two-thirds in a group of 6. | The README now gives these numbers. The app says "Friends may still be able to guess your answer from the totals, especially in a small group." The consent form line says the same. |
+| P3 | After 2 check-ins, a checked-in person could still drop out, so the people shown as going no longer matched "you met". | After checking in, your answer can't change. Test added. |
+| P3 | The group page said "You met" to someone who was going but hadn't checked in yet. An out-of-date code comment. | Fixed. |
+
+**Open decision for the student.** The leaks that remain come from showing exact totals before a plan is confirmed. Hiding all per-time totals until then would close most of them. Only the best time would show, and only once the plan is ready. The cost: people couldn't steer towards times others can make. The class test can show which matters more to real groups. The interview question "Did seeing only numbers, not names, change what you answered?" is a good place to ask.
+
+84 unit and server tests pass. The walkthrough passes.

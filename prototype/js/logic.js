@@ -626,6 +626,7 @@ export function reduce(prev, action, nowMs) {
     // After 2 check-ins the plan counts as met, but until it ends people can still join or drop out.
     const stillOn = hang.outcome && hang.outcome.checked && hang.lock && !hasEnded(hang.lock.slot, nowMs);
     if (hang.outcome && !stillOn) throw new ActionError('closed', 'This plan is over. Start a new one.');
+    if (stillOn && r.checkedIn) throw new ActionError('closed', "You've already checked in to this plan, so your answer can't change now.");
     // A save that was sent before the last one we kept is out of date. Ignore it.
     // seq is the phone's clock in microseconds. One far in the future (a fast clock, or made up)
     // is ignored, so it can't block later saves.
@@ -767,10 +768,9 @@ export function buildView(state, meId, nowMs) {
       // Someone who isn't signed in (or hasn't joined) sees no totals at all before the plan is
       // confirmed, so a member can't open the plan signed out and compare. Members see totals once
       // at least 2 others are in and at least 3 others have answered, so no one yes stands out.
-      // A group of 3 has only 2 others. Use the group's size, not how many have joined so far, or the
-      // third person to join would see exact totals from the first 2 answers.
-      const othersInGroup = Math.max(state.crew.size, Object.keys(state.members).length) - 1;
-      const needAnswered = Math.min(MIN_ANSWERED_FOR_COUNTS, othersInGroup);
+      // Always 3 other answers. A smaller number for groups of 3 made totals appear exactly when the
+      // last person said yes, and anyone could lower the group size to switch it on.
+      const needAnswered = MIN_ANSWERED_FOR_COUNTS;
       const showCounts = Boolean(hang.lock) || (Boolean(me) && othersIn >= MIN_FOR_COUNTS && othersAnswered >= needAnswered);
       // A ready plan needs its best time shown, but not every other time's total.
       const showBest = showCounts || (Boolean(me) && s.ready);

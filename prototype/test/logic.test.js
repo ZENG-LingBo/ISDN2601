@@ -775,11 +775,25 @@ test('after 2 people check in, others who are going can still check in until the
   assert.equal(L.buildView(state, TOM, at).hangs[0].lock.imGoing, false);
 });
 
-test('a group of 3 sees totals once both others have answered and are in', () => {
-  let state = withFriends(crew({ size: 3 }), ['Jason', 'Mei']);
-  state = respond(state, JASON, true, [THU_EVE]);
-  state = respond(state, MEI, true, [THU_EVE, SAT_EVE]);
-  assert.equal(L.buildView(state, MANDY, NOW).hangs[0].showCounts, true);
+test('a group of 3 never sees totals before the plan is confirmed, because they would show who said yes', () => {
+  let state = withFriends(crew({ size: 3, seats: 3 }), ['Jason', 'Mei']);
+  state = respond(state, JASON, true, [SAT_EVE]);
+  state = respond(state, MEI, true, [THU_EVE]);
+  assert.equal(L.buildView(state, MANDY, NOW).hangs[0].showCounts, false);
+  // Lowering the group size can't switch totals on either.
+  let five = withFriends(crew({ size: 5, seats: 3 }), ['Jason', 'Mei']);
+  five = respond(five, JASON, true, [SAT_EVE]);
+  five = respond(five, MEI, true, [THU_EVE]);
+  five = L.reduce(five, { type: 'setSize', memberId: MANDY, size: 3 }, NOW);
+  assert.equal(L.buildView(five, MANDY, NOW).hangs[0].showCounts, false);
+});
+
+test('after checking in, your answer cannot change for the rest of the plan', () => {
+  let state = confirmedThursday();
+  const at = L.slotTime(THU_EVE, 'start') + 5 * 60 * 1000;
+  state = L.reduce(state, { type: 'showCode', hangId: H, memberId: MANDY }, at);
+  state = L.reduce(state, { type: 'checkin', hangId: H, memberId: MEI, code: L.checkinCode(state, H, at, 0, MANDY) }, at);
+  assert.throws(() => L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, on: false }, at + 60 * 1000), { code: 'closed' });
 });
 
 test('the third person to join a group of 5 does not see totals from the first 2 answers', () => {
