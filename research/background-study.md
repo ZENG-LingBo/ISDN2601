@@ -49,7 +49,7 @@ press-release title and a Bastille Post report. **Open the HKFYG PDF once before
 | **No owner** | Diffusion of responsibility: the more people present, the less each one feels responsible to act. Darley & Latané (1968), *JPSP*, 8(4), 377–383, [doi:10.1037/h0025589](https://doi.org/10.1037/h0025589). | Five people “like” the idea; each assumes someone else will pick the date. |
 | **No time, no place** | A plan that says *when* and *where* (an “implementation intention”) makes people much more likely to follow through: d = 0.65 across 94 studies, 8,000+ people. Gollwitzer & Sheeran (2006), *Advances in Experimental Social Psychology*, 38, 69–119. Later reviews find smaller but still positive effects. | “Soon”, “after midterms” and “next week” are goals, not plans. |
 | **Fear of pushing** | Liking gap (Boothby et al., 2018); people undervalue reaching out (Liu et al., 2023); students think peers are more socially busy than they are (Whillans et al., 2017). | “If I chase everyone, I’ll look desperate.” |
-| **Cheap “yes”, easy relief** | 77% say yes to things they don’t want (Givi & Kirk, 2023); 56% of under-30s often regret plans (YouGov, 2022); 1 in 3 often feel relieved at a cancellation (YouGov, 2019). | Agreeing costs nothing, so it commits no one. |
+| **Cheap “yes”, easy relief** | 77% have said yes to things they didn’t want (Givi & Kirk, 2023); 56% of under-30s often regret plans (YouGov, 2022); 1 in 3 often feel relieved at a cancellation (YouGov, 2019). | Agreeing costs nothing, so it commits no one. |
 | **Friendships need time** | About 50 hours together to become casual friends, about 90 to become friends, 200+ to become close friends. Hall (2019), *Journal of Social and Personal Relationships*, 36(4), 1278–1296, [doi:10.1177/0265407518761225](https://doi.org/10.1177/0265407518761225). The university’s summary gives ranges of 40–60 and 80–100 hours. | Every dead plan is time the friendship never gets. |
 
 **Limits of this evidence.** The loneliness data includes Hong Kong. The flaking and relief
@@ -72,7 +72,7 @@ with interviews yet. The sources below support each part of it.
 | Finding | Source | Notes |
 |---|---|---|
 | A group can agree to a plan that most of its members don't want, because each person thinks the others want it and nobody says otherwise. Harvey names this the Abilene paradox, after a family trip that none of them wanted to take. | Harvey, J. B. (1974). The Abilene paradox: The management of agreement. *Organizational Dynamics, 3*(1), 63–80. [doi:10.1016/0090-2616(74)90005-9](https://doi.org/10.1016/0090-2616(74)90005-9) | An essay with case stories, not an experiment. Used as the name for the pattern. Pages and DOI checked through a citing article; the paper itself wasn't opened. |
-| Students believed they were less comfortable with campus drinking than the average student. Most students thought this, so the "average student" they pictured didn't exist. Feeling out of step went with feeling less connected to campus. | Prentice, D. A., & Miller, D. T. (1993). Pluralistic ignorance and alcohol use on campus. *Journal of Personality and Social Psychology, 64*(2), 243–256. [doi:10.1037/0022-3514.64.2.243](https://doi.org/10.1037/0022-3514.64.2.243) | 4 studies with US university students. The research evidence that a group can wrongly think everyone else is happy with the default. Kept in this file; not on the slides. |
+| Students believed they were less comfortable with campus drinking than the average student. Most students thought this, so the "average student" they pictured didn't exist. Feeling out of step went with feeling less connected to campus. | Prentice, D. A., & Miller, D. T. (1993). Pluralistic ignorance and alcohol use on campus. *Journal of Personality and Social Psychology, 64*(2), 243–256. [doi:10.1037/0022-3514.64.2.243](https://doi.org/10.1037/0022-3514.64.2.243) | 4 studies with US university students. It shows that a group can wrongly think everyone else is happy with the default. Kept in this file; not on the slides. |
 | People with food restrictions felt lonelier than people without them, partly because they worried that others would judge them or that they'd hold up the group's food choice. When people with restrictions remembered a meal where everyone could share the food, the feeling went away. | Woolley, K., Fishbach, A., & Wang, R. M. (2020). Food restriction and the experience of social isolation. *Journal of Personality and Social Psychology, 119*(3), 657–671. [doi:10.1037/pspi0000223](https://doi.org/10.1037/pspi0000223) · [Cornell news](https://news.cornell.edu/node/316726) | Several studies, including experiments, with US adults. Checked through the university's news release and science-news reports; the paper wasn't opened. The closest research to this insight. Used on the process deck's insight slide and empathy map. |
 | In group discussions, people talk more about what everyone already knows than about what only one person knows. | Stasser, G., & Titus, W. (1985). Pooling of unshared information in group decision making. *Journal of Personality and Social Psychology, 48*(6), 1467–1478. | Lab study. A private food limit is "unshared information", so it's the least likely thing to come up. |
 | **44%** of people with a food allergy who answered the survey wouldn't always tell the person serving them in a restaurant or café. Teenagers were the most likely to worry about making a fuss or feeling embarrassed. | Food Standards Scotland with Young Scot and Allergy UK (2020): [news release](https://www.foodstandards.gov.scot/news-and-alerts/new-campaign-to-encourage-young-people-to-talk-about-food-allergies) · [survey results](https://www.foodstandards.gov.scot/science-and-evidence/food-allergies-survey-results) | Self-selected online survey in Scotland. It's about restaurant staff, not friends. Used on the design-process deck’s insight-evidence slide, not on the pitch slides. |
@@ -97,13 +97,13 @@ formed in Year 1 (orientation camp, halls, first-year classes) whose timetables 
 to meet more but rarely do.
 
 **Why this group:** Year 1 gives ready-made chances to meet; by Year 2 those structures fade
-while friendships are still young. Hall (2019) shows young friendships need many shared hours to
+while friendships are still new. Hall (2019) shows new friendships need many shared hours to
 become close. This topic does not overlap with the classmates’ topics (remote workers, gamers,
 gym goers, pet owners, urban families, walkers, young elderly, short waiting times).
 
 ### Persona: Mandy, 20, Year 2, HKUST
 
-A composite persona built from the research above, not a real person. Four close friends from
+A persona built from the research above, not a real person. Four close friends from
 orientation camp in Year 1; now different timetables, part-time jobs and long commutes. She can't eat spicy
 food, and money is tight. Quote: “We all want to meet. It just never happens.”
 
@@ -164,9 +164,9 @@ Check against the lecturers’ rules:
 
 After the new insight (section 5), the How Might We question was checked again and kept. “Real meetups” already
 means meetups that people come to, and a dinner half the group can't enjoy isn't one. A
-narrower HMW was added for ideas (the last one below).
+narrower How Might We question was added for the ideas (the last one below).
 
-Narrower HMWs for later ideation (not in the pitch):
+Narrower How Might We questions for the ideas stage (not in the pitch):
 
 - How might we make it feel natural for one friend to take the lead, for university friend groups, in order to move a plan forward?
 - How might we help a friend group settle on a time and place quickly, for busy university students, in order to turn “soon” into a date?
@@ -177,7 +177,7 @@ Narrower HMWs for later ideation (not in the pitch):
 
 The brief asks how leisure in 2030 moves from killing time to intentional, meaningful downtime,
 with a trend toward live, in-person experiences. Free time that was meant to be shared with
-friends turns into time scrolling alone. This problem sits exactly at that shift.
+friends turns into time scrolling alone. This problem is part of that shift.
 
 ---
 

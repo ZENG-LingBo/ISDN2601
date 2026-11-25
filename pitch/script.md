@@ -110,7 +110,7 @@ Yes. The loneliness numbers are from Hong Kong: the HKFYG survey of 600 young pe
 This pitch is only about the problem. A poll could help people pick a time, but it doesn't fix the other reasons: no one is in charge, people are afraid of looking too eager, and friends stay quiet about what they can't eat or afford. I want to keep the question open to many ideas.
 
 **“Isn't this just laziness?”**
-The research says no. People underestimate how much their friends like them (Boothby et al., 2018) and how much friends want to hear from them (Liu et al., 2023). People do care. They worry about how they'll look, and no one takes charge.
+The research says no. People underestimate how much others like them (Boothby et al., 2018) and how much friends want to hear from them (Liu et al., 2023). People do care. They worry about how they'll look, and no one takes charge.
 
 **“Why university students, and why Year 2?”**
 Year 1 has ready-made chances to meet, like orientation camp, halls and shared classes. By Year 2, everyone has a different timetable, but the friendships are still new. Close friendships need about 200 hours together (Hall, 2019), so this is when missed plans hurt the most.
