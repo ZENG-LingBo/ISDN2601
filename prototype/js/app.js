@@ -642,7 +642,7 @@ function openStatus(hang) {
       ${ui.seatsEdit
         ? `<form id="seats-form" class="field" novalidate>
             <label for="h-seats">How many people need to be free?</label>
-            <p class="help" id="h-seats-help">If enough people are free at one time with the new number, Minibus confirms that time.</p>
+            <p class="help" id="h-seats-help">If enough people are free at one time with the new number, Minibus confirms it, as long as that time is at least 12 hours away.</p>
             <div class="inline-form">
               <input id="h-seats" name="seats" type="number" inputmode="numeric" min="${L.LIMITS.seatsMin}" max="${hang.seats - 1}" value="${hang.seats - 1}" aria-describedby="h-seats-help">
               <button class="btn primary" type="submit" id="seats-save">Save</button>
@@ -664,7 +664,7 @@ function readyStatus(hang) {
     ${statusTitle('Enough people are free')}
     <p class="big">${esc(slotText(hang.best.id))}</p>
     <p>${esc(`${people(hang.best.count)} are free then.`)} ${esc(answeredLine(hang))}</p>
-    ${isSoon(hang.best.id) ? '<p>This time is less than 12 hours away, so Minibus won\'t confirm it on its own. If nobody confirms it, Minibus waits for a time that\'s at least 12 hours away.</p>' : ''}
+    ${isSoon(hang.best.id) ? '<p>This time is less than 12 hours away, so Minibus won\'t confirm it on its own. If nobody confirms it, Minibus can still confirm another time that enough people can make, as long as it\'s at least 12 hours away.</p>' : ''}
     ${onBoard
       ? '<button class="btn primary wide" type="button" id="confirm" data-act="lock">Confirm this time now</button><p>Anyone who is in can confirm it.</p>'
       : hang.mine.on === null ? '<p>Say you\'re in to confirm the plan now.</p>' : ''}
@@ -791,7 +791,7 @@ function swapBlock(hang) {
     <h3 id="swap-title" tabindex="-1">Can't make ${esc(slotText(lockSlot))}?</h3>
     <p>Pick any other times you can make, then tap "I can't make this time". If enough people can make one of your times, the plan moves there.</p>
     <div class="swap-list" role="group" aria-label="Other times you can make">
-      ${options.map((s) => `<button class="chip" type="button" id="pick-${esc(s.id)}" data-act="swap-pick" data-slot="${esc(s.id)}" aria-pressed="${ui.swapPick.has(s.id)}">${esc(slotText(s.id))}${others(s) ? ` · ${others(s)} free` : ''}</button>`).join('')}
+      ${options.map((s) => `<button class="chip" type="button" id="pick-${esc(s.id)}" data-act="swap-pick" data-slot="${esc(s.id)}" aria-pressed="${ui.swapPick.has(s.id)}">${esc(slotText(s.id))}${others(s) ? `, ${others(s)} free` : ''}</button>`).join('')}
     </div>
     <div class="actions stack">
       <button class="btn primary" type="button" id="swap-save" data-act="swap-save">I can't make this time</button>
