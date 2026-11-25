@@ -300,4 +300,6 @@ Two new reviewers worked in parallel.
 
 Not done: anyone with the group link can still join until the group has 20 members (written in the README's limits).
 
+Text judge on the new wording: FAIL on 4 lines in round 1 (the check-in error didn't say what went wrong, the address check said to open a command on a phone, the backup text seemed to contradict itself, and the Google Calendar line left out the group name), then PASS in round 2.
+
 74 unit and server tests pass (up from 67). The walkthrough passes. All of the reviewer's repro scripts were run again after the fix.

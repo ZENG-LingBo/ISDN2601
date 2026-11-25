@@ -117,7 +117,7 @@ The export is for reading, not for restoring. Also download a full backup every 
 curl -H "Authorization: Bearer YOUR_ADMIN_TOKEN" https://YOUR-APP.up.railway.app/api/admin/backup -o minibus-backup.json
 ```
 
-The backup has everything the server needs, including check-in secrets. Private links are kept only in a scrambled form, so nobody can read them from the file, but after a restore everyone's private links still work. Keep it as safe as the export. To restore it, stop the service, replace `/data/store.json` with the backup file (for example, with Railway's volume file browser or a one-off shell), and start the service again.
+The backup has everything the server needs, including check-in secrets. Private links are kept only in a scrambled form, so nobody can read them from the file, but after a restore everyone's private links still work. Keep the backup as safe as the export. To restore it, stop the service, replace `/data/store.json` with the backup file (for example, with Railway's volume file browser or a one-off shell), and start the service again.
 
 If the server can't save (for example, the volume is full), it stops accepting changes, shows "The server can't save changes right now", and `/api/health` returns an error. It tries again every 30 seconds.
 
