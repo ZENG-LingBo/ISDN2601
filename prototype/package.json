@@ -1,0 +1,14 @@
+{
+  "name": "minibus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turn \"we should hang out\" into an actual time and place. ISDN 1001 prototype.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  }
+}
