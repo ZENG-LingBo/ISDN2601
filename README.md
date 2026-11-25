@@ -12,6 +12,8 @@ This pitch covers the problem and background study only. It does not pitch a sol
 
 ## What is here
 
+Start with [`docs/next-steps.md`](docs/next-steps.md): what to do before the pitch, before a class test, and the decisions that are yours to make.
+
 | File | What it is |
 |---|---|
 | [`pitch/script.md`](pitch/script.md) | Timed speaking script (about 240 words, about 1:50), lines to cut if you go over time, rehearsal checklist, likely questions |
