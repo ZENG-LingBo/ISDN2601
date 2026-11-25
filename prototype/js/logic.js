@@ -525,7 +525,7 @@ export function reduce(prev, action, nowMs) {
   // Anyone who has answered can only leave by themselves.
   if (type === 'remove') {
     // One message for every reason, so trying it never tells you whether someone has answered.
-    const refuse = () => new ActionError('cant_remove', "You can't remove this person. Only the person who made the group can remove someone, and only if they joined more than 2 days ago and haven't answered.");
+    const refuse = () => new ActionError('cant_remove', "You can't remove this person. Only the person who made the group can remove someone, and only if they joined more than 6 hours ago and haven't answered.");
     const manager = managerId(state);
     if (member.id !== manager || !isId(action.targetId) || !has(state.members, action.targetId)) throw refuse();
     const target = state.members[action.targetId];
@@ -782,7 +782,7 @@ export function buildView(state, meId, nowMs) {
     crew: { id: state.crew.id, name: state.crew.name, size: state.crew.size, demo: state.crew.demo },
     me: me ? { id: me.id, name: me.name } : null,
     // canRemove is only worked out for the person who made the group, and only for people who joined
-    // more than 2 days ago and never answered (for example, they lost their phone).
+    // more than 6 hours ago and never answered (for example, they lost their phone).
     members: Object.values(state.members).map((m) => ({
       id: m.id,
       name: m.name,

@@ -461,7 +461,7 @@ function placard(hang, asHeading = true) {
   <div class="placard">
     <div class="placard-top">
       <span>${esc(view.crew.name)}</span>
-      <span>${hang.budget ? `<span class="sr-only">Budget: </span>${esc(hang.budget)}` : ''}</span>
+      <span>${hang.budget ? `<span class="sr-only">Budget: ${esc(spoken(hang.budget))}</span><span aria-hidden="true">${esc(hang.budget)}</span>` : ''}</span>
     </div>
     ${asHeading ? `<h1 class="dest" id="page-title" tabindex="-1">${esc(hang.idea)}</h1>` : `<p class="dest">${esc(hang.idea)}</p>`}
     <dl class="placard-rows">
@@ -541,7 +541,7 @@ function gridBlock(hang) {
       // The name starts with what's shown on the button ("You", "3 free"), then adds the time,
       // with "to" instead of a dash, which some screen readers read out as "dash".
       const shown = [isMine ? "You're free" : '', countText].filter(Boolean).join('. ');
-      const aria = `${shown ? `${shown}. ` : ''}${id === highlight && !hang.lock && !s.closed ? 'Best. ' : ''}${spoken(L.slotLabel(id))}.${id === highlight && hang.lock ? ' Confirmed time.' : ''}`;
+      const aria = `${shown ? `${shown}. ` : ''}${id === highlight && !hang.lock && !s.closed ? 'Best time so far. ' : ''}${spoken(L.slotLabel(id))}.${id === highlight && hang.lock ? ' Confirmed time.' : ''}`;
       return `<button class="${cls.join(' ')}" type="button" id="slot-${esc(id)}" data-act="slot" data-slot="${esc(id)}" aria-pressed="${isMine}" aria-label="${esc(aria)}" ${(s.closed && !isMine) || notYet ? 'disabled' : ''}>
         <span class="cell-mark">${isMine ? 'You' : ''}</span><span class="cell-count">${esc(countText)}</span>${id === highlight && !hang.lock && !s.closed ? '<span class="cell-best">Best</span>' : ''}
       </button>`;
@@ -889,7 +889,7 @@ function startScreen() {
     <h2>How it works</h2>
     <ol class="steps">
       <li>Start a plan and paste the message into your group chat.</li>
-      <li>Each friend says if they're in. Until the plan is confirmed, others see totals, not names.</li>
+      <li>Each friend says if they're in. Until the plan is confirmed, others see numbers like "3 free", not names.</li>
       <li>If you're in, tap the times you're free in the next 7 days.</li>
       <li>When enough people are free at the same time, the plan is confirmed.</li>
       <li>If you can't make it anymore, change your times instead of cancelling. If enough people can make another time, the plan moves there.</li>
@@ -1093,7 +1093,7 @@ function crewScreen() {
 
   <section class="block">
     <h2>${h.times ? `You've met ${h.times} ${h.times === 1 ? 'time' : 'times'}` : "You haven't met yet"}</h2>
-    <p>${h.times ? `That's about ${h.hours} hours together.` : 'Plans where you meet show up here.'} Every time counts: close friendships take a lot of time together.</p>
+    <p>${h.times ? `That's about ${h.hours} hours together.` : 'Plans where you meet show up here.'} Close friendships need many hours together, so each meeting counts.</p>
   </section>
 
   <section class="block">
