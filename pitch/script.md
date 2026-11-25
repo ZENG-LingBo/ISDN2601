@@ -1,9 +1,9 @@
 # Speaking script: “We should hang out.”
 
 ISDN 1001 · Individual project · Problem-statement pitch
-Live, 26 Nov 2026, 9:00 a.m. · **Time limit: 2:00. Aim for 1:50.**
+Live, 26 Nov 2026, 9:00 a.m. · **Time limit: 2:00. Aim for about 1:50, and finish by 1:52.**
 
-The script is about 240 words when the numbers are read out in full. At a calm 135 words a minute, with the short pauses marked below, that's about 1:50. The same words are in each slide's speaker notes. Time yourself: if a run goes over 1:52, use the cuts at the end.
+The script is about 240 words when the numbers are read out in full. At a calm 135 words a minute, with the short pauses marked below, that's about 1:50 to 1:52. The same words are in each slide's speaker notes. Time yourself: if a run goes over 1:52, use the cuts at the end.
 
 ---
 
@@ -133,7 +133,7 @@ It's from an online survey of 600 people aged 12 to 24 by the Hong Kong Federati
 **If someone asks about the 86% guilt figure:** it’s about people who cancel, not people who feel relieved when a friend cancels. That’s why the spoken line on slide 4 is “When we cancel, we feel guilty.”
 
 **“Where does the ‘always dinner’ point come from?”**
-I noticed it in my own friend groups first, then looked for research. The Abilene paradox (Harvey, 1974) describes a group agreeing to a plan most of them don't want, because nobody says so. In a Scottish survey, 44% of people with a food allergy didn't always tell restaurant staff, and teenagers worried most about making a fuss (Food Standards Scotland, 2020). I haven't found Hong Kong data on this yet, so it's a question for my interviews.
+I noticed it in my own friend groups first, then looked for research. The Abilene paradox (Harvey, 1974) describes a group agreeing to a plan most of them don't want, because nobody says so. In a Scottish survey, 44% of people with a food allergy wouldn't always tell restaurant staff, and teenagers worried most about making a fuss (Food Standards Scotland, 2020). I haven't found Hong Kong data on this yet, so it's a question for my interviews.
 
 **“Isn't that just people being fussy?”**
 The point is that they don't say anything. They go along with the plan, or they quietly stop coming. The group never finds out why.
