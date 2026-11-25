@@ -11,7 +11,8 @@ export const HOUR_MS = 60 * 60 * 1000;
 export const DAYS_AHEAD = 7;
 export const CLOSE_BEFORE_MS = 2 * HOUR_MS; // a time can't be picked less than 2 hours before it starts
 export const DECIDE_AFTER_MS = 48 * HOUR_MS; // after this, a plan with enough people is confirmed without waiting for everyone
-export const MIN_FOR_COUNTS = 2; // counts per time stay hidden until this many OTHER people are in
+export const MIN_FOR_COUNTS = 2; // counts per time stay hidden until this many OTHER people are in...
+export const MIN_ANSWERED_FOR_COUNTS = 3; // ...and this many other people have answered, so a yes can't be singled out
 export const REMOVE_AFTER_MS = 6 * HOUR_MS; // someone who never answered can be removed after this
 export const AUTO_LEAD_MS = 12 * HOUR_MS; // Minibus only confirms or moves a plan on its own if it's at least this far away
 export const CHECKIN_OPENS_BEFORE_MS = 30 * 60 * 1000; // check-in opens 30 minutes before the plan
@@ -19,9 +20,9 @@ export const CHECKINS_TO_MEET = 2; // this many check-ins count as "we met"
 export const WAKING_HOUR = 9; // deadlines never land before 09:00 Hong Kong time
 
 export const SLOT_TYPES = [
-  { key: 'lunch', label: 'lunch', start: '12:30', end: '14:00', hours: 1.5 },
-  { key: 'aft', label: 'afternoon', start: '15:00', end: '18:00', hours: 3 },
-  { key: 'eve', label: 'evening', start: '19:00', end: '22:00', hours: 3 },
+  { key: 'lunch', label: 'lunch', clock: '12:30–2pm', start: '12:30', end: '14:00', hours: 1.5 },
+  { key: 'aft', label: 'afternoon', clock: '3–6pm', start: '15:00', end: '18:00', hours: 3 },
+  { key: 'eve', label: 'evening', clock: '7–10pm', start: '19:00', end: '22:00', hours: 3 },
 ];
 
 export const LIMITS = {
@@ -154,10 +155,11 @@ export function shortDayLabel(dateStr) {
   return `${WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()}`;
 }
 
+// "Sat 28 Nov, evening (7–10pm)": the time of day is spelled out, because "evening" alone is vague.
 export function slotLabel(id) {
   const p = parseSlot(id);
   if (!p) return '';
-  return `${dayLabel(p.date)}, ${p.type.label}`;
+  return `${dayLabel(p.date)}, ${p.type.label} (${p.type.clock})`;
 }
 
 export function slotHours(id) {
@@ -599,14 +601,24 @@ export function reduce(prev, action, nowMs) {
       const valid = new Set(hangSlots(hang));
       const before = new Set(r.free);
       // New times must still be open. Times you already had stay, even if they've since closed.
-      r.free = [...new Set(action.free)].filter((id) => valid.has(id) && (!isClosed(id, nowMs) || before.has(id)));
+      // The confirmed time can always be added until it ends, so you can still join, or undo "I can't come".
+      const joinable = (id) => hang.lock && id === hang.lock.slot && nowMs < slotTime(id, 'end');
+      r.free = [...new Set(action.free)].filter((id) => valid.has(id) && (!isClosed(id, nowMs) || before.has(id) || joinable(id)));
     }
     const goingBefore = hang.lock && isClosed(hang.lock.slot, nowMs) ? summarize(state, hang.id, nowMs).lockPeople : null;
     member.r[hang.id] = r;
     // Too late to move the plan: tell the group plainly that someone can't come.
-    if (goingBefore && goingBefore.includes(member.id)) {
+    if (goingBefore) {
       const goingAfter = summarize(state, hang.id, nowMs).lockPeople;
-      if (!goingAfter.includes(member.id)) hang.note = { type: 'dropped', still: goingAfter.length, at: nowMs };
+      const wasGoing = goingBefore.includes(member.id);
+      const isGoing = goingAfter.includes(member.id);
+      if (wasGoing && !isGoing) {
+        hang.note = { type: 'dropped', still: goingAfter.length, who: member.id, at: nowMs };
+      } else if (!wasGoing && isGoing && hang.note && hang.note.type === 'dropped') {
+        // The same person changed their mind: take the notice back. Someone else joined: update the count.
+        if (hang.note.who === member.id) hang.note = null;
+        else hang.note.still = goingAfter.length;
+      }
     }
     return settle(state, nowMs);
   }
@@ -621,7 +633,8 @@ export function reduce(prev, action, nowMs) {
       if (hang.places.length >= LIMITS.places) throw new ActionError('full', `This plan already has ${LIMITS.places} places. Vote for one of them.`);
       hang.places.push({ id: placeId, name, by: member.id });
     }
-    if (!r.likes.includes(placeId)) r.likes.push(placeId);
+    // Suggesting a place from the quick list doesn't vote for it; typing one in does.
+    if (action.vote !== false && !r.likes.includes(placeId)) r.likes.push(placeId);
     member.r[hang.id] = r;
     return settle(state, nowMs);
   }
@@ -691,9 +704,11 @@ export function buildView(state, meId, nowMs) {
       const place = hang.lock && hang.lock.placeId ? hang.places.find((p) => p.id === hang.lock.placeId) : null;
       // Totals show only once at least 2 OTHER people are in, so nobody can work out a single person's answer.
       const othersIn = s.onBoardIds.filter((id) => !me || id !== me.id).length;
+      const othersAnswered = s.answeredIds.filter((id) => !me || id !== me.id).length;
       // Someone who isn't signed in (or hasn't joined) sees no totals at all before the plan is
-      // confirmed, so a member can't open the plan signed out and compare.
-      const showCounts = Boolean(hang.lock) || (Boolean(me) && othersIn >= MIN_FOR_COUNTS);
+      // confirmed, so a member can't open the plan signed out and compare. Members see totals once
+      // at least 2 others are in and at least 3 others have answered, so no one yes stands out.
+      const showCounts = Boolean(hang.lock) || (Boolean(me) && othersIn >= MIN_FOR_COUNTS && othersAnswered >= MIN_ANSWERED_FOR_COUNTS);
       // A ready plan needs its best time shown, but not every other time's total.
       const showBest = showCounts || (Boolean(me) && s.ready);
       return {
@@ -781,9 +796,11 @@ export function nudgeMessage(view, link) {
 
 export function lockedMessage(view, link) {
   const where = view.lock.placeName ? `, ${view.lock.placeName}` : '';
+  const moved = view.note && view.note.type === 'moved' && view.note.from;
   return [
-    `The plan is confirmed: ${view.idea}`,
-    `${slotLabel(view.lock.slot)}${where}`,
+    moved ? `The plan has moved to a new time: ${view.idea}` : `The plan is confirmed: ${view.idea}`,
+    `${moved ? 'New time: ' : ''}${slotLabel(view.lock.slot)}${where}`,
+    ...(moved ? [`(It was ${slotLabel(view.note.from)})`] : []),
     `Going: ${view.lock.people.join(', ')}`,
     ``,
     `If something comes up, change your times in the app instead of cancelling: ${link}`,

@@ -54,7 +54,7 @@ test('dates use Hong Kong time whatever the machine timezone', () => {
   assert.equal(L.hkDate(Date.parse('2026-11-25T17:00:00Z')), '2026-11-26');
   assert.equal(L.hkDate(Date.parse('2026-11-25T15:59:00Z')), '2026-11-25');
   assert.equal(L.slotTime(THU_EVE), Date.parse('2026-11-26T19:00:00+08:00'));
-  assert.equal(L.slotLabel(THU_EVE), 'Thu 26 Nov, evening');
+  assert.equal(L.slotLabel(THU_EVE), 'Thu 26 Nov, evening (7–10pm)');
   assert.equal(L.momentLabel(Date.parse('2026-11-27T02:00:00Z')), 'Fri 27 Nov, 10:00');
   assert.equal(L.addDays('2026-12-30', 3), '2027-01-02');
   assert.equal(L.parseSlot('2026-11-26_brunch'), null);
@@ -198,19 +198,34 @@ test('before a plan is confirmed, nobody can tell who said what', () => {
   assert.ok(view.members.every((m) => Object.keys(m).sort().join() === 'canRemove,id,name'));
 
   state = respond(state, MEI, true, [THU_EVE]);
+  // 2 others are in, but only 2 others have answered: a "no" from one of them would still give the other away.
+  assert.equal(L.buildView(state, MANDY, NOW).hangs[0].showCounts, false);
+  state = respond(state, TOM, false, []);
   const view2 = L.buildView(state, MANDY, NOW);
   assert.equal(view2.hangs[0].showCounts, true);
   assert.equal(view2.hangs[0].best.count, 2);
 });
 
-test('totals only show once 2 OTHER people are in', () => {
+test('totals only show once 2 OTHER people are in and 3 others have answered', () => {
   let state = withFriends(crew());
   state = respond(state, MANDY, true, [THU_EVE]);
   state = respond(state, JASON, true, [THU_EVE]);
   // Jason is one of the 2, so for him only Mandy is "other": he could work out her times.
   assert.equal(L.buildView(state, JASON, NOW).hangs[0].showCounts, false);
-  // Tom sees 2 other people in, so totals are safe to show.
+  // Tom sees 2 other people in, but only 2 others have answered.
+  assert.equal(L.buildView(state, TOM, NOW).hangs[0].showCounts, false);
+  state = respond(state, MEI, false, []);
+  // Now 3 others have answered, so Tom can't tell which 2 are in.
   assert.equal(L.buildView(state, TOM, NOW).hangs[0].showCounts, true);
+});
+
+test('a suggested place chip can add a place without voting for it', () => {
+  let state = withFriends(crew());
+  state = L.reduce(state, { type: 'addPlace', hangId: H, memberId: MANDY, placeId: 'plc0000009', name: 'Hang Hau', vote: false }, NOW);
+  const place = L.buildView(state, MANDY, NOW).hangs[0].places[0];
+  assert.equal(place.name, 'Hang Hau');
+  assert.equal(place.likes, 0);
+  assert.equal(place.liked, false);
 });
 
 test('before 2 other people are in, a yes and a no look the same to everyone else', () => {
@@ -382,8 +397,13 @@ test('messages and calendar files', () => {
   const hang = L.buildView(state, MANDY, NOW).hangs[0];
   assert.match(L.shareMessage(hang, 'https://x.test/#p'), /confirmed once 3 of us can make the same time/);
   const locked = L.lockedMessage(hang, 'https://x.test/#p');
-  assert.match(locked, /Thu 26 Nov, evening/);
+  assert.match(locked, /^The plan is confirmed: /);
+  assert.match(locked, /Thu 26 Nov, evening \(7–10pm\)/);
   assert.match(locked, /Going: /);
+  // After a move, the message says what changed.
+  const moved = L.lockedMessage({ ...hang, note: { type: 'moved', from: hang.lock.slot, to: hang.lock.slot } }, 'https://x.test/#p');
+  assert.match(moved, /^The plan has moved to a new time: /);
+  assert.match(moved, /\(It was Thu 26 Nov, evening \(7–10pm\)\)/);
   const ics = L.icsText(hang, 'O-camp gang', 'uid1', NOW);
   assert.match(ics, /DTSTART:20261126T110000Z/);
   assert.match(ics, /DTEND:20261126T140000Z/);
@@ -519,6 +539,28 @@ test('dropping out when it is too late to move the plan tells the group', () => 
   assert.equal(state.hangs[H].lock.slot, THU_EVE);
   assert.deepEqual({ type: state.hangs[H].note.type, still: state.hangs[H].note.still }, { type: 'dropped', still: 2 });
   assert.equal(L.buildView(state, MANDY, lastHour).hangs[0].lock.tooLateToMove, true);
+  assert.equal(L.buildView(state, MANDY, lastHour).hangs[0].note.who, undefined, 'the notice never says who dropped out');
+
+  // Mei changes her mind: she can still add the confirmed time, and the notice goes away.
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, on: true, free: [THU_EVE] }, lastHour);
+  assert.deepEqual(L.summarize(state, H, lastHour).lockPeople.sort(), [JASON, MANDY, MEI].sort());
+  assert.equal(state.hangs[H].note, null);
+
+  // Mei drops again and Tom joins late instead: the notice stays, with the new count.
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, free: [] }, lastHour);
+  state = L.reduce(state, { type: 'respond', hangId: H, memberId: TOM, on: true, free: [THU_EVE] }, lastHour);
+  assert.equal(state.hangs[H].note.type, 'dropped');
+  assert.equal(state.hangs[H].note.still, 3);
+
+  // Once the plan has ended, nobody can join it.
+  const after = L.slotTime(THU_EVE, 'end') + HOUR;
+  let done = state;
+  try {
+    done = L.reduce(state, { type: 'respond', hangId: H, memberId: MEI, on: true, free: [THU_EVE] }, after);
+  } catch {
+    /* refusing the answer is fine too */
+  }
+  assert.ok(!done.members[MEI].r[H].free.includes(THU_EVE));
 });
 
 test('someone who is not signed in sees no totals before the plan is confirmed', () => {

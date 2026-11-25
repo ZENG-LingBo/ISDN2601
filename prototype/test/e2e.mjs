@@ -88,8 +88,13 @@ async function context(opts = {}) {
 
   await mandy.click('text=Go to the plan');
   await mandy.waitForSelector('#on-yes');
+  check((await mandy.evaluate(() => document.activeElement && document.activeElement.id)) === 'page-title', 'after moving to a new screen, focus should be on its heading');
+  check(await mandy.locator('button.cell:not([disabled])').count() === 0, 'the time grid should wait until you say if you are in');
+  step('server: on a new screen, focus starts on the heading, and the grid waits for "I\'m in"');
   await mandy.click('#on-yes');
   await mandy.waitForSelector('#on-yes[aria-pressed="true"]');
+  const focused = await mandy.evaluate(() => document.activeElement && document.activeElement.tagName);
+  check(focused && focused !== 'BODY', 'after tapping "I\'m in", focus should not drop to the top of the page');
   // Four quick taps should all be saved.
   const open = mandy.locator('button.cell:not([disabled])');
   const picks = [];
@@ -137,6 +142,7 @@ async function context(opts = {}) {
   step('server: Mandy saw it update live');
   await mandy.click('#confirm');
   await mandy.waitForSelector('text=The plan is confirmed');
+  check((await mandy.textContent('#alert')).trim() === '', 'no error should be announced');
   await shot(mandy, '07-confirmed');
   const going = await mandy.textContent('.status.go');
   check(/Mandy/.test(going) && /Jason/.test(going), 'names should show once confirmed');
@@ -209,7 +215,8 @@ async function context(opts = {}) {
   await page.click('#demo-swap');
   await page.waitForSelector('.banner');
   const banner = (await page.textContent('.banner')).trim();
-  check(/moved to/.test(banner), `expected the plan to move, saw: ${banner}`);
+  check(/moved from .* to /.test(banner), `expected the plan to move, saw: ${banner}`);
+  check((await page.locator("text=The plan moved to a new time").count()) + (await page.locator("text=Can you make it?").count()) >= 1, "the status should say the plan moved, or ask about the new time");
   await shot(page, '14-demo-moved');
   step(`demo: ${banner}`);
 
@@ -220,9 +227,23 @@ async function context(opts = {}) {
   }
   await page.click('#demo-start');
   await page.waitForSelector('#show-code');
+  // Too late to move the plan. Can't come anymore: the plan stays, and you get a message to send.
+  await page.click('#swap-open');
+  await page.waitForSelector('#late-out');
+  await page.click('#late-out');
+  await page.waitForSelector("text=You're off this plan");
+  check(/Sorry everyone/.test(await page.textContent('#late-text')), 'the message to send should be shown');
+  await shot(page, '14b-demo-off');
+  step("demo: close to the start, Mandy said she can't come and got a message to send to the group");
+  await page.click('#late-done');
+  await page.waitForSelector('#join-time');
+  await page.click('#join-time');
+  await page.waitForSelector('#show-code');
+  check(!(await page.locator("text=Someone can't come anymore").count()), 'after Mandy joined again, the notice that someone dropped out should go');
+  step('demo: Mandy changed her mind and joined again');
   await page.click('#show-code');
   await page.waitForSelector('.code');
-  const code = (await page.textContent('.code')).trim();
+  const code = (await page.textContent('.code span[aria-hidden]')).trim();
   check(/^\d{4}$/.test(code), `expected a 4-digit code, saw "${code}"`);
   await shot(page, '15-demo-checkin');
   step(`demo: at the start of the plan, Mandy shows the check-in code (${code})`);

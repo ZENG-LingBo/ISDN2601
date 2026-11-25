@@ -621,18 +621,24 @@ select {
   align-items: stretch;
 }
 
-.grid-head span {
+.grid-head > span {
   font-weight: 600;
   text-align: center;
   font-size: 0.95rem;
   overflow-wrap: anywhere;
 }
 
+.grid-head .clock {
+  display: block;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
 @media (max-width: 360px) {
   .grid-row {
     grid-template-columns: 3.4rem repeat(3, minmax(0, 1fr));
   }
-  .grid-head span,
+  .grid-head > span,
   .day {
     font-size: 0.85rem;
   }
@@ -811,9 +817,9 @@ select {
 .code {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 3.5rem;
+  font-size: min(3.5rem, 18vw);
   line-height: 1;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.15em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -927,6 +933,39 @@ select {
   color: var(--bg);
   font-weight: 500;
   z-index: 20;
+  display: none;
+  cursor: pointer;
+}
+
+.toast.show {
+  display: block;
+}
+
+.since {
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.8rem 1rem;
+}
+
+.since h2 {
+  font-size: 1rem;
+  margin: 0 0 0.3rem;
+}
+
+.since ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+h1:focus,
+#page-title:focus {
+  outline: none;
+}
+
+h1:focus-visible,
+#page-title:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {
