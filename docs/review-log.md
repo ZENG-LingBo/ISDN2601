@@ -421,3 +421,13 @@ Text judge on the new wording: FAIL on 5 one-line items in round 1 (a broken tab
 ## Cycle 19: Chinese names and plan ideas (04:55)
 
 Many students will type names, group names and plan ideas in Chinese, so a script made a group called "大學O營好朋友組合超級長的名字測試一下", a plan called "打邊爐然後去旺角行街食糖水再去唱K", and members called "陳美玲" and "黃家明 Ka Ming", on 320 px and 390 px phones. The share message, plan page and group page all showed the Chinese text correctly, and nothing scrolled sideways. Joining with a Chinese name that was already taken was refused, as it should be. The page titles were right, and there were no errors.
+
+## Summary of the 6-hour run (26 Nov, 00:15–06:17)
+
+- **Pitch for 9:00:** the deck and script passed the text judge and a pitch coach's review in the first 2 hours, then stayed frozen. The only later change was one backup answer in the script's Q&A, where the conclusion didn't match the numbers.
+- **Prototype:** 19 review cycles by reviewers who hadn't seen the earlier work, covering design, technical, business, feasibility, usability, accessibility, visual design, security, docs accuracy, privacy, load, and Chinese text. Every P1 and P2 was fixed.
+- **Final verdicts:**
+  - The cycle 18 reviewer says the prototype is ready for a supervised class test.
+  - A new text judge passed every string in the app and every doc.
+  - 84 unit and server tests pass, and the browser walkthrough passes.
+- **Still yours to decide:** see [next-steps.md](next-steps.md). The main one is whether to hide the totals until a plan is confirmed. Two tools also need your OK: a QR code library, and the axe-core accessibility scan.

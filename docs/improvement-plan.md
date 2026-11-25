@@ -57,6 +57,6 @@ The cycles ran faster than first planned, so the schedule below shows what actua
 | 04:38 | 17 | Accessibility checks on 15 screens, light and dark. No problems found. |
 | 04:40–04:52 | 18 | A new reviewer re-ran the full week on the latest code. Verdict: ready for a class test, after 2 doc fixes (done). |
 | 04:55 | 19 | Chinese names, group names and plan ideas on small phones. No problems found. |
-| until about 06:15 | 20+ | More find, rank, fix, check cycles on whatever ranks highest. Push after every cycle. |
+| 06:17 | End | The 6-hour run ended. Summary at the end of the review log. |
 
 The deck and script for 9:00 are frozen once they pass. Only the prototype keeps changing after that.
