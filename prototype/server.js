@@ -378,7 +378,7 @@ export async function createMinibusServer({
 
     if (p === '/api/crews' && req.method === 'POST') {
       if (!allow(`ip:${clientIp(req)}`, IP_CREATES_PER_MINUTE)) return fail(req, res, 429, 'slow_down', 'Too many requests. Wait a minute and try again.');
-      if (!allow(`ipday:${clientIp(req)}`, IP_CREATES_PER_DAY, 24 * 3600 * 1000)) return fail(req, res, 429, 'slow_down', 'Too many new groups from this network today. Try again tomorrow.');
+      if (!allow(`ipday:${clientIp(req)}`, IP_CREATES_PER_DAY, 24 * 3600 * 1000)) return fail(req, res, 429, 'slow_down', 'Too many new groups from this network today. Try again tomorrow, or switch to mobile data.');
       if (Object.keys(db.crews).length >= MAX_CREWS) return fail(req, res, 507, 'full', 'This server is full.');
       const body = await readBody(req);
       const ids = { crewId: L.newId(), hangId: L.newId(), memberId: L.newId() };

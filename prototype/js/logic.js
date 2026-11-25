@@ -600,7 +600,7 @@ export function reduce(prev, action, nowMs) {
       const theirs = response(state.members[id], hang.id);
       return typeof theirs.shownAt === 'number' && nowMs - theirs.shownAt <= SHOWN_CODE_MS;
     });
-    if (!showers.length) throw new ActionError('no_shower', 'Ask a friend who is there to tap "Show the code", then type in their code.');
+    if (!showers.length) throw new ActionError('no_shower', 'That code has to come from a friend\'s phone. Ask a friend who is there to tap "Show the code", then type in their code.');
     if (!r.checkedIn) r.checkedIn = nowMs;
     member.r[hang.id] = r;
     for (const id of showers) {
