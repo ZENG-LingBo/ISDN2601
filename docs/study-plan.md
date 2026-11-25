@@ -41,7 +41,7 @@ Each group starts one real plan in its own chat. Don't push them. What to measur
 | Opened the link | link opens | — |
 | Answered | answers, time of each first answer | poll votes |
 | Picked a time | first confirmation and how it happened | did the group agree on a time? |
-| Changed plans | moves, "can't come" notices | did anyone drop out? |
+| Changed plans | moves, "can't make it" notices | did anyone drop out? |
 | Met | check-ins, "did you meet?" answers | did they meet? (confirm with 2 people) |
 
 Download the export every day ([how](../prototype/README.md#back-up-and-download-the-data)).

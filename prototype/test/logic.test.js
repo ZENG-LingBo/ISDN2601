@@ -55,7 +55,7 @@ test('dates use Hong Kong time whatever the machine timezone', () => {
   assert.equal(L.hkDate(Date.parse('2026-11-25T15:59:00Z')), '2026-11-25');
   assert.equal(L.slotTime(THU_EVE), Date.parse('2026-11-26T19:00:00+08:00'));
   assert.equal(L.slotLabel(THU_EVE), 'Thu 26 Nov, evening (7–10pm)');
-  assert.equal(L.momentLabel(Date.parse('2026-11-27T02:00:00Z')), 'Fri 27 Nov, 10:00');
+  assert.equal(L.momentLabel(Date.parse('2026-11-27T02:00:00Z')), 'Fri 27 Nov, 10am');
   assert.equal(L.addDays('2026-12-30', 3), '2027-01-02');
   assert.equal(L.parseSlot('2026-11-26_brunch'), null);
   assert.equal(L.parseSlot('nonsense'), null);
@@ -332,7 +332,7 @@ test('the deadline is a round hour, never at night, and settle says when somethi
   assert.equal(state.hangs[H].decideBy % HOUR, 0);
   assert.ok(state.hangs[H].decideBy >= NOW + L.DECIDE_AFTER_MS);
   const lateNight = Date.parse('2026-11-25T16:30:00Z'); // 00:30 in Hong Kong
-  assert.equal(L.momentLabel(L.decideByFor(lateNight)), 'Sat 28 Nov, 09:00');
+  assert.equal(L.momentLabel(L.decideByFor(lateNight)), 'Sat 28 Nov, 9am');
   const ready = confirmedThursday();
   assert.equal(L.settleChanged(ready, NOW), false, 'nothing new to do');
 });
@@ -402,8 +402,8 @@ test('messages and calendar files', () => {
   assert.match(locked, /Going: /);
   // After a move, the message says what changed.
   const moved = L.lockedMessage({ ...hang, note: { type: 'moved', from: hang.lock.slot, to: hang.lock.slot } }, 'https://x.test/#p');
-  assert.match(moved, /^The plan has moved to a new time: /);
-  assert.match(moved, /\(It was Thu 26 Nov, evening \(7–10pm\)\)/);
+  assert.match(moved, /^The plan has moved: /);
+  assert.match(moved, /\nOld time: Thu 26 Nov, evening \(7–10pm\)\n/);
   const ics = L.icsText(hang, 'O-camp gang', 'uid1', NOW);
   assert.match(ics, /DTSTART:20261126T110000Z/);
   assert.match(ics, /DTEND:20261126T140000Z/);

@@ -469,7 +469,7 @@ function noteBanner(hang) {
   else if (n.type === 'auto') text = 'Everyone answered, so Minibus confirmed the best time.';
   else if (n.type === 'deadline') text = 'After 48 hours, enough people could make it, so Minibus confirmed the best time.';
   else if (n.type === 'sent' && n.by) text = `${n.by} confirmed the plan once enough people were free.`;
-  else if (n.type === 'dropped') text = `Someone can't come anymore. ${people(n.still)} ${n.still === 1 ? 'is' : 'are'} still going. It's too late to move the plan.`;
+  else if (n.type === 'dropped') text = `Someone can't make it anymore. ${people(n.still)} ${n.still === 1 ? 'is' : 'are'} still going. It's too late to move the plan.`;
   return text ? `<p class="banner">${esc(text)}</p>` : '';
 }
 
@@ -501,9 +501,11 @@ function gridBlock(hang) {
       if (isMine) cls.push('mine');
       if (id === highlight) cls.push('best');
       const countText = s.closed ? 'Too late' : hang.showCounts && s.count ? `${s.count} free` : '';
-      // The name starts with what's shown on the button ("You", "3 free"), then adds the date.
-      const shown = [isMine ? 'You' : '', countText].filter(Boolean).join(', ');
-      const aria = `${shown ? `${shown}. ` : ''}${slotText(id)}.${id === highlight ? (hang.lock ? ' Confirmed time.' : ' Best time so far.') : ''}`;
+      // The name starts with what's shown on the button ("You", "3 free"), then adds the time,
+      // with "to" instead of a dash, which some screen readers read out as "dash".
+      const shown = [isMine ? "You're free" : '', countText].filter(Boolean).join('. ');
+      const spoken = L.slotLabel(id).replace(/(\d)–(\d)/g, '$1 to $2');
+      const aria = `${shown ? `${shown}. ` : ''}${spoken}.${id === highlight ? (hang.lock ? ' Confirmed time.' : ' Best time so far.') : ''}`;
       return `<button class="${cls.join(' ')}" type="button" id="slot-${esc(id)}" data-act="slot" data-slot="${esc(id)}" aria-pressed="${isMine}" aria-label="${esc(aria)}" ${(s.closed && !isMine) || notYet ? 'disabled' : ''}>
         <span class="cell-mark">${isMine ? 'You' : ''}</span><span class="cell-count">${esc(countText)}</span>
       </button>`;
@@ -534,7 +536,7 @@ function placesBlock(hang) {
   const list = hang.places.length
     ? `<ul class="places">${hang.places.map((p) => `<li>
         <span class="place-name">${esc(p.name)}</span>
-        <button class="btn toggle small" type="button" id="vote-${esc(p.id)}" data-act="like" data-place="${esc(p.id)}" aria-pressed="${p.liked}" aria-label="${esc(`Vote · ${p.likes}, for ${p.name}`)}">Vote · ${p.likes}</button>
+        <button class="btn toggle small" type="button" id="vote-${esc(p.id)}" data-act="like" data-place="${esc(p.id)}" aria-pressed="${p.liked}" aria-label="${esc(`Vote for ${p.name}, ${p.likes} ${p.likes === 1 ? 'vote' : 'votes'}`)}">Vote · ${p.likes}</button>
       </li>`).join('')}</ul>`
     : '<p>No places yet. Suggest one.</p>';
   const chips = PLACES.filter((p) => !hang.places.some((x) => x.name.toLowerCase() === p.toLowerCase()));
@@ -630,7 +632,7 @@ function lockedStatus(hang) {
   // You just said you can't come: show the message to send, before anything else.
   if (ui.lateMessage && ui.lateMessage.hangId === hang.id) {
     return `<section class="status">
-      ${statusTitle("You're off this plan")}
+      ${statusTitle("You're no longer going")}
       <p>Send this to the group so nobody waits for you:</p>
       <pre class="message" id="late-text">${esc(ui.lateMessage.text)}</pre>
       ${sendButtons('late-text', ui.lateMessage.text, 'Copy message', 'copy-late')}
@@ -682,13 +684,13 @@ function lockedStatus(hang) {
 
 // Less than 2 hours before the plan, it can't move anymore. Be honest about it.
 function lateBlock(hang) {
-  if (!ui.swapOpen) return `<button class="btn" type="button" id="swap-open" data-act="swap-open">Can't come anymore?</button>`;
+  if (!ui.swapOpen) return `<button class="btn" type="button" id="swap-open" data-act="swap-open">Can't make it? Tell the group</button>`;
   return `<div class="swap">
-    <h3>Can't come anymore?</h3>
-    <p>It's too late to move the plan to another time. If you can't come, Minibus tells the group how many people are still going.</p>
+    <h3>Can't make it anymore?</h3>
+    <p>It's too late to move the plan to another time. If you can't make it, the plan shows how many people are still going, and you can send the group a message.</p>
     <div class="actions stack">
-      <button class="btn danger" type="button" id="late-out" data-act="late-out">I can't come</button>
-      <button class="btn quiet" type="button" id="swap-close" data-act="swap-close">I'm still coming</button>
+      <button class="btn danger" type="button" id="late-out" data-act="late-out">I can't make it</button>
+      <button class="btn quiet" type="button" id="swap-close" data-act="swap-close">I can still make it</button>
     </div>
   </div>`;
 }
@@ -905,7 +907,7 @@ function sharedScreen() {
     <p>Copy the message and paste it into your group chat.</p>
     <pre class="message" id="share-text">${esc(L.shareMessage(hang, link))}</pre>
     ${sendButtons('share-text', L.shareMessage(hang, link), 'Copy message', 'copy-share')}
-    <p>Then answer the plan yourself: say if you're in and when you're free.</p>
+    <p>Then add your own answer: say if you're in and when you're free.</p>
     <p><a class="btn" id="go-plan" href="#plan-${esc(view.crew.id)}-${esc(hang.id)}">Go to the plan</a></p>
     ${store.kind === 'local' ? '<p class="notice-inline">In this demo, the link only works on this device.</p>' : ''}
   </section>`;
@@ -977,7 +979,7 @@ function joinScreen(hang) {
     <section class="block">
       ${inAppHint()}
       <h1 id="page-title" tabindex="-1">${hang ? 'Join this plan' : `Join ${esc(view.crew.name)}`}</h1>
-      ${hang ? `<p>This plan is for ${esc(view.crew.name)}. Minibus is named after Hong Kong's red minibuses, which leave once enough people get on. Your plan happens once enough friends are free at the same time.</p>` : ''}
+      ${hang ? `<p>This plan is for ${esc(view.crew.name)}. Minibus is named after Hong Kong's red minibuses, which leave once enough people get on. The plan is confirmed once enough people are free at the same time.</p>` : ''}
       <form id="join-form" class="field" novalidate>
         <label for="j-name">Your name</label>
         <div class="inline-form">

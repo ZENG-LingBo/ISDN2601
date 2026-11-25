@@ -227,11 +227,11 @@ async function context(opts = {}) {
   }
   await page.click('#demo-start');
   await page.waitForSelector('#show-code');
-  // Too late to move the plan. Can't come anymore: the plan stays, and you get a message to send.
+  // Too late to move the plan. Can't make it anymore: the plan stays, and you get a message to send.
   await page.click('#swap-open');
   await page.waitForSelector('#late-out');
   await page.click('#late-out');
-  await page.waitForSelector("text=You're off this plan");
+  await page.waitForSelector("text=You're no longer going");
   check(/Sorry everyone/.test(await page.textContent('#late-text')), 'the message to send should be shown');
   await shot(page, '14b-demo-off');
   step("demo: close to the start, Mandy said she can't come and got a message to send to the group");
@@ -239,7 +239,7 @@ async function context(opts = {}) {
   await page.waitForSelector('#join-time');
   await page.click('#join-time');
   await page.waitForSelector('#show-code');
-  check(!(await page.locator("text=Someone can't come anymore").count()), 'after Mandy joined again, the notice that someone dropped out should go');
+  check(!(await page.locator("text=Someone can't make it anymore").count()), 'after Mandy joined again, the notice that someone dropped out should go');
   step('demo: Mandy changed her mind and joined again');
   await page.click('#show-code');
   await page.waitForSelector('.code');

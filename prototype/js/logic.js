@@ -170,9 +170,11 @@ export function slotHours(id) {
 // "Sat 28 Nov, 10:00" in Hong Kong time.
 export function momentLabel(ms) {
   const d = new Date(ms + HK_OFFSET_MS);
-  const hh = String(d.getUTCHours()).padStart(2, '0');
+  // Same clock style as the time labels: "9am", "1:30pm".
+  const h = d.getUTCHours();
   const mm = String(d.getUTCMinutes()).padStart(2, '0');
-  return `${dayLabel(d.toISOString().slice(0, 10))}, ${hh}:${mm}`;
+  const clock = `${h % 12 || 12}${mm === '00' ? '' : `:${mm}`}${h < 12 ? 'am' : 'pm'}`;
+  return `${dayLabel(d.toISOString().slice(0, 10))}, ${clock}`;
 }
 
 // ---------- state ----------
@@ -607,7 +609,7 @@ export function reduce(prev, action, nowMs) {
     }
     const goingBefore = hang.lock && isClosed(hang.lock.slot, nowMs) ? summarize(state, hang.id, nowMs).lockPeople : null;
     member.r[hang.id] = r;
-    // Too late to move the plan: tell the group plainly that someone can't come.
+    // Too late to move the plan: tell the group plainly that someone can't make it.
     if (goingBefore) {
       const goingAfter = summarize(state, hang.id, nowMs).lockPeople;
       const wasGoing = goingBefore.includes(member.id);
@@ -798,9 +800,9 @@ export function lockedMessage(view, link) {
   const where = view.lock.placeName ? `, ${view.lock.placeName}` : '';
   const moved = view.note && view.note.type === 'moved' && view.note.from;
   return [
-    moved ? `The plan has moved to a new time: ${view.idea}` : `The plan is confirmed: ${view.idea}`,
+    moved ? `The plan has moved: ${view.idea}` : `The plan is confirmed: ${view.idea}`,
     `${moved ? 'New time: ' : ''}${slotLabel(view.lock.slot)}${where}`,
-    ...(moved ? [`(It was ${slotLabel(view.note.from)})`] : []),
+    ...(moved ? [`Old time: ${slotLabel(view.note.from)}`] : []),
     `Going: ${view.lock.people.join(', ')}`,
     ``,
     `If something comes up, change your times in the app instead of cancelling: ${link}`,

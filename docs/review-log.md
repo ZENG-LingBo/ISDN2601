@@ -196,7 +196,7 @@ Two reviewers who hadn't seen the earlier rounds checked the prototype at the sa
 | P2 | Lunch, afternoon and evening had no clock times. | Times show clock hours everywhere: "Thu 26 Nov, evening (7–10pm)". Column headers show them too. |
 | P2 | With 2 others in and 1 of them saying no, totals could show who said yes. | Totals show only once 2 others are in and 3 others have answered. Tests changed. |
 | P2 | After a move, the status still said "The plan is confirmed" and the group message looked the same as before. | The heading says "The plan moved to a new time", and the group message says "New time: … (It was …)". Test added. |
-| P2 | After "I can't come", the message to send was hidden below the fold. | A "You're off this plan" card comes first, with the message and a Done button. |
+| P2 | After "I can't come", the message to send was hidden below the fold. | A "You're no longer going" card comes first, with the message and a Done button. |
 | P2 | Coming back after 2 days, nothing said what had changed. | A "Since you last looked" box lists new answers, confirmations and moves since your last visit on that device. |
 | P2 | Someone still picking times when the plan was confirmed lost their grid. | The grid stays for them, with "Add other times you could make, in case the plan needs to move." |
 | P2 | A friend's update redrew the page while someone was typing, and lost the selected budget and the text cursor. | Updates wait until you leave the field. Redraws keep radio choices and the cursor. Nothing redraws if nothing changed. |
@@ -210,4 +210,6 @@ Two reviewers who hadn't seen the earlier rounds checked the prototype at the sa
 
 Not done: a QR code for check-in (needs your OK to add a library), and push notifications.
 
-63 unit and server tests pass. The browser walkthrough now also checks focus on new screens, the grid waiting for "I'm in", no error alerts on a normal confirm, and "I can't come" followed by joining again.
+Text judge on the new wording: FAIL on 7 strings, all fixed. "Can't come" became "can't make it" everywhere, to match "Can you make it?". The panel no longer says Minibus tells the group (it can't send messages; you send it). The moved message says "Old time:" instead of brackets inside brackets. The deadline uses the same clock style as the times ("9am", not "09:00"). Skipped on purpose: showing the exact number of answers needed before totals appear, because it would hint at how many said yes.
+
+63 unit and server tests pass. The browser walkthrough now also checks focus on new screens, the grid waiting for "I'm in", no error alerts on a normal confirm, and "I can't make it" followed by joining again.
