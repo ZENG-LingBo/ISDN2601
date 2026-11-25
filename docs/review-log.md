@@ -415,3 +415,5 @@ A new reviewer re-ran the full week for a group of 5 on the latest code, with so
 | P3 | Lowering the number needed wasn't recorded, so the data would show the wrong reason for the confirmation. A no-show saw "You met" after the plan. The restore steps could be overwritten by a running server. Step 6 left the test group in the data. Step 7 didn't say how to find your public address. Groups of 4 can see no totals if one person stays silent. | All fixed. The export now shows when the number was lowered, and from what. The restore uses a new file name. The study plan suggests groups of 5 or 6. |
 
 84 unit and server tests pass. The walkthrough passes.
+
+Text judge on the new wording: FAIL on 5 one-line items in round 1 (a broken table row, an unclear "it", a restore step that left out deploying the change, "group numbers" in the consent line, and two screens that disagreed after "No, we didn't"), then PASS in round 2.
