@@ -275,4 +275,6 @@ A new reviewer read the cycle 9 code change and wrote a repro script for each pr
 | P2 | "Afternoon" still split mid-word at 200% text with the real font. | At 200% text, each time gets its own full-width line with its label ("Afternoon 3–6pm"), so nothing has to split. |
 | P3 | The saved and "plan is ready" announcements cut each other off. A unit test skipped its own check. Two sentences on the ready card said the same thing. The deadline-passed text left out the 12-hour rule. A code comment was garbled. Tapping a picked idea didn't unpick it. "No, I can't" did nothing if the plan had just stopped being confirmed. Long group names in the header. | All fixed. The walkthrough now taps "No, I can't" and checks the grid stays. |
 
+Text judge: PASS in round 1. Two optional changes taken: the deadline-passed text is split into two sentences, and "This time is soon" now says "less than 12 hours away". Not taken: making what screen readers hear match the visible grid label word for word at 200% text, because the normal layout shows different words.
+
 67 unit and server tests pass. The walkthrough passes.

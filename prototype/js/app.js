@@ -611,7 +611,7 @@ function answeredLine(hang) {
 }
 
 function waitingLine(hang) {
-  if (hang.decideBy <= view.now) return `${answeredLine(hang)} Minibus confirms the plan as soon as enough people are free at the same time, if that time is at least 12 hours away.`;
+  if (hang.decideBy <= view.now) return `${answeredLine(hang)} Minibus confirms the plan as soon as enough people are free at the same time. That time must be at least 12 hours away.`;
   const deadline = L.momentLabel(hang.decideBy);
   return `${answeredLine(hang)} Minibus confirms the plan when everyone has answered, or on ${deadline}. Enough people must be free at the same time.`;
 }
@@ -654,7 +654,7 @@ function readyStatus(hang) {
     ${statusTitle('Enough people are free')}
     <p class="big">${esc(slotText(hang.best.id))}</p>
     <p>${esc(`${people(hang.best.count)} are free then.`)} ${esc(answeredLine(hang))}</p>
-    ${isSoon(hang.best.id) ? '<p>This time is soon, so Minibus won\'t confirm it on its own.</p>' : ''}
+    ${isSoon(hang.best.id) ? '<p>This time is less than 12 hours away, so Minibus won\'t confirm it on its own.</p>' : ''}
     ${onBoard
       ? '<button class="btn primary wide" type="button" id="confirm" data-act="lock">Confirm this time now</button><p>Anyone who is in can confirm it.</p>'
       : '<p>Say you\'re in to confirm the plan now.</p>'}
