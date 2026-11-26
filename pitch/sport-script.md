@@ -16,34 +16,39 @@ The research behind every number is in [`research/sport-background.md`](../resea
 > At 15, Mandy played basketball three times a week. School gave her the time, the team, the court and the coach.
 > At 20, she hasn't played in a year.
 
-*Slow down on the four things school gave her. Three of them come back on slide 4.*
+*Slow down on the four things school gave her. Three of them come back on slide 5.*
 
-## Slide 2: Target user and empathy map (0:15–0:30)
+## Slide 2: Target user (0:15–0:24)
 
 > Mandy is my target user. She misses the team, but she worries she'll play badly in front of friends.
+
+*Point to the persona card.*
+
+## Slide 3: Empathy map (0:24–0:32)
+
 > So she says, "We should play sometime," and opens her phone.
 
 *Point to "Says" when you quote her.*
 
-## Slide 3: Activity drops when school ends (0:30–0:50)
+## Slide 4: Activity drops when school ends (0:32–0:51)
 
 > She's not alone. When school ends, activity drops: about 7 fewer active minutes a day after high school.
 > In Hong Kong, 53.8% of adults miss the WHO target, and lack of time is the top reason.
 
 *Say "fifty-three point eight percent" slowly.*
 
-## Slide 4: Pain points (0:50–1:03)
+## Slide 5: Pain points (0:51–1:04)
 
 > Without school, a game needs three things: a time when everyone's free, a court she can book, and the nerve to be the weakest player.
 
 *Count the three things on your fingers. The slide shows the evidence for each one, so you don't need to read it.*
 
-## Slide 5: The phone is always there (1:03–1:25)
+## Slide 6: The phone is always there (1:04–1:25)
 
 > Meanwhile, the phone is always there. 4 in 5 Hong Kong secondary students spend 2 hours or more on screens for fun on a school day.
 > *(Pause.)* Laziness is only part of it. Starting a game is harder than staying on your phone.
 
-## Slide 6: Problem statement and How Might We (1:25–1:52)
+## Slide 7: Problem statement and How Might We (1:25–1:52)
 
 > Problem statement: university students want to play together, but a game needs a time when everyone's free, a court and the nerve to be the weakest player. So they spend their free time on their phones.
 >
@@ -57,8 +62,8 @@ The research behind every number is in [`research/sport-background.md`](../resea
 
 Cut these, in this order. Each one saves 2 to 3 seconds, and the story still works:
 
-1. Slide 3: "She's not alone."
-2. Slide 5: "Meanwhile, the phone is always there." The slide title says it.
+1. Slide 4: "She's not alone."
+2. Slide 6: "Meanwhile, the phone is always there." The slide title says it.
 3. Slide 2: "but she worries she'll play badly in front of friends". Say "She misses the team. So she says…".
 
 Don't cut the How Might We question, "Starting a game is harder than staying on your phone", or the three things a game needs.
@@ -74,7 +79,7 @@ Don't cut the How Might We question, "Starting a game is harder than staying on 
   - [ ] LCSD SmartPLAY press release: the 360-day ban
   - [ ] Winpenny et al.: about 7 fewer minutes a day
 - [ ] **Talk to real students.** Ask 3 to 5 friends questions 2 to 4 from `research/sport-background.md`, section 7. Markers reward real user voices. If one answer fits, put it on the empathy map in place of a made-up quote, and say it's from an interview. Only use real answers.
-- [ ] In Present mode, check that the boxes on slides 1 to 5 appear one after another.
+- [ ] In Present mode, check that the boxes on slides 1 to 6 appear one after another.
 - [ ] Present from the deck's Present mode. The References slide is last. Stop before it.
 - [ ] Download the deck as a PDF or PowerPoint file and bring it on a USB drive, in case the classroom computer is offline.
 

@@ -115,6 +115,17 @@ section {
 .quad-list { font-size: 30px; line-height: 1.35; color: var(--ink); padding-left: 36px; }
 .quad-list li { margin-top: 6px; margin-bottom: 6px; }
 
+/* persona slide */
+.persona-wide { width: 720px; }
+.lead { font-size: 40px; line-height: 1.25; color: var(--ink); margin-top: 24px; }
+.traits { flex: 1; display: flex; flex-direction: column; }
+.traits-label { font-size: 40px; font-weight: 700; color: var(--ink); padding-bottom: 12px; }
+.trait { font-size: 30px; line-height: 1.35; color: var(--ink); padding-top: 22px; padding-bottom: 22px; border-top: 2px solid var(--line); }
+
+/* empathy map slide */
+.emap-full { flex: none; grid-template-columns: 1fr 1fr; gap: 72px 96px; }
+.emap-full .quad-list { font-size: 34px; }
+
 /* ---------- evidence ---------- */
 .stats { display: flex; flex-direction: row; gap: 120px; }
 .stat { flex: 1; display: flex; flex-direction: column; gap: 24px; }

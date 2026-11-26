@@ -74,13 +74,13 @@ A persona built from the research, not a real person.
 
 ## 4. Pain points
 
-Without school, a game needs 3 things, and each one is now hard to get. Slide 4 shows these, with what school used to do for each one.
+Without school, a game needs 3 things, and each one is now hard to get. Slide 5 shows these, with what school used to do for each one.
 
 1. **A time when everyone's free.** 8 friends have 8 timetables, part-time jobs and long commutes. Lack of time is the top barrier in Hong Kong (LCSD, 2023) and in the review of 59 studies (Silva et al., 2022).
 2. **A court.** Bots and resellers compete for public courts, and bot accounts now get a 360-day ban (LCSD, 2025).
 3. **The nerve to be the weakest player.** She's out of practice and worries she'll hold the team back. People picked last at school report less activity later in life (Cardinal et al., 2013).
 
-Slide 5 adds the alternative: her phone gives fun in seconds, alone, with no one watching.
+Slide 6 adds the alternative: her phone gives fun in seconds, alone, with no one watching.
 
 **Taken out after the review:** "In a big group, some people sit out and watch." It came from the design brief that everyone should take part, not from a source, and the story didn't use it. It's still a question for the interviews (question 7).
 
@@ -168,3 +168,4 @@ Each review was done by a separate agent that saw only the files and the rules, 
 | 1 | Slide design | 4 P1, 5 P2 | Persona and empathy map merged into one slide. Pain-point list cut, because it repeated other slides. Content centred under each title. Bigger numbers. Simpler cover card. |
 | 1 | Story flow | 4 P1, 7 P2 | The 81% moved to Q&A. Script cut from 240 to 229 words. Laziness answer and court claim softened. How Might We and problem statement reworded. Unsupported injury number removed. |
 | 2 | Text against the writing rules | PASS | 2 optional fixes applied: numerals in a deck description, and "actually" removed. |
+| 3 | Your request | — | Persona and empathy map split back into 2 slides, so the deck has 7 slides again. The persona slide lists who she stands for (sport at school, a big friend group, a phone and a laptop, evenings on screens) in place of the old pain-point list. The spoken words didn't change. |
