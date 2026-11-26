@@ -408,11 +408,18 @@
   function leadTick(now) {
     const L = st.lead;
     if (L.paused != null) return;
+    const n = playerCount();
+    if (L.waiting) {
+      // Nobody was in view when the countdown ended: wait quietly, then count down again.
+      if (n < 1) return;
+      L.waiting = false;
+      L.start = now;
+      st.lastBeep = -1;
+    }
     const left = LEAD_MS / SPEED - (now - L.start);
     if (left > 0) return;
-    const n = playerCount();
     if (n < 1) {
-      L.start = now; // wait for someone to step into view
+      L.waiting = true;
       return;
     }
     st.lead = null;
@@ -954,10 +961,10 @@
       $('callout-sub').textContent =
         n < 1 ? 'Nobody in view yet. Step into the picture.' : st.mode === 'practice' ? 'The practice players are getting in place.' : S.SIZES[S.sizeFor(n)].stand;
       const timer = $('timer');
-      timer.hidden = false;
+      timer.hidden = !!st.lead.waiting;
       const k = Math.max(1, Math.ceil(left / (1000 / SPEED)));
       timer.textContent = String(k);
-      if (k <= 3 && k !== st.lastBeep && st.lead.paused == null) {
+      if (k <= 3 && k !== st.lastBeep && st.lead.paused == null && !st.lead.waiting) {
         st.lastBeep = k;
         beep(660, 110);
       }
