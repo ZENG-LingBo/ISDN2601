@@ -18,10 +18,9 @@ The research session couldn't open any source page. PubMed, PMC, Europe PMC, Cro
 
 | Finding | Source | Check | Caveats |
 |---|---|---|---|
-| **81.0%** of school students aged 11–17 were not active enough in 2016 (boys 77.6%, girls 84.7%). 298 surveys, 1.6 million students, 146 countries. | Guthold, Stevens, Riley & Bull (2020). *Lancet Child & Adolescent Health*, 4(1), 23–35. [PubMed](https://pubmed.ncbi.nlm.nih.gov/31761562/) | Confirmed through excerpts of the PubMed abstract. Also in a WHO news release (22 Nov 2019). | Published online in Nov 2019. Students self-report. This is about students while they're still at school, so the slide says "Even at school". |
-| Leaving high school is linked to about **7 fewer minutes** a day of moderate-to-vigorous activity (−7.04 min/day, 95% CI −11.26 to −2.82, 9 studies). | Winpenny et al. (2020). *Obesity Reviews*, 21(4), e12962. [PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7079102/) | Confirmed through excerpts of the PMC table and the MRC Epidemiology page. | Most studies come from Europe, North America and Australia. For leaving university, 4 studies found no change, but they weren't pooled. |
-| **53.8%** of Hong Kong people aged 17–79 don't meet the WHO activity target. For ages 17–59, the main barriers are lack of time, tiredness and laziness. | LCSD, Territory-wide Physical Fitness Survey for the Community (2023). [Press release, 16 Jun 2023](https://www.info.gov.hk/gia/general/202306/16/P2023061600260p.htm) · [LegCo paper](https://www.legco.gov.hk/yr2023/english/panels/ha/papers/ha20230612cb2-539-5-e.pdf) | Confirmed through excerpts of the LegCo paper. **Open before the pitch.** | 9,326 people, fieldwork July 2021 to Dec 2022 (during COVID-19 rules). No percentage was found for each barrier, and no figure for ages 20–24. |
-| **80.9%** of secondary students (43.3% of primary) spent 2 hours or more on recreational screen use on a typical school day in 2023/24. | Department of Health, Student Health Service. [Press release, 2 Apr 2025](https://www.info.gov.hk/gia/general/202504/02/P2025040200311.htm) | Confirmed through excerpts of the press release and an SCMP report. **Open before the pitch.** | The earlier note said "outside school". The source says "recreational" use "on a typical school day", so the slide now says "for fun on a school day". The 2024/25 report (17 Mar 2026) gives 81.1%. |
+| Leaving high school is linked to about **7 fewer minutes** a day of moderate-to-vigorous activity (−7.04 min/day, 95% CI −11.26 to −2.82, 9 studies). | Winpenny et al. (2020). *Obesity Reviews*, 21(4), e12962. [PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7079102/) | Confirmed through excerpts of the PMC table and the MRC Epidemiology page. **Open before the pitch.** | Most studies come from Europe, North America and Australia. For leaving university, 4 studies found no change, but they weren't pooled. |
+| **53.8%** of Hong Kong people aged 17–79 don't meet the WHO activity target. For ages 17–59, the main barriers are lack of time, tiredness and laziness. | LCSD, Territory-wide Physical Fitness Survey for the Community (2023). [Press release, 16 Jun 2023](https://www.info.gov.hk/gia/general/202306/16/P2023061600260p.htm) · [LegCo paper](https://www.legco.gov.hk/yr2023/english/panels/ha/papers/ha20230612cb2-539-5-e.pdf) | Confirmed through excerpts of the LegCo paper. **Open before the pitch.** | 9,326 people, fieldwork July 2021 to Dec 2022 (during COVID-19 rules). No percentage was found for each barrier, and no figure for ages 20–24. The press release says adults named lack of time as their top obstacle, which is why the slide says "the top reason". |
+| **80.9%** of secondary students (43.3% of primary) spent 2 hours or more on recreational screen use on a typical school day in 2023/24. | Department of Health, Student Health Service. [Press release, 2 Apr 2025](https://www.info.gov.hk/gia/general/202504/02/P2025040200311.htm) | Confirmed through excerpts of the press release and an SCMP report. **Open before the pitch.** | The earlier note said "outside school". The source says "recreational" use "on a typical school day", so the slide says "for fun on a school day". The slide shows it as "4 in 5" and says it's about secondary students. The 2024/25 report (17 Mar 2026) gives 81.1%. |
 | Students who remembered being **picked last** for teams reported less physical activity later in life. 293 students. | Cardinal, Yan & Cardinal (2013). *JOPERD*, 84(3), 49–53. [Merrimack repository](https://scholarworks.merrimack.edu/health_facpubs/23) | Confirmed through excerpts of the repository record. | A recall survey of US university students. It shows a link, not a cause. |
 | The LCSD found accounts using bots on SmartPLAY. Accounts found using automated tools get a **360-day** booking ban. The rules started with indoor basketball and volleyball courts. | LCSD press release, 22 Dec 2025 ([P2025122200238](https://www.info.gov.hk/gia/general/202512/22/P2025122200238.htm)), via tech360.tv and SCMP | Confirmed only through news reports that quote an LCSD spokesperson. **Open before the pitch.** | The LCSD didn't say how many accounts it found. The earlier note said the LCSD "stopped letting people pick up unused slots". That wasn't confirmed, so it isn't on the slides. |
 
@@ -29,6 +28,7 @@ The research session couldn't open any source page. PubMed, PMC, Europe PMC, Cro
 
 | Finding | Source | Check | Caveats |
 |---|---|---|---|
+| **81.0%** of school students aged 11–17 were not active enough in 2016 (boys 77.6%, girls 84.7%). 298 surveys, 1.6 million students, 146 countries. | Guthold, Stevens, Riley & Bull (2020). *Lancet Child & Adolescent Health*, 4(1), 23–35. [PubMed](https://pubmed.ncbi.nlm.nih.gov/31761562/) | Confirmed through excerpts of the PubMed abstract. Also in a WHO news release (22 Nov 2019). | Published online in Nov 2019. Students self-report. It's about students while they're still at school, so on a slide it would work against "activity drops when school ends". It was taken off the slides and is kept for the question "Weren't students already inactive at school?". It's on the References slide because the answer cites it. |
 | In July 2024, 3 people suspected of reselling court bookings were arrested at the **Victoria Park tennis courts** in a joint LCSD, police and immigration operation. | LCSD press release, 25 Jul 2024 ([P2024072500232](https://www.info.gov.hk/gia/general/202407/25/P2024072500232.htm)) | Confirmed through excerpts. **Open before the pitch** if you mention it. | Tennis courts, not basketball, and not linked to bots. The slide says "resellers" in general, so it's safe either way. |
 | Across 59 studies (22 with university students), the top barriers were lack of time, lack of motivation and lack of accessible places. | Silva et al. (2022). *PLOS ONE*, 17(4), e0265913. [PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8979430/) | Confirmed through excerpts. | Mostly from outside Hong Kong. |
 | Personal and social reasons (inside the person or between people) were linked to dropping out of sport more often than practical ones. | Crane & Temple (2015). *European Physical Education Review*, 21(1), 114–131. | Confirmed through excerpts of the abstract. | The earlier note's "feeling less skilled than others" wasn't confirmed word for word. |
@@ -43,7 +43,7 @@ The research session couldn't open any source page. PubMed, PMC, Europe PMC, Cro
 ### Left out on purpose
 
 - **Cost.** Public courts in Hong Kong are cheap (about HK$51–59 an hour for pickleball), and cost isn't among the top barriers in the LCSD survey. The UK cost study (Edwards et al., 2015) doesn't fit Hong Kong.
-- **Fear of injury.** In student surveys, only about 1 in 10 give it as a reason. The ankle injury studies (Fong et al., 2007 and 2008) show where injuries happen, not why people stop playing.
+- **Fear of injury.** It isn't a top reason in any survey found. (The first notes gave "about 10–13%", but no source for that number was found.) The ankle injury studies (Fong et al., 2007 and 2008) show where injuries happen, not why people stop playing.
 - **"6–7 hours a day" of teen screen time.** No primary source was found.
 
 ### Still missing
@@ -74,13 +74,15 @@ A persona built from the research, not a real person.
 
 ## 4. Pain points
 
-1. 8 people are never free at the same time.
-2. Public courts are booked before she can get one.
-3. She's out of practice and worries she'll hold the team back.
-4. In a big group, some people sit out and watch.
-5. Her phone is easier, so she spends the evening on it.
+Without school, a game needs 3 things, and each one is now hard to get. Slide 4 shows these, with what school used to do for each one.
 
-Pain point 4 comes from the design brief that everyone should take part. It isn't backed by a source yet, so it's a question for the interviews.
+1. **A time when everyone's free.** 8 friends have 8 timetables, part-time jobs and long commutes. Lack of time is the top barrier in Hong Kong (LCSD, 2023) and in the review of 59 studies (Silva et al., 2022).
+2. **A court.** Bots and resellers compete for public courts, and bot accounts now get a 360-day ban (LCSD, 2025).
+3. **The nerve to be the weakest player.** She's out of practice and worries she'll hold the team back. People picked last at school report less activity later in life (Cardinal et al., 2013).
+
+Slide 5 adds the alternative: her phone gives fun in seconds, alone, with no one watching.
+
+**Taken out after the review:** "In a big group, some people sit out and watch." It came from the design brief that everyone should take part, not from a source, and the story didn't use it. It's still a question for the interviews (question 7).
 
 ## 5. Empathy map
 
@@ -94,21 +96,23 @@ Pain point 4 comes from the design brief that everyone should take part. It isn'
 
 ### Problem statement
 
-> University students want to play together, but every game needs a group that's free, a booked court and the nerve to be the weakest player. So they stay on their phones.
+> University students want to play together, but a game needs a time when everyone's free, a court and the nerve to be the weakest player. So they spend their free time on their phones.
 
 | Version | Text | Why it changed |
 |---|---|---|
 | 1. First draft | University students want to play together, but after school every game needs a full group, a booked place and the nerve to be the weakest player, so their phones win. | "Their phones win" is a metaphor. "A full group" is vague, because the problem is finding a time when everyone is free. "Place" is vaguer than "court". |
-| 2. Now | See above. | "After school" was taken out to keep the line short enough to say aloud. The slides before it already make the point. |
+| 2. After the text review | University students want to play together, but every game needs a group that's free, a booked court and the nerve to be the weakest player. So they stay on their phones. | A story review found 3 problems. "Every game needs a booked court" isn't true for every game. "A group that's free" can be heard as "a group that costs nothing". And the line never linked the problem to free time, the course theme. |
+| 3. Now | See above. | — |
 
 ### How Might We
 
-> **How might we make starting a game together as easy as checking your phone, for university friend groups, in order to help them move and laugh together more often?**
+> **How might we make starting an in-person game as easy as reaching for a phone, for university friend groups, in order to help them move and laugh together more often?**
 
 How it changed from the first draft ("…as quick to start as opening a laptop or phone, for university friend groups, so that they move, laugh and meet more often?"):
 
 - **"laptop" was taken out.** It points to a solution. The question should stay open to ideas that aren't on a laptop at all.
-- **"opening a phone" became "checking your phone"**, because people don't usually say they "open" a phone.
+- **"opening a phone" became "reaching for a phone"**, because people don't usually say they "open" a phone.
+- **"a game together" became "an in-person game"**, because next to "phone", "game" could be heard as a phone game.
 - **"so that" became "in order to"**, to match the lecturers' template.
 - **"and meet" was taken out**, because the goal is playing together, and these friends already meet.
 
@@ -117,15 +121,15 @@ Check against the How Might We rules in [`background-study.md`](background-study
 | Rule | Met? | Why |
 |---|---|---|
 | Specific user | Yes | University friend groups |
-| Specific problem | Yes | Starting a game together is much harder than checking a phone |
-| No solution inside | Yes | No app, laptop, game, booking system or place is named. "Checking your phone" is the thing to match, not the answer. |
+| Specific problem | Yes | Starting an in-person game is much harder than reaching for a phone |
+| No solution inside | Yes | No app, laptop, game, booking system or place is named. "Reaching for a phone" is the thing to match, not the answer. |
 | Broad enough for many ideas | Yes | It could lead to a new game, a place, a club habit, a booking change or an app |
 | Focus on the result | Yes | Moving and laughing together more often |
 | Positive wording | Yes | Says what should happen, not what to stop |
 | More than giving information | Yes | The outcome is a behaviour (playing), not knowledge |
-| Follows the template | Yes | How might we [make starting a game together as easy as checking your phone] for [university friend groups] in order to [help them move and laugh together more often]? |
+| Follows the template | Yes | How might we [make starting an in-person game as easy as reaching for a phone] for [university friend groups] in order to [help them move and laugh together more often]? |
 
-A risk to watch: "as easy as checking your phone" sets a very high bar. That's on purpose. It names the real competition for free time.
+A risk to watch: "as easy as reaching for a phone" sets a very high bar. That's on purpose. It names the real competition for free time.
 
 Narrower questions for the ideas stage (not in the pitch):
 
