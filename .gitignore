@@ -3,3 +3,4 @@ prototype/data/
 *.tmp
 prototype/test/screenshots/
 game/test/screenshots/
+site/dist/

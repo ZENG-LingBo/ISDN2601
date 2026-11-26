@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ISDN 1001 project</title>
+<meta name="description" content="Demos for an ISDN 1001 design project at HKUST.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@900&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+  /* One dark look to match Freeze: ink background, tape-yellow links. */
+  :root {
+    color-scheme: dark;
+    --ink: #0f1320;
+    --panel: #1a2033;
+    --line: #4a5577;
+    --text: #eef1f7;
+    --text-2: #c2c9db;
+    --tape: #ffd23f;
+    --on-tape: #1c1600;
+    --fill: #35d6c0;
+    --display: 'Big Shoulders Display', 'Arial Narrow', Impact, sans-serif;
+    --body: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    background: var(--ink);
+    color: var(--text);
+    font: 400 1.0625rem/1.55 var(--body);
+  }
+  main {
+    display: grid;
+    gap: 2.5rem;
+    max-width: 52rem;
+    margin: 0 auto;
+    padding-block: clamp(2rem, 8vh, 5rem);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  h1 {
+    margin: 0;
+    font: 900 clamp(3rem, 10vw, 5.5rem)/0.95 var(--display);
+    color: var(--tape);
+  }
+  .lede { margin: 0.75rem 0 0; color: var(--text-2); font-size: 1.2rem; max-width: 36rem; }
+  .demos { display: grid; gap: 1rem; }
+  .demo {
+    display: grid;
+    gap: 0.6rem;
+    padding: 1.4rem 1.5rem;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    background: var(--panel);
+  }
+  .demo h2 { margin: 0; font: 900 2.2rem/1 var(--display); }
+  .demo p { margin: 0; max-width: 40rem; }
+  .demo .note { color: var(--text-2); font-size: 0.98rem; }
+  .btn {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+    margin-top: 0.4rem;
+    padding: 0.6rem 1.15rem;
+    border: 2px solid var(--tape);
+    border-radius: 8px;
+    background: var(--tape);
+    color: var(--on-tape);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .btn.quiet { background: transparent; color: var(--text); border-color: var(--line); }
+  .btn:focus-visible { outline: 3px solid var(--fill); outline-offset: 3px; }
+  .fine { margin: 0; color: var(--text-2); font-size: 0.95rem; max-width: 40rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>ISDN 1001 project</h1>
+    <p class="lede">Demos for a HKUST design project on leisure in 2030.</p>
+  </header>
+
+  <section class="demos" aria-label="Demos">
+    <article class="demo">
+      <h2>Freeze</h2>
+      <p>A camera game for everyone in front of one laptop. A shape appears on the screen. Fill it with your bodies, then hold still.</p>
+      <p class="note">Use Chrome or Edge on a laptop, and allow the camera when your browser asks. No camera? You can play with practice players.</p>
+      <a class="btn" href="freeze/">Play Freeze</a>
+    </article>
+
+    <article class="demo">
+      <h2>Minibus</h2>
+      <p>The prototype for the first topic, which was turned down. Friends say if they're in and when they're free, and the plan is confirmed once enough people can make the same time.</p>
+      <p class="note">This demo uses pretend friends on one device.</p>
+      <a class="btn quiet" href="minibus/">Open the Minibus demo</a>
+    </article>
+  </section>
+
+  <p class="fine">Nothing you do on these pages is sent to a server. In Freeze, the camera picture stays on your laptop and isn't recorded.</p>
+</main>
+</body>
+</html>

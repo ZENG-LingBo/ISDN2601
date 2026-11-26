@@ -1,0 +1,9 @@
+# Cloudflare Pages headers for isdn1001.lbzeng.com.
+# noindex keeps every page out of Google and other search engines, while anyone with the
+# link can still open it. Don't block the site in robots.txt as well: a search engine that
+# can't fetch a page never sees its noindex.
+/*
+  X-Robots-Tag: noindex, nofollow, noarchive, nosnippet
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(self), microphone=(), geolocation=()
