@@ -16,7 +16,7 @@
 
   const SHAPES = {
     // 1 or 2 people
-    door: { name: 'Door', rings: [rect(0.37, 0.14, 0.63, 1)], tip: 'Stand tall, side by side.' },
+    door: { name: 'Door', rings: [rect(0.37, 0.14, 0.63, 1)], tip: 'Stand tall in the doorway.' },
     tee: {
       name: 'Letter T',
       rings: [[[0.18, 0.22], [0.82, 0.22], [0.82, 0.4], [0.63, 0.4], [0.63, 1], [0.37, 1], [0.37, 0.4], [0.18, 0.4]]],
@@ -43,7 +43,7 @@
     bridge: {
       name: 'Bridge',
       rings: [[[0.12, 1], [0.12, 0.18], [0.88, 0.18], [0.88, 1], [0.66, 1], [0.66, 0.42], [0.34, 0.42], [0.34, 1]]],
-      tip: 'Keep the space under the bridge empty.',
+      tip: 'Stand at both sides and join arms over the gap.',
     },
     aitch: {
       name: 'Letter H',

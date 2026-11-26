@@ -13,7 +13,7 @@ University students say they want to play together, but most games are hard to s
 | What stops people | How Freeze handles it |
 |---|---|
 | You need a full group, at the same time, in a booked place | Any number of people in front of any laptop, in a dorm, a classroom or a common room. Nothing to book. |
-| There's a lot to learn, and you don't want to be the weakest player | The only rule is to fill the shape. There's one team score, and shapes need short and tall people, standing and crouching, so nobody's body is the wrong one. |
+| There's a lot to learn, and you don't want to be the weakest player | You only have to fill the shape and hold still. There's one team score, and shapes need short and tall people, standing and crouching, so nobody's body is the wrong one. |
 | You need to buy equipment | Students already carry a laptop with a camera. |
 | You can get hurt | No ball, no running and no tackles. The game rewards holding still, bigger groups get more time, and the screen says "Slow down" if anyone rushes. |
 
@@ -29,7 +29,7 @@ Freeze uses a laptop, not a phone, because a laptop camera on a table can see a 
 
 On the screen, the shape is outlined in yellow. Parts of you inside the shape are teal. Parts of you outside the shape have coral stripes, and they cost points.
 
-Press the space bar to pause, and the space bar or Escape to carry on. Press M to turn the sound on or off. Freeze also pauses if you switch to another tab. After a game, you can pick a different group size and play again without learning the room again.
+Press the space bar to pause, and the space bar or Escape to resume. Press M to turn the sound on or off. Freeze also pauses if you switch to another tab. After a game, you can pick a different group size and play again without learning the room again.
 
 **Points for a round** = 100 × fit × still.
 
@@ -42,10 +42,10 @@ Press the space bar to pause, and the space bar or Escape to carry on. Press M t
 Browsers only allow the camera on a secure page, so pick one of these:
 
 - **Open the file.** In Chrome or Edge, open `game/index.html` from the folder. Chrome treats files on your own laptop as secure, so the camera works. This was tested in Chromium only.
-- **Run the small server.** In the `game` folder, run `node server.js`, then open http://localhost:8080. This needs Node.js 18 or later. It works in any browser and only serves the game's files, to this laptop only.
+- **Run the small server.** In the `game` folder, run `node server.js`, then open http://localhost:8080. This needs Node.js 18 or later. It works in any browser. It serves only the game's files, and only this laptop can open them.
 - **A secure link (https).** Any static web host works, such as GitHub Pages. There's nothing to set up on a server.
 
-No camera, or the camera is blocked? Choose **Try it without a camera**. Pretend players walk in and fill the shapes, and the same vision code scores them. The practice players aren't very good at this, so a real group should do better. If Freeze is open inside another page, such as an online preview, that page may block the camera, so only practice mode works.
+No camera, or the camera is blocked? Choose **Try it without a camera**. Practice players walk in and fill the shapes, and the same vision code scores them. The practice players aren't very good at this, so a real group should do better. If Freeze is open inside another page, such as an online preview, that page may block the camera, so only practice mode works.
 
 ## How the camera part works
 
@@ -65,7 +65,7 @@ All of it is plain JavaScript written for this project, in `js/vision.js`. There
 - It needs a steady camera and steady light. If the laptop moves or a light turns on, learn the room again (pause, then **Learn the room again and restart**).
 - Clothes the same colour as the wall can be missed. A plain wall behind the players works best.
 - Someone walking behind the players counts as a player.
-- If someone stays in the picture without moving while the room is learned, Freeze can't tell. They become part of the room. Check that everyone is out of the picture.
+- If someone stays in the picture without moving while Freeze learns the room, Freeze can't tell. They become part of the room. Check that everyone is out of the picture.
 - It hasn't been tried with real groups, real rooms or many laptop models yet. The numbers in `js/vision.js` and `js/rounds.js` (how different a pixel must be, how much movement counts as moving or rushing) are first guesses to tune in a real test.
 
 ## Safety
@@ -83,7 +83,7 @@ All of it is plain JavaScript written for this project, in `js/vision.js`. There
 | `js/vision.js` | Finding people, fit and movement |
 | `js/shapes.js` | The 15 shapes, which 5 each group size gets, the time to fill and how far to stand |
 | `js/rounds.js` | The rules: timing, points, pause |
-| `js/practice.js` | The pretend room and players for practice mode |
+| `js/practice.js` | The practice room and practice players |
 | `js/game.js` | The camera, drawing, sound and buttons |
 | `server.js` | The small local server |
 | `test/` | Unit tests (`npm test`) and a browser walkthrough (`npm run e2e`) |

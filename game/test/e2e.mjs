@@ -95,6 +95,11 @@ try {
   await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
   });
+  await page.keyboard.press('Escape');
+  await page.locator('#btn-sound').focus();
+  await page.keyboard.press('Space');
+  check(await page.isVisible('#pause'), 'space pauses even when the sound button has focus');
+  check(await page.evaluate(() => window.__freeze.sound) === true, 'space does not press the focused sound button');
   const phaseBefore = await page.evaluate(() => [window.__freeze.game.phase, window.__freeze.game.round]);
   await page.waitForTimeout(1200);
   const phaseAfter = await page.evaluate(() => [window.__freeze.game.phase, window.__freeze.game.round]);

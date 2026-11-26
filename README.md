@@ -1,4 +1,4 @@
-# “We should play sometime.”: ISDN 1001 problem-statement pitch
+# “We should play sometime”: ISDN 1001 problem-statement pitch
 
 ISDN 1001 Introduction to Integrative Systems and Design, HKUST · Individual project
 Theme: Leisure, Entertainment and Culture in 2030 · 2-minute live pitch
@@ -26,7 +26,7 @@ Deck outline:
 3. Background: activity drops when school ends
 4. Pain points: without school, a game needs 3 things
 5. The phone is always there
-6. Problem statement and How Might We
+6. Problem statement and how might we
 7. References (not presented)
 
 Before you present, open the sources marked "Open before the pitch" in `research/sport-background.md`, and put your name and the date on slide 1.

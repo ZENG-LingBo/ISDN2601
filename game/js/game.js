@@ -176,7 +176,7 @@
       return "Freeze couldn't find a camera. Check that this laptop has one, or try it without a camera.";
     }
     if (name === 'NotReadableError') {
-      return 'Another app is using the camera. Close video call apps and try again.';
+      return 'Another app may be using the camera. Close any video call apps and try again.';
     }
     return "Freeze couldn't start the camera. Try again, or try it without a camera.";
   }
@@ -837,18 +837,27 @@
     fitView();
   });
 
+  // The space bar always pauses during play, even when a button in the bottom bar has focus.
+  // Buttons in the pause dialog keep their normal behaviour, so Space on Resume resumes.
+  const inBar = (t) => t instanceof Element && $('play-bar').contains(t);
   document.addEventListener('keydown', (e) => {
-    if (st.screen !== 'play' || e.repeat) return;
+    if (st.screen !== 'play') return;
     const paused = st.game && st.game.paused !== null;
+    const barButton = inBar(e.target);
+    if (e.code === 'Space' && barButton) e.preventDefault(); // stop the focused button from pressing itself
+    if (e.repeat) return;
     if (e.key === 'Escape' && paused) {
       e.preventDefault();
       resumeGame();
-    } else if (e.code === 'Space' && !(e.target instanceof HTMLButtonElement)) {
+    } else if (e.code === 'Space' && (barButton || !(e.target instanceof HTMLButtonElement))) {
       e.preventDefault();
       togglePause();
     } else if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey) {
       toggleSound();
     }
+  });
+  document.addEventListener('keyup', (e) => {
+    if (st.screen === 'play' && e.code === 'Space' && inBar(e.target)) e.preventDefault();
   });
 
   showFillTime();
