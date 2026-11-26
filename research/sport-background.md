@@ -157,3 +157,14 @@ Ask 5 to 8 HKUST students, ideally from different halls or societies. Write down
 9. How many friends could you call right now who'd play something with you this week?
 
 If the answers change the pain points, update section 4 and the deck before the pitch.
+
+## 8. Review history
+
+Each review was done by a separate agent that saw only the files and the rules, not how they were written.
+
+| Round | Review | Verdict | What changed |
+|---|---|---|---|
+| 1 | Text against the writing rules | FAIL (1 must-fix: the deck title was in title case) | Title fixed. Also: "on her own" became "without school", and "opening a phone" was reworded. |
+| 1 | Slide design | 4 P1, 5 P2 | Persona and empathy map merged into one slide. Pain-point list cut, because it repeated other slides. Content centred under each title. Bigger numbers. Simpler cover card. |
+| 1 | Story flow | 4 P1, 7 P2 | The 81% moved to Q&A. Script cut from 240 to 229 words. Laziness answer and court claim softened. How Might We and problem statement reworded. Unsupported injury number removed. |
+| 2 | Text against the writing rules | PASS | 2 optional fixes applied: numerals in a deck description, and "actually" removed. |

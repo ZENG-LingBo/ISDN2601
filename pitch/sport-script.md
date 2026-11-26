@@ -3,7 +3,7 @@
 ISDN 1001 · Individual project · Problem-statement pitch
 **Time limit: 2:00. Aim for about 1:50, and finish by 1:52.**
 
-The script is 229 words, or about 233 when the numbers are read out in full. At a calm 135 words a minute, that's about 1:44 of speech. The other 6 to 8 seconds are for the pauses marked below and for changing slides. The same words are in each slide's speaker notes. Time yourself: if a run goes over 1:52, use the cuts at the end.
+The script is 228 words, or about 232 when the numbers are read out in full. At a calm 135 words a minute, that's about 1:44 of speech. The other 6 to 8 seconds are for the pauses marked below and for changing slides. The same words are in each slide's speaker notes. Time yourself: if a run goes over 1:52, use the cuts at the end.
 
 The research behind every number is in [`research/sport-background.md`](../research/sport-background.md).
 
@@ -34,7 +34,7 @@ The research behind every number is in [`research/sport-background.md`](../resea
 
 ## Slide 4: Pain points (0:50–1:03)
 
-> Without school, a game needs three things: a time when everyone's free, a court she can actually book, and the nerve to be the weakest player.
+> Without school, a game needs three things: a time when everyone's free, a court she can book, and the nerve to be the weakest player.
 
 *Count the three things on your fingers. The slide shows the evidence for each one, so you don't need to read it.*
 
