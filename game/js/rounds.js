@@ -48,7 +48,7 @@
       if (type === 'hands') {
         const t = targets[i];
         const title = `Show ${t} ${t === 1 ? 'hand' : 'hands'}`;
-        return { type, target: t, name: 'Hands up', what: title, title, tip: 'Count together. A hand counts when it is above your head.', fillMs: TIMES.hands };
+        return { type, target: t, name: 'Hands up', what: title, title, tip: 'Count together. A hand counts once your wrist is above your nose.', fillMs: TIMES.hands };
       }
       const id = Pose.POSE_ORDER[i];
       return { type, card: id, name: 'Copy the pose', what: Pose.POSES[id].name, title: Pose.POSES[id].name, tip: 'Everyone copies it, then holds still.', fillMs: TIMES.pose };

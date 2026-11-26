@@ -165,12 +165,12 @@ try {
 
   // Mix, with 7 players, then play again
   await page.getByRole('button', { name: 'Choose another game' }).click();
-  await page.getByRole('radio', { name: '7' }).check();
-  await page.waitForFunction(() => document.getElementById('player-count').textContent === '7 players', null, { timeout: 3000 });
-  check(true, 'Freeze counts 7 practice players');
+  await page.getByRole('radio', { name: '6' }).check();
+  await page.waitForFunction(() => document.getElementById('player-count').textContent === '6 players', null, { timeout: 3000 });
+  check(true, 'Freeze counts 6 practice players');
   await page.getByRole('radio', { name: /^Mix/ }).check();
   await page.getByRole('button', { name: 'Start the game' }).click();
-  await waitText(page, '#hud-round', /^Round 1 of 5: Big wall$/, 'Mix for 7 players starts with the Big wall shape');
+  await waitText(page, '#hud-round', /^Round 1 of 5: Big wall$/, 'Mix for 6 players starts with the Big wall shape');
   await page.waitForSelector('#screen-done', { state: 'visible', timeout: 40000 });
   const kinds = await page.evaluate(() => window.__freeze.game.results.map((r) => r.type).join(','));
   check(kinds === 'shape,hands,pose,shape,pose', 'Mix plays each kind of round');

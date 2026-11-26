@@ -370,8 +370,8 @@
     const g = st.game;
     const r = g.rounds[g.round];
     drawCard(r);
-    say(`Round ${g.round + 1} of ${g.rounds.length}: ${r.name}. ${r.title}. ${r.tip}`);
-    speak(`Round ${g.round + 1}. ${r.title}.`);
+    say(`Round ${g.round + 1} of ${g.rounds.length}: ${r.type === 'shape' ? r.what : r.name}. ${r.title}. ${r.tip}`);
+    speak(`Round ${g.round + 1}. ${r.title}.${r.type === 'shape' ? ' ' + r.tip : ''}`);
   }
 
   function pct(x) {
@@ -450,7 +450,7 @@
     body.textContent = '';
     g.results.forEach((r, i) => {
       const tr = document.createElement('tr');
-      for (const text of [String(i + 1), r.name, r.what, String(r.points)]) {
+      for (const text of [String(i + 1), r.name, r.type === 'shape' ? `Fill the ${r.what} shape` : r.what, String(r.points)]) {
         const td = document.createElement('td');
         td.textContent = text;
         tr.appendChild(td);

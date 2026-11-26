@@ -33,7 +33,7 @@ Before you present, open the sources marked "Open before the pitch" in `research
 
 ## Freeze: a camera game (next stage)
 
-[`game/`](game/) has **Freeze**, a working prototype for the next stage: party games for everyone in front of one laptop. An AI model on the laptop finds each player's body, so Freeze counts the players by itself. There are three games: fill a shape with your bodies, show the right number of hands, and copy a pose. Every round ends with everyone holding still. The laptop keeps score, so nobody has to sit out and watch.
+[`game/`](game/) has **Freeze**, a working prototype for the next stage: party games for everyone in front of one laptop. An AI model on the laptop finds each player's body, so Freeze counts the players by itself. There are three games: fill a shape with your bodies, show the right number of hands, and copy a pose, plus Mix, a bit of each. Every round ends with everyone holding still. The laptop keeps score, so nobody has to sit out and watch.
 
 - Play it with a real camera: https://isdn1001.lbzeng.com/freeze/ (use Chrome or Edge on a laptop)
 - [How to play Freeze, run it on your own laptop, and how the camera part works](game/README.md)

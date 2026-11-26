@@ -23,7 +23,7 @@ function frozen(round, i, t) {
 }
 
 test('every practice player is found as a player', () => {
-  for (const n of [2, 4, 7]) {
+  for (const n of [2, 4, 6]) {
     const scene = P.createScene({ players: n, seed: 3 });
     assert.equal(look(scene, { present: true, t: 1000 }).players.length, n);
     assert.equal(look(scene, { present: false, t: 1000 }).players.length, 0);
@@ -38,7 +38,7 @@ test('the mask covers the practice players and nothing else', () => {
 });
 
 test('once frozen, the practice players fill every shape fairly well', () => {
-  for (const n of [2, 4, 7]) {
+  for (const n of [2, 4, 6]) {
     const scene = P.createScene({ players: n, seed: 11 });
     R.planRounds('shapes', n).forEach((round, i) => {
       const fit = V.scoreFit(look(scene, frozen(round, i)).mask, S.rasterize(round.shape, W, H));
@@ -49,7 +49,7 @@ test('once frozen, the practice players fill every shape fairly well', () => {
 });
 
 test('in Hands up, practice players show the target, except in the rounds where they get it one off', () => {
-  for (const n of [2, 4, 7]) {
+  for (const n of [2, 4, 6]) {
     const scene = P.createScene({ players: n, seed: 5 });
     R.planRounds('hands', n).forEach((round, i) => {
       const { players } = look(scene, frozen(round, i));
@@ -61,7 +61,7 @@ test('in Hands up, practice players show the target, except in the rounds where 
 });
 
 test('in Copy the pose, practice players copy the card, except one player in round 3', () => {
-  for (const n of [2, 4, 7]) {
+  for (const n of [2, 4, 6]) {
     const scene = P.createScene({ players: n, seed: 5 });
     R.planRounds('pose', n).forEach((round, i) => {
       const { players } = look(scene, frozen(round, i));
@@ -90,8 +90,8 @@ test('practice players hold still after Freeze, except one player in round 3', (
 });
 
 test('practice players walking into a shape are not rushing', () => {
-  const scene = P.createScene({ players: 7, seed: 2 });
-  const round = R.planRounds('shapes', 7)[0];
+  const scene = P.createScene({ players: 6, seed: 2 });
+  const round = R.planRounds('shapes', 6)[0];
   let worst = 0;
   let prev = null;
   for (let t = 0; t < round.fillMs; t += 66) {

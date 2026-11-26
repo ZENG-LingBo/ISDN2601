@@ -27,11 +27,11 @@
       <p id="camera-error" class="error" role="alert" hidden></p>
 
       <ol class="how">
-        <li><strong>Stand back.</strong> Freeze finds everyone in view and gives each player a name tag.</li>
+        <li><strong>Stand back.</strong> Freeze finds up to 6 players and gives each one a name tag.</li>
         <li><strong>Pick a game.</strong> Fill a shape with your bodies, show the right number of hands, or copy a pose.</li>
         <li><strong>Do it, then freeze.</strong> You get points for getting it right and for holding still.</li>
       </ol>
-      <p class="fine">Freeze works out where people are on this laptop. The video isn't recorded or sent anywhere. The first time you start the camera, Freeze downloads its body-tracking model, about 6 MB.</p>
+      <p class="fine">Freeze does its body tracking on this laptop. The video isn't recorded or sent anywhere. The first time you start the camera, Freeze downloads its body-tracking code from jsDelivr and its model from Google, about 6 MB.</p>
     </div>
     <figure class="start-preview">
       <canvas id="preview" width="320" height="240" aria-hidden="true"></canvas>
@@ -46,7 +46,7 @@
       <p class="mode-tag" id="ready-mode" hidden>Practice players</p>
       <h2 id="ready-title">Who's playing?</h2>
       <p class="count" id="player-count" aria-live="polite">Looking for players</p>
-      <p id="ready-hint">Stand back until everyone has a name tag. The camera should see you at least from the waist up.</p>
+      <p id="ready-hint">Stand back until everyone has a name tag. Freeze can see up to 6 players, at least from the waist up.</p>
       <p id="ready-loading" hidden>Getting body tracking ready. The first time takes a few seconds.</p>
       <p id="ready-error" class="error" role="alert" hidden></p>
 
@@ -55,7 +55,7 @@
         <div class="size-options">
           <label class="size"><input type="radio" name="practice-n" value="2"><span>2</span></label>
           <label class="size"><input type="radio" name="practice-n" value="4" checked><span>4</span></label>
-          <label class="size"><input type="radio" name="practice-n" value="7"><span>7</span></label>
+          <label class="size"><input type="radio" name="practice-n" value="6"><span>6</span></label>
         </div>
       </fieldset>
 
@@ -137,7 +137,7 @@
       <div class="actions">
         <button id="btn-again" class="btn primary" type="button">Play again</button>
         <button id="btn-change" class="btn" type="button">Choose another game</button>
-        <button id="btn-done-quit" class="btn" type="button">Back to the start</button>
+        <button id="btn-done-quit" class="btn" type="button">Go to the start</button>
       </div>
     </div>
   </section>
