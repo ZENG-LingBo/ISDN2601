@@ -95,3 +95,54 @@ test('players who appear or leave are not paired with someone else', () => {
   assert.equal(Pose.pairUp([a], [b]).length, 0);
   assert.equal(Pose.movement([a], [a, b]), 0);
 });
+
+test('hands resting on the head are not counted as hands up', () => {
+  assert.equal(Pose.handsUp(body('head', 'head')), 0);
+  assert.equal(Pose.matches(body('head', 'head'), 'hands-on-head'), true);
+});
+
+test('stillness is judged per player: one mover in a group of 4 leaves 3 of 4 still', () => {
+  const group = [0.2, 0.4, 0.6, 0.8].map((x) => body('down', 'down', x));
+  assert.equal(Pose.stillShare(group, group, 0.15), 1);
+  const k = Pose.size(group[0]);
+  const moved = group.map((p, i) => (i === 1 ? shift(p, 0.3 * k) : p));
+  assert.equal(Pose.stillShare(group, moved, 0.15), 0.75);
+  // tracking errors smaller than the limit don't count
+  const jitter = group.map((p) => shift(p, 0.05 * k, 0.03 * k));
+  assert.equal(Pose.stillShare(group, jitter, 0.15), 1);
+  // a big step is paired with the same player, so it counts as moving
+  assert.equal(Pose.stillShare([group[0]], [shift(group[0], 0.65 * k)], 0.15), 0);
+  assert.equal(Pose.stillShare([], [], 0.15), 1);
+});
+
+test('everyone holding both hands up starts the game, and only then', () => {
+  assert.equal(Pose.allHandsUp([body('up', 'up', 0.3), body('up', 'up', 0.7)]), true);
+  assert.equal(Pose.allHandsUp([body('up', 'up', 0.3), body('down', 'up', 0.7)]), false);
+  assert.equal(Pose.allHandsUp([]), false);
+});
+
+test('name tags stay with each player when they swap places', () => {
+  const a = body('down', 'down', 0.3);
+  const b = body('down', 'down', 0.7);
+  let tracked = Pose.track([], [a, b]);
+  assert.deepEqual(tracked.map((p) => p.id), [1, 2]);
+  // they walk past each other in small steps
+  for (let s = 1; s <= 10; s++) {
+    const t = s / 10;
+    tracked = Pose.track(tracked, [body('down', 'down', 0.3 + 0.4 * t), body('down', 'down', 0.7 - 0.4 * t)]);
+  }
+  const left = Pose.players(tracked)[0];
+  assert.equal(left.id, 2, 'the player now on the left kept tag 2');
+  // a newcomer gets the lowest free tag
+  tracked = Pose.track(tracked, [...Pose.players(tracked), body('down', 'down', 0.92)]);
+  assert.deepEqual(tracked.map((p) => p.id).sort(), [1, 2, 3]);
+});
+
+test('smoothing halves a sudden jump in one frame', () => {
+  const a = body('down', 'down', 0.5);
+  const first = Pose.track([], [a]);
+  const k = Pose.size(a);
+  const next = Pose.track(first, [shift(a, 0.2 * k)]);
+  const moved = next[0][Pose.P.NOSE].x - a[Pose.P.NOSE].x;
+  assert.ok(Math.abs(moved - 0.1 * k) < 1e-9);
+});

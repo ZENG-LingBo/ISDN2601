@@ -15,7 +15,8 @@
   const STEP_MS = 66; // look at about 15 frames a second
   const STILL_WINDOW_MS = 400; // while frozen, each moment is compared with the one this long before it
   const NOBODY_MS = 1000; // how long nobody must be in view before the screen says so
-  const TAG_COLOURS = ['#ffd23f', '#35d6c0', '#ff8a9a', '#9cc2ff', '#d0a4ff', '#ffb066'];
+  const LEAD_MS = 5000; // "Get in place" before round 1, so whoever pressed Start can step back
+  const HANDS_START_MS = 1000; // everyone holding both hands up this long starts the game
 
   const $ = (id) => document.getElementById(id);
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -36,7 +37,12 @@
     h: 90,
     aspect: 16 / 9,
     players: [],
+    tracked: [],
     mask: null,
+    lead: null,
+    handsSince: null,
+    misses: [],
+    errors: 0,
     counts: [],
     history: [],
     game: null,
@@ -93,6 +99,10 @@
     }
   }
 
+  function stopSpeech() {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  }
+
   function fitView() {
     const stage = view.parentElement;
     if (!stage || stage.closest('[hidden]')) return;
@@ -142,11 +152,13 @@
   }
 
   // ---------- Starting ----------
+  // detW × detH: the picture the body tracking (or the practice room) works on.
+  // w × h: the smaller grid that body outlines and shapes are compared on.
   function setSizes(detW, detH) {
     st.detW = detW;
     st.detH = detH;
-    st.w = detW / 2;
-    st.h = detH / 2;
+    st.w = 160;
+    st.h = Math.round((160 * detH) / detW);
     st.aspect = detW / detH;
     det.width = detW;
     det.height = detH;
@@ -223,7 +235,7 @@
       st.video = video;
       st.lastVideoTime = -1;
       st.mode = 'camera';
-      setSizes(320, Math.max(2, Math.round((320 * video.videoHeight) / video.videoWidth / 2) * 2));
+      setSizes(480, Math.max(2, Math.round((480 * video.videoHeight) / video.videoWidth / 2) * 2));
       watchFrames(video);
       for (const track of stream.getVideoTracks()) {
         track.addEventListener('ended', () => cameraLost(stream));
@@ -301,9 +313,12 @@
 
   function resetFrames() {
     st.players = [];
+    st.tracked = [];
     st.mask = null;
     st.history = [];
     st.nobodySince = null;
+    st.handsSince = null;
+    st.misses = [];
   }
 
   function openReady() {
@@ -315,17 +330,22 @@
     $('ready-mode').hidden = !practice;
     $('practice-size').hidden = !practice;
     $('ready-hint').hidden = practice;
+    $('ready-gesture').hidden = practice;
     $('ready-loading').hidden = true;
     $('ready-error').hidden = true;
     releaseWakeLock();
+    stopSpeech();
+    st.lead = null;
     show('ready');
-    $('btn-play').focus();
+    $('ready-title').focus();
   }
 
   function quitToStart() {
     st.ticket++;
     st.game = null;
+    st.lead = null;
     st.mode = null;
+    stopSpeech();
     stopCamera();
     releaseWakeLock();
     closePause();
@@ -347,22 +367,46 @@
   }
 
   // ---------- The game ----------
+  // Start: first "Get in place" for 5 seconds, so whoever pressed Start can step back. The
+  // players are counted at the end of it, and the rounds are planned for that many.
   function startGame() {
-    const n = playerCount();
-    if (n < 1) return;
+    if (playerCount() < 1 && st.screen !== 'done') return;
     st.kind = chosenGame();
-    st.game = R.createGame(st.kind, n, performance.now(), { speed: SPEED });
-    resetFrames();
+    st.game = null;
+    st.lead = { start: performance.now() };
+    st.handsSince = null;
     st.lastBeep = -1;
     $('play-mode').hidden = st.mode !== 'practice';
     $('result').hidden = true;
     $('rush').hidden = true;
     $('nobody').hidden = true;
     $('flash').hidden = true;
+    $('card').hidden = true;
     closePause();
     $('screen-play').classList.remove('freezing');
     show('play');
     requestWakeLock();
+    say('Get in place. The game starts in 5 seconds.');
+    speak('Get in place.');
+  }
+
+  function leadTick(now) {
+    const L = st.lead;
+    const left = LEAD_MS / SPEED - (now - L.start);
+    if (left > 0) return;
+    const n = playerCount();
+    if (n < 1) {
+      L.start = now; // wait for someone to step into view
+      return;
+    }
+    st.lead = null;
+    beginRounds(n);
+  }
+
+  function beginRounds(n) {
+    st.game = R.createGame(st.kind, n, performance.now(), { speed: SPEED });
+    st.history = [];
+    st.lastBeep = -1;
     announceRound();
   }
 
@@ -396,7 +440,7 @@
         $('screen-play').classList.remove('freezing');
         $('flash').hidden = true;
         st.flashUntil = 0;
-        showResult(g.results[g.results.length - 1]);
+        showResult(g.results[g.results.length - 1], st.misses.slice());
       } else if (e === 'next') {
         $('result').hidden = true;
         st.lastBeep = -1;
@@ -411,7 +455,7 @@
     }
   }
 
-  function showResult(r) {
+  function showResult(r, misses) {
     $('result-points').textContent = String(r.points);
     $('result-still').textContent = pct(r.still);
     let detail = '';
@@ -437,7 +481,18 @@
     beep(990, 160);
     setTimeout(() => beep(1320, 220), 170);
     say(`${r.points} points. ${detail}, held still ${pct(r.still)} of the time.`);
-    speak(`${r.points} points.`);
+    // The host says what went wrong, by name tag, so the group knows what to fix.
+    let note = '';
+    if (r.type === 'pose' && misses && misses.length) {
+      const names = misses.map((id) => 'P' + id);
+      note = ` ${names.length === 1 ? names[0] : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]} didn't have the pose.`;
+    } else if (r.type === 'hands' && r.hands !== r.target) {
+      const d = r.hands - r.target;
+      note = ` ${Math.abs(d)} ${Math.abs(d) === 1 ? 'hand' : 'hands'} too ${d > 0 ? 'many' : 'few'}.`;
+    } else if (r.still < 0.9) {
+      note = ' Someone moved.';
+    }
+    speak(`${r.points} points.${note}`);
   }
 
   function finishGame() {
@@ -461,6 +516,7 @@
       st.mode === 'practice'
         ? "The practice players aren't very good at this, so a real group should do better. Laptops that play the same game with the same number of players get the same rounds, so teams can compare scores."
         : 'Playing on more than one laptop? Laptops that play the same game with the same number of players get the same rounds, so you can compare scores.';
+    $('done-gesture').hidden = st.mode !== 'camera';
     show('done');
     const text = `${$('done-mode').textContent} ${R.total(g)} of ${R.maxTotal(g)}.`;
     say('Game over. ' + text);
@@ -509,11 +565,19 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) pauseGame();
+    else if (st.screen === 'play') {
+      st.wakeLock = null; // the browser drops the lock when the tab is hidden
+      requestWakeLock();
+    }
   });
 
   async function requestWakeLock() {
+    if (st.wakeLock) return;
     try {
-      if (navigator.wakeLock) st.wakeLock = await navigator.wakeLock.request('screen');
+      if (!navigator.wakeLock) return;
+      const lock = await navigator.wakeLock.request('screen');
+      if (st.screen !== 'play') lock.release().catch(() => {}); // the game ended while waiting
+      else st.wakeLock = lock;
     } catch (e) {
       st.wakeLock = null; // the screen may still sleep; that's fine
     }
@@ -547,12 +611,13 @@
         st.lastVideoTime = v.currentTime;
       }
       detCtx.drawImage(v, 0, 0, st.detW, st.detH);
-      return Sensing.detect(det, now, st.w, st.h);
+      const r = currentRound();
+      return Sensing.detect(det, now, st.w, st.h, !!(r && r.type === 'shape'));
     }
     if (st.mode === 'practice' && st.scene) {
       const f = P.frame(st.scene, practiceState(now));
       capCtx.putImageData(new ImageData(f.rgba, st.detW, st.detH), 0, 0);
-      return { poses: f.poses, mask: V.shrinkMask(f.mask, st.detW, st.detH, 2) };
+      return { poses: f.poses, mask: V.shrinkMask(f.mask, st.detW, st.detH, st.detW / st.w) };
     }
     return null;
   }
@@ -571,32 +636,55 @@
     return st.shapeMask;
   }
 
-  // While frozen: how far the player who moved most has moved since STILL_WINDOW_MS ago (but
-  // not since before the half second to settle ended). Otherwise, since the last frame.
-  function stillMotion(now, players) {
+  // While frozen: the share of players who moved less than MOVE_LIMIT since STILL_WINDOW_MS ago
+  // (but not since before the half second to settle ended). 1 at other times.
+  function stillNow(now, players) {
     const g = st.game;
     const h = st.history;
-    if (h.length < 2) return 0;
-    if (g.phase !== 'freeze') return Pose.movement(h[h.length - 2].players, players);
+    if (g.phase !== 'freeze' || h.length < 2) return 1;
     const win = Math.max(STILL_WINDOW_MS / SPEED, 2 * STEP_MS);
     const from = Math.max(now - win, g.phaseStart + R.times(g).grace);
     const base = h.find((f) => f.t >= from);
-    if (!base || base.t >= now) return 0;
-    return Pose.movement(base.players, players);
+    if (!base || base.t >= now) return 1;
+    return Pose.stillShare(base.players, players, R.MOVE_LIMIT);
+  }
+
+  // Everyone in view holding both hands up for a second starts the game (or the next one), so
+  // nobody has to stand at the laptop.
+  function handsToStart(now, players) {
+    if (st.lead || !Pose.allHandsUp(players)) {
+      st.handsSince = null;
+      return;
+    }
+    if (st.handsSince === null) st.handsSince = now;
+    if (now - st.handsSince >= HANDS_START_MS / SPEED) {
+      st.handsSince = null;
+      if (st.screen === 'done') setGame(st.kind);
+      startGame();
+    }
   }
 
   function process(now) {
+    if (st.screen === 'start') return;
+    if (st.game && st.game.paused !== null) return; // no tracking while paused
     const seen = sense(now);
     if (!seen) return;
-    const players = Pose.players(seen.poses);
+    // Smooth each player's body points a little and keep their name tag with them.
+    st.tracked = Pose.track(st.tracked, seen.poses, 0.5);
+    const players = st.tracked;
     st.players = players;
-    st.mask = V.cleanMask(seen.mask, st.w, st.h, 1);
+    st.mask = seen.mask ? V.cleanMask(seen.mask, st.w, st.h, 1) : null;
     st.counts.push(players.length);
     if (st.counts.length > 15) st.counts.shift();
     const prev = st.history.length ? st.history[st.history.length - 1] : null;
     st.history.push({ t: now, players });
     while (st.history.length && st.history[0].t < now - 1500) st.history.shift();
     if (st.screen === 'ready') updateReady();
+    if (st.screen === 'ready' || st.screen === 'done') handsToStart(now, players);
+    if (st.lead) {
+      leadTick(now);
+      return;
+    }
     const round = currentRound();
     if (!round || st.game.paused !== null) return;
     if (players.length === 0) {
@@ -606,10 +694,13 @@
       st.nobodySince = null;
       $('nobody').hidden = true;
     }
-    const m = { players: players.length, motion: stillMotion(now, players), rush: prev ? Pose.speed(prev.players, players, (now - prev.t) / 1000) : 0 };
+    const m = { players: players.length, still: stillNow(now, players), rush: prev ? Pose.speed(prev.players, players, (now - prev.t) / 1000) : 0 };
     if (round.type === 'shape') Object.assign(m, V.scoreFit(st.mask, shapeMaskFor(round.shape)));
     if (round.type === 'hands') m.hands = players.reduce((s, p) => s + Pose.handsUp(p), 0);
-    if (round.type === 'pose') m.matching = players.filter((p) => Pose.matches(p, round.card)).length;
+    if (round.type === 'pose') {
+      m.matching = players.filter((p) => Pose.matches(p, round.card)).length;
+      if (st.game.phase === 'freeze') st.misses = players.filter((p) => !Pose.matches(p, round.card)).map((p) => p.id);
+    }
     onEvents(R.step(st.game, now, m), now);
   }
 
@@ -619,6 +710,12 @@
     const el = $('player-count');
     if (el.textContent !== text) el.textContent = text;
     $('btn-play').disabled = n < 1;
+    if (st.mode === 'camera') {
+      let hint = 'Stand back until everyone has a name tag. Freeze can see up to 6 players, at least from the waist up.';
+      if (n >= Sensing.MAX_PLAYERS) hint = 'Freeze can follow 6 players at a time. If there are more of you, swap players between games.';
+      else if (n > 0) hint = S.SIZES[S.sizeFor(n)].stand + ' Everyone should have a name tag.';
+      if ($('ready-hint').textContent !== hint) $('ready-hint').textContent = hint;
+    }
   }
 
   // ---------- Drawing ----------
@@ -678,8 +775,9 @@
   // Name tags over each player, the lines Freeze sees along their arms, and what counts this round.
   function drawPlayers(ctx, dw, dh, round) {
     const unit = Math.max(1, dw / 640);
-    st.players.forEach((p, i) => {
-      const colour = TAG_COLOURS[i % TAG_COLOURS.length];
+    st.players.forEach((p) => {
+      // Tags and arm lines are white, so they don't look like the teal "right" or coral "wrong".
+      const colour = '#eef1f7';
       const k = Pose.size(p);
       ctx.lineCap = 'round';
       ctx.strokeStyle = colour;
@@ -720,7 +818,7 @@
         ctx.setLineDash([]);
       }
       // the tag
-      const label = 'P' + (i + 1);
+      const label = 'P' + p.id;
       ctx.font = `700 ${Math.round(18 * unit)}px "Atkinson Hyperlegible", system-ui, sans-serif`;
       const tw = ctx.measureText(label).width + 16 * unit;
       const th = 26 * unit;
@@ -798,6 +896,25 @@
   }
 
   function hud(now) {
+    if (st.screen === 'play' && st.lead) {
+      const left = Math.max(0, LEAD_MS / SPEED - (now - st.lead.start));
+      const n = playerCount();
+      $('hud-round').textContent = 'Get ready';
+      $('callout-main').textContent = 'Get in place';
+      $('callout-sub').textContent = n < 1 ? 'Nobody in view yet. Step into the picture.' : S.SIZES[S.sizeFor(n)].stand;
+      const timer = $('timer');
+      timer.hidden = false;
+      const k = Math.max(1, Math.ceil(left / (1000 / SPEED)));
+      timer.textContent = String(k);
+      if (k <= 3 && k !== st.lastBeep) {
+        st.lastBeep = k;
+        beep(660, 110);
+      }
+      $('meter-fill').style.width = '0%';
+      $('meter-text').textContent = n === 1 ? '1 player' : `${n} players`;
+      $('hud-total').textContent = '0';
+      return;
+    }
     const g = st.game;
     if (st.screen !== 'play' || !g || g.phase === 'done') return;
     const r = g.rounds[g.round];
@@ -850,14 +967,43 @@
     $('hud-total').textContent = String(R.total(g));
   }
 
+  // One error, such as the graphics chip being reset, must not stop the game for good: the next
+  // frame is always asked for first, and body tracking is rebuilt on the processor.
   function loop(now) {
-    if (now - st.lastStep >= STEP_MS) {
-      st.lastStep = now;
-      process(now);
-    }
-    draw();
-    hud(now);
     requestAnimationFrame(loop);
+    try {
+      if (now - st.lastStep >= STEP_MS) {
+        st.lastStep = now;
+        process(now);
+      }
+      draw();
+      hud(now);
+    } catch (err) {
+      trackingFailed(err);
+    }
+  }
+
+  function trackingFailed(err) {
+    if (st.mode !== 'camera' || !st.tracking) {
+      console.error(err);
+      return;
+    }
+    st.tracking = false;
+    st.errors++;
+    pauseGame('Body tracking stopped for a moment. Wait a few seconds, then choose Resume.');
+    const ticket = st.ticket;
+    const retry = st.errors <= 3 ? Sensing.rebuild() : Promise.reject(err);
+    retry
+      .then(() => {
+        if (ticket === st.ticket) st.tracking = true;
+      })
+      .catch(() => {
+        if (ticket !== st.ticket) return;
+        pauseGame();
+        const why = $('pause-reason');
+        why.textContent = 'Body tracking stopped. Choose End the game, then start the camera again.';
+        why.hidden = false;
+      });
   }
 
   // ---------- Start-screen preview ----------

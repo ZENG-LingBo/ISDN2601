@@ -19,7 +19,7 @@
   // Arms for each pose card: [left, right], the player's own left and right.
   const CARD_ARMS = {
     'arms-up': ['up', 'up'],
-    'arms-crossed': ['cross', 'cross'],
+    'hands-on-shoulders': ['shoulder', 'shoulder'],
     'right-up': ['down', 'up'],
     'left-up': ['up', 'down'],
     'hands-on-head': ['head', 'head'],
@@ -225,12 +225,12 @@
       } else if (state === 'out') {
         set(E, sx + s * 0.55 * k, sy - 0.02 * k);
         set(Wr, sx + s * 1.1 * k, sy - 0.04 * k);
-      } else if (state === 'cross') {
-        set(E, sx + s * 0.15 * k, sy + 0.45 * k);
-        set(Wr, cx - s * 0.35 * k, sy + 0.3 * k);
+      } else if (state === 'shoulder') {
+        set(E, sx + s * 0.3 * k, sy + 0.35 * k);
+        set(Wr, sx + s * 0.04 * k, sy + 0.02 * k);
       } else if (state === 'head') {
-        set(E, sx + s * 0.45 * k, sy - 0.45 * k);
-        set(Wr, nose.x + s * 0.18 * k, nose.y - 0.3 * k);
+        set(E, sx + s * 0.45 * k, sy - 0.4 * k);
+        set(Wr, nose.x + s * 0.18 * k, nose.y - 0.2 * k);
       } else {
         set(E, sx + s * 0.06 * k, sy + 0.55 * k);
         set(Wr, sx + s * 0.08 * k, sy + 1.05 * k);

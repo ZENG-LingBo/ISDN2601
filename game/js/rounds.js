@@ -10,8 +10,8 @@
 //   Shapes        how well the group fills the shape (Vision.scoreFit)
 //   Hands up      1 for exactly the right number of hands up, 0.5 for one off, else 0
 //   Copy the pose the share of players copying the pose
-// Points for a round = 100 × the average score × the share of moments in which nobody moved.
-// A game is 5 rounds, so 500 at most.
+// Points for a round = 100 × the average score × how still the group held: at each moment, the
+// share of players who didn't move, averaged. A game is 5 rounds, so 500 at most.
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(require('./shapes.js'), require('./pose.js'));
   else root.Rounds = factory(root.Shapes, root.Pose);
@@ -19,7 +19,7 @@
   'use strict';
 
   const TIMES = { freeze: 3000, grace: 500, result: 3500, hands: 6000, pose: 5000 };
-  const MOVE_LIMIT = 0.15; // while frozen, moving less than this many body sizes in 0.4 s counts as still
+  const MOVE_LIMIT = 0.15; // while frozen, a player who moves less than this many body sizes in 0.4 s is still
   const RUSH_LIMIT = 3.5; // moving across the room faster than this many body sizes a second is rushing
   const RUSH_MS = 400; // ...for this long
 
@@ -48,7 +48,7 @@
       if (type === 'hands') {
         const t = targets[i];
         const title = `Show ${t} ${t === 1 ? 'hand' : 'hands'}`;
-        return { type, target: t, name: 'Hands up', what: title, title, tip: 'Count together. A hand counts once your wrist is above your nose.', fillMs: TIMES.hands };
+        return { type, target: t, name: 'Hands up', what: title, title, tip: 'Count together. Raise each hand high above your head.', fillMs: TIMES.hands };
       }
       const id = Pose.POSE_ORDER[i];
       return { type, card: id, name: 'Copy the pose', what: Pose.POSES[id].name, title: Pose.POSES[id].name, tip: 'Everyone copies it, then holds still.', fillMs: TIMES.pose };
@@ -138,7 +138,7 @@
     const f = game.frozen;
     const n = f.length;
     const avg = (k) => (n ? f.reduce((s, x) => s + x[k], 0) / n : 0);
-    const still = n ? f.filter((x) => x.still).length / n : 0;
+    const still = n ? f.reduce((s, x) => s + x.still, 0) / n : 0;
     const score = avg('score');
     const round = game.rounds[game.round];
     const result = {
@@ -160,7 +160,8 @@
   }
 
   // Move the game on. m is the latest measurement (see momentScore), plus:
-  //   motion  how far the player who moved most has moved in the last 0.4 s, in body sizes
+  //   still   the share of players who held still over the last 0.4 s (Pose.stillShare), or
+  //   motion  how far the player who moved most has moved, in body sizes, if still is missing
   //   rush    how fast the fastest player is crossing the room, in body sizes a second
   // or null if there isn't a measurement yet. Returns a list of things that happened.
   function step(game, now, m) {
@@ -206,7 +207,7 @@
         const L = game.live;
         game.frozen.push({
           score: L.score,
-          still: (m.motion || 0) < MOVE_LIMIT,
+          still: m.still ?? ((m.motion || 0) < MOVE_LIMIT ? 1 : 0),
           filled: L.filled,
           outside: L.outside,
           hands: L.hands,

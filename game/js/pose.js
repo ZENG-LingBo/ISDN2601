@@ -56,26 +56,24 @@
     return centre(p).y - 0.45 * size(p);
   }
 
-  // A hand is up when the wrist is above the nose.
+  // A hand is up when the wrist is high above the head: at least 0.4 of a body size above the
+  // nose. A hand resting on the head doesn't count.
   function handUp(p, side) {
-    const w = side === 'left' ? P.L_WRIST : P.R_WRIST;
-    return seen(p, w) && p[w].y < headY(p);
+    return armHigh(p, side);
   }
 
   function handsUp(p) {
     return (handUp(p, 'left') ? 1 : 0) + (handUp(p, 'right') ? 1 : 0);
   }
 
-  // Arms crossed in front of the chest: each wrist has crossed the middle of the body, between
-  // shoulder and waist height. Needs no more room than standing, so it suits big groups.
-  function armCrossed(p, side) {
+  // A hand on its own shoulder: the wrist close to the shoulder on the same side, below the
+  // nose. The hands stay in view, and it needs no more room than standing.
+  function onShoulder(p, side) {
     const s = side === 'left' ? P.L_SHOULDER : P.R_SHOULDER;
     const w = side === 'left' ? P.L_WRIST : P.R_WRIST;
     if (!seen(p, w)) return false;
     const k = size(p);
-    const c = centre(p).x;
-    const crossed = side === 'left' ? p[w].x > c + 0.05 * k : p[w].x < c - 0.05 * k; // the left hand moves to the screen's right
-    return crossed && p[w].y > p[s].y - 0.15 * k && p[w].y < p[s].y + 0.8 * k;
+    return Math.hypot(p[w].x - p[s].x, p[w].y - p[s].y) < 0.35 * k && p[w].y > headY(p) + 0.05 * k;
   }
 
   function onHead(p, side) {
@@ -89,7 +87,7 @@
 
   function armHigh(p, side) {
     const w = side === 'left' ? P.L_WRIST : P.R_WRIST;
-    return seen(p, w) && p[w].y < headY(p) - 0.45 * size(p);
+    return seen(p, w) && p[w].y < headY(p) - 0.4 * size(p);
   }
 
   function armDown(p, side) {
@@ -101,13 +99,13 @@
   // The poses for "Copy the pose". Each has a plain name and a test.
   const POSES = {
     'arms-up': { name: 'Both arms up', test: (p) => armHigh(p, 'left') && armHigh(p, 'right') },
-    'arms-crossed': { name: 'Arms crossed', test: (p) => armCrossed(p, 'left') && armCrossed(p, 'right') },
+    'hands-on-shoulders': { name: 'Hands on your shoulders', test: (p) => onShoulder(p, 'left') && onShoulder(p, 'right') },
     'right-up': { name: 'Right hand up', test: (p) => armHigh(p, 'right') && armDown(p, 'left') },
     'hands-on-head': { name: 'Hands on your head', test: (p) => onHead(p, 'left') && onHead(p, 'right') },
     'left-up': { name: 'Left hand up', test: (p) => armHigh(p, 'left') && armDown(p, 'right') },
   };
   // Every pose fits in the space a standing person takes, so big groups don't need more room.
-  const POSE_ORDER = ['arms-up', 'arms-crossed', 'right-up', 'hands-on-head', 'left-up'];
+  const POSE_ORDER = ['arms-up', 'hands-on-shoulders', 'right-up', 'hands-on-head', 'left-up'];
 
   function matches(p, id) {
     const card = POSES[id];
@@ -122,25 +120,28 @@
     return [clamp(m), clamp(2 * m), clamp(m - 1), clamp(m + 1), clamp(Math.ceil(1.5 * m))];
   }
 
-  // Pair each player in `cur` with the nearest player in `prev`, by the middle of the shoulders.
-  function pairUp(prev, cur) {
-    const pairs = [];
-    const used = new Set();
-    for (const c of cur) {
-      let best = -1;
-      let bestD = Infinity;
-      prev.forEach((p, i) => {
-        if (used.has(i)) return;
-        const d = dist(centre(p), centre(c));
-        if (d < bestD) {
-          bestD = d;
-          best = i;
-        }
+  // Pair players in `prev` with players in `cur`, closest pairs first, by the middle of the
+  // shoulders. `where` gives the position to use for a player in `prev`, for example where they
+  // are expected to be now. Pairs further apart than 1.2 body sizes are left unpaired.
+  function pairUp(prev, cur, where) {
+    const at = where || centre;
+    const cand = [];
+    prev.forEach((a, i) => {
+      const pa = at(a);
+      cur.forEach((b, j) => {
+        const d = dist(pa, centre(b));
+        if (d < 1.2 * size(b)) cand.push([d, i, j]);
       });
-      if (best >= 0 && bestD < 0.6 * size(c)) {
-        used.add(best);
-        pairs.push([prev[best], c]);
-      }
+    });
+    cand.sort((x, y) => x[0] - y[0]);
+    const usedA = new Set();
+    const usedB = new Set();
+    const pairs = [];
+    for (const [, i, j] of cand) {
+      if (usedA.has(i) || usedB.has(j)) continue;
+      usedA.add(i);
+      usedB.add(j);
+      pairs.push([prev[i], cur[j]]);
     }
     return pairs;
   }
@@ -169,5 +170,68 @@
     return worst;
   }
 
-  return { P, KEY, VISIBLE, POSES, POSE_ORDER, seen, isPlayer, size, centre, players, headY, handUp, handsUp, matches, handTargets, pairUp, movement, speed };
+  // How many of the players moved less than `limit` body sizes, as a share from 0 to 1.
+  // Judging each player on their own is fairer to big groups than "did anyone move": with
+  // 6 players, small tracking errors would make someone look as if they moved almost every time.
+  // A player who can't be paired with a moment ago (stepped away, or the model lost them) counts
+  // as moved. Returns 1 when nobody is in view, because nobody moved.
+  function stillShare(prev, cur, limit) {
+    const now = players(cur);
+    if (!now.length) return 1;
+    const pairs = pairUp(players(prev), now);
+    let still = 0;
+    for (const [a, b] of pairs) {
+      const k = size(b);
+      let worst = 0;
+      for (const i of KEY) if (seen(a, i) && seen(b, i)) worst = Math.max(worst, Math.hypot(a[i].x - b[i].x, a[i].y - b[i].y) / k);
+      if (worst < limit) still++;
+    }
+    return still / now.length;
+  }
+
+  // True when every player in view has both hands up. Used to start a game without anyone
+  // going to the laptop.
+  function allHandsUp(poses) {
+    const list = players(poses);
+    return list.length > 0 && list.every((p) => handsUp(p) === 2);
+  }
+
+  // Smooth body points over a few moments, to calm small tracking errors. `prev` is the last
+  // smoothed list. Each player has an `id`, `raw` (where the model last saw them, before
+  // smoothing) and `vel` (how far that moved last time). Each player is looked for where
+  // they're expected to be now, so two players walking past each other keep their own name
+  // tags. New players get the lowest free id from 1.
+  function track(prev, cur, keep) {
+    const k = keep ?? 0.5;
+    const list = players(cur);
+    const expected = (a) => {
+      const c = a.raw || centre(a);
+      return a.vel ? { x: c.x + a.vel.x, y: c.y + a.vel.y } : c;
+    };
+    const pairs = new Map(pairUp(prev, list, expected).map(([a, b]) => [b, a]));
+    const used = new Set();
+    const out = list.map((b) => {
+      const a = pairs.get(b);
+      if (!a) return null;
+      used.add(a.id);
+      const pts = b.map((q, i) => (a[i] && seen(a, i) && (q.v ?? 1) >= VISIBLE ? { x: a[i].x * k + q.x * (1 - k), y: a[i].y * k + q.y * (1 - k), v: q.v } : q));
+      pts.id = a.id;
+      const before = a.raw || centre(a);
+      pts.raw = centre(b);
+      pts.vel = { x: pts.raw.x - before.x, y: pts.raw.y - before.y };
+      return pts;
+    });
+    let next = 1;
+    return out.map((p, i) => {
+      if (p) return p;
+      while (used.has(next)) next++;
+      used.add(next);
+      const fresh = list[i].slice();
+      fresh.id = next;
+      fresh.raw = centre(list[i]);
+      return fresh;
+    });
+  }
+
+  return { P, KEY, VISIBLE, POSES, POSE_ORDER, seen, isPlayer, size, centre, players, headY, handUp, handsUp, matches, handTargets, pairUp, movement, speed, stillShare, allHandsUp, track };
 });

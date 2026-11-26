@@ -86,6 +86,8 @@ try {
   // Shapes, with pause checks
   await page.getByRole('radio', { name: /^Shapes/ }).check();
   await page.getByRole('button', { name: 'Start the game' }).click();
+  await waitText(page, '#callout-main', /^Get in place$/, 'the game starts with Get in place, so the person at the laptop can step back');
+  await page.screenshot({ path: `${outDir}/03a-get-in-place.png` });
   await waitText(page, '#hud-round', /^Round 1 of 5: Wall$/, 'Shapes for 4 players starts with the Wall shape');
   const boxes = await page.evaluate(() => ({
     hud: document.getElementById('play-hud').getBoundingClientRect().bottom,
@@ -177,6 +179,7 @@ try {
   await page.screenshot({ path: `${outDir}/10-mix-done.png` });
   await page.getByRole('button', { name: 'Play again' }).click();
   check(await page.isVisible('#screen-play'), 'play again starts the same game');
+  await waitText(page, '#hud-round', /^Round 1 of 5/, 'play again goes from Get in place to round 1');
   await page.getByRole('button', { name: 'Pause' }).click();
   await page.getByRole('button', { name: 'End the game' }).click();
   check(await page.isVisible('#screen-start'), 'end the game goes back to the start');
@@ -200,6 +203,8 @@ try {
   await cp.getByRole('button', { name: 'Start the camera' }).click();
   await cp.waitForSelector('#screen-ready', { state: 'visible', timeout: 6000 });
   check(!(await cp.isVisible('#ready-mode')), 'the camera screen has no practice tag');
+  check(await cp.evaluate(() => document.activeElement.id) === 'ready-title', 'focus goes to the screen title');
+  check(await cp.isVisible('#ready-gesture'), 'the camera screen says players can raise both hands to start');
   check((await cp.evaluate(() => [window.__freeze.w, window.__freeze.h].join('x'))) === '160x90', 'the camera picture is worked on at 160 x 90');
   await cp.waitForSelector('#ready-error', { state: 'visible', timeout: 10000 });
   check((await cp.textContent('#ready-error')).includes("couldn't load body tracking"), 'if the model cannot load, the screen says so');

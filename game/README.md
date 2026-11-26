@@ -4,10 +4,10 @@ Party games for everyone in front of one laptop. The laptop sees your bodies, co
 
 - **Shapes:** fill a shape on the screen with your bodies.
 - **Hands up:** show exactly the right number of hands, for example "Show 7 hands".
-- **Copy the pose:** everyone copies the pose on the screen, such as "Both arms up" or "Hands on your head".
+- **Copy the pose:** everyone copies the pose on the screen, such as "Both arms up" or "Hands on your shoulders".
 - **Mix:** a bit of each.
 
-Everyone the camera can see is on the team, from 1 person to 6. Nobody has to sit out to watch or keep score, because the laptop keeps score. A game is 5 rounds and takes about 1 to 1.5 minutes.
+Everyone the camera can see is on the team, from 1 person to 6. Nobody has to sit out to watch or keep score, because the laptop keeps score, and nobody has to stay at the laptop, because raising both hands starts the game. A game is 5 rounds and takes 1 to 2 minutes.
 
 Try it at https://isdn1001.lbzeng.com/freeze/.
 
@@ -30,10 +30,13 @@ Freeze uses a laptop, not a phone, because a laptop camera on a table can see a 
 
 1. Open Freeze and choose **Start the camera**. Allow the camera when your browser asks.
 2. Put the laptop on a table and stand back: about 2 metres for 1 or 2 players, about 3 metres for 3 to 5, and 3 to 4 metres for 6. Each player gets a name tag, P1, P2 and so on, and the screen shows how many players Freeze can see. Freeze can see up to 6 players.
-3. Pick a game and choose **Start the game**.
-4. Each round: do what the screen says, then **Freeze!** Hold still for 3 seconds. Then see your points.
+3. Pick a game. Then choose **Start the game**, or everyone raises both hands for a second.
+4. **Get in place:** you have 5 seconds to stand back. Freeze counts the players at the end and plans the rounds for that many.
+5. Each round: do what the screen says, then **Freeze!** Hold still for 3 seconds. Then see your points. The host's voice says what went wrong, for example "P2 didn't have the pose" or "1 hand too many".
 
-During a round you can see what Freeze sees: a line along each player's arms, a yellow ring on every hand that counts as up in Hands up, and a ring round each head in Copy the pose (solid teal when that player has the pose, dashed coral when not). In Shapes, the shape is outlined in yellow, the parts of you inside it are teal, and the parts outside it have coral stripes.
+More than 6 of you? Freeze can follow 6 players at a time, so swap players between games. After a game, everyone can raise both hands for a second to play again.
+
+During a round you can see what Freeze sees: a white name tag over each player, which stays with them when people swap places, a line along each player's arms, a yellow ring on every hand that counts as up in Hands up, and a ring round each head in Copy the pose (solid teal when that player has the pose, dashed coral when not). In Shapes, the shape is outlined in yellow, the parts of you inside it are teal, and the parts outside it have coral stripes.
 
 Press the space bar to pause, and the space bar or Escape to resume. Press M to turn the sound and the voice on or off. Freeze also pauses if you switch to another tab.
 
@@ -45,45 +48,51 @@ Points for a round = 100 × how well you did × how still you held.
   - Shapes: how much of the shape you filled, minus half of what was outside it.
   - Hands up: exactly the right number of hands scores full marks, and one off scores half.
   - Copy the pose: the share of players who have the pose.
-- **How still you held** is the share of those 2.5 seconds in which nobody moved much. If any one player moves, that moment doesn't count as still.
+- **How still you held:** at each moment, Freeze checks every player on their own. A player who moved more than 0.15 of a body size in the last 0.4 seconds isn't still. The share of players who were still is averaged over the 2.5 seconds. So if 1 of 4 players moves the whole time, you keep 75%. Judging each player on their own is fairer to big groups, where small tracking errors add up.
 - If you pause while you're holding still, the 3 seconds start again when you resume.
 
-Time to do it: Shapes 8, 10 or 12 seconds (more for bigger groups), Hands up 6 seconds, Copy the pose 5 seconds.
+Time to do it: Shapes 8, 10 or 12 seconds (more for bigger groups), Hands up 6 seconds, Copy the pose 5 seconds. Before round 1 there's a 5-second "Get in place".
 
 ## How the camera part works
 
-Freeze uses Google's MediaPipe Pose Landmarker, a small AI model that finds people in a camera picture. It runs in the browser on this laptop. The video isn't recorded or sent anywhere. The first time you start the camera, the browser downloads the MediaPipe code from jsDelivr and the model (about 6 MB) from Google, then keeps them.
+Freeze uses Google's MediaPipe Pose Landmarker, a small AI model that finds people in a camera picture. It runs in the browser on this laptop, on a 480 × 270 copy of the camera picture, about 15 times a second. The video isn't recorded or sent anywhere. The first time you start the camera, the browser downloads the MediaPipe code from jsDelivr and the model (about 6 MB) from Google. The browser usually keeps them in its cache after that.
 
 For each player in view, up to 6, the model gives:
 - **33 body points**, such as the nose, shoulders, elbows, wrists and hips. Hands up and Copy the pose use these.
-- **An outline of the body.** Shapes uses this.
+- **An outline of the body.** Only Shapes reads it, because reading it is the slowest part.
 
 Freeze then works out the rest itself, in plain JavaScript (`js/pose.js` and `js/vision.js`):
-- **Players** are poses with both shoulders visible, listed left to right.
+- **Players** are poses with both shoulders visible.
+- **Name tags** stay with each player. Freeze looks for each player where they're expected to be, from how they were moving, so two players walking past each other keep their own tags. A new player gets the lowest free number.
+- **Smoothing:** each body point is averaged with where it was a moment ago, to calm small tracking errors.
 - **Body size** is the distance from shoulders to hips. Arm positions and movement are measured in body sizes, so players near the camera and far from it are judged the same way.
-- **A hand is up** when the wrist is above the nose.
+- **A hand is up** when the wrist is at least 0.4 of a body size above the nose. A hand resting on your head doesn't count.
 - **Poses:**
-  - Both arms up: both wrists well above the head.
-  - Arms crossed: each wrist has crossed the middle of the body at chest height.
+  - Both arms up: both hands up.
+  - Hands on your shoulders: each wrist close to the shoulder on the same side.
   - Right or left hand up: one wrist well above the head and the other arm down.
   - Hands on your head: both wrists at head height and close to the head.
 
   Every pose fits in the space a standing person takes, so big groups don't need more room.
-- **Holding still:** while frozen, Freeze compares each moment with the moment 0.4 seconds before. If any player's head, shoulders, elbows, wrists or hips moved more than 0.15 of a body size, that moment doesn't count as still.
+- **Holding still:** while frozen, Freeze compares each moment with the moment 0.4 seconds before, for each player: the head, shoulders, elbows, wrists and hips. A player who can't be found again (who stepped away, or whom the model lost) counts as moving.
 - **Running:** if any player crosses the room faster than 3.5 body sizes a second for 0.4 seconds, the screen says "Slow down. There's time." Waving arms doesn't count.
 - **Shapes:** the body outlines are compared with the shape, pixel by pixel.
 
 There's no "learn the room" step and no need for a plain wall. The model is made for ordinary rooms and light, but this hasn't been tested here yet. Keep the laptop still, because moving it looks like everyone moving.
 
+If the body tracking fails, for example because the graphics chip was reset, the game pauses and the tracking starts again on the processor. Then you choose Resume.
+
 ## What still needs testing
 
 The body tracking hasn't been tried with a real camera here. The test browser here was only allowed to run Freeze's own code, not code downloaded from other sites, and its pretend camera has no people in it anyway. Before a class test, try it on a laptop:
 
-1. Start the camera with 1 person, then 3 to 4 people. Check that everyone gets a name tag, and that the count is right.
-2. Play Hands up and Copy the pose. Check that raised hands get a yellow ring, and that each pose turns the head rings teal.
-3. Stand still while frozen, then sway gently, then step to one side. Only the step should cost points.
-4. While a shape is being filled, walk across the room, then run. "Slow down" should appear only for running.
-5. If any of these is wrong, the numbers to change are in `js/pose.js` (how poses are judged) and `js/rounds.js` (`MOVE_LIMIT` and `RUSH_LIMIT`).
+1. Start the camera with 1 person, then 3 to 4 people. Check that everyone gets a name tag, that the count is right, and that tags stay with each person when you swap places.
+2. Raise both hands together. The game should start after a second.
+3. Play Hands up and Copy the pose. Check that raised hands get a yellow ring, and that each pose turns the head rings teal.
+4. Stand still while frozen, then sway gently, then step to one side. Only the step should cost points.
+5. While a shape is being filled, walk across the room, then run. "Slow down" should appear only for running.
+6. Play Shapes standing shoulder to shoulder. The model can miss or merge people standing very close together, so check the outlines cover everyone.
+7. If any of these is wrong, the numbers to change are in `js/pose.js` (how poses are judged) and `js/rounds.js` (`MOVE_LIMIT` and `RUSH_LIMIT`).
 
 ## Run it
 
@@ -112,7 +121,7 @@ No camera, or no internet? Choose **Play with practice players**. Practice playe
 |---|---|
 | `index.html`, `styles.css` | The screens |
 | `js/sensing.js` | Runs the body-tracking model on the camera picture |
-| `js/pose.js` | Reads poses: players, hands up, the pose cards, movement and speed |
+| `js/pose.js` | Reads poses: players and their name tags, hands up, the pose cards, holding still and speed |
 | `js/vision.js` | Body outlines: shrinking, cleaning up and comparing with a shape |
 | `js/shapes.js` | The 15 shapes, which 5 shapes each group size gets, the time to fill and how far to stand |
 | `js/rounds.js` | The rules: the games, timing, points and pause |
@@ -123,7 +132,7 @@ No camera, or no internet? Choose **Play with practice players**. Practice playe
 
 The walkthrough:
 - plays every game with practice players at 8 times the normal speed, including 6 practice players
-- checks pause (button, space bar, Escape and switching tabs), play again, choose another game and quit
+- checks the 5-second Get in place, pause (button, space bar, Escape and switching tabs), play again, choose another game and quit
 - checks that the top and bottom bars don't cover the picture
 - checks that the start screen and the Who's playing screen fit at phone width
 - starts the camera with Chromium's pretend camera, with the model's servers blocked, and checks that the screen explains the problem

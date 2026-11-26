@@ -282,3 +282,11 @@ test('the speed option shortens every part of a round, for tests', () => {
   assert.equal(g.phase, 'freeze');
   assert.equal(R.times(g).result, 350);
 });
+
+test('how still the group held is the average share of players holding still', () => {
+  const g = R.createGame('pose', 4, 0);
+  play(g, 0, 5000, PERFECT);
+  play(g, 5000, 3000, { ...PERFECT, still: 0.75 });
+  assert.ok(Math.abs(g.results[0].still - 0.75) < 1e-9);
+  assert.equal(g.results[0].points, 75);
+});

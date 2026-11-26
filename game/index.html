@@ -44,7 +44,7 @@
     <div class="stage" id="ready-stage"></div>
     <div class="panel ready-panel" id="ready-panel">
       <p class="mode-tag" id="ready-mode" hidden>Practice players</p>
-      <h2 id="ready-title">Who's playing?</h2>
+      <h2 id="ready-title" tabindex="-1">Who's playing?</h2>
       <p class="count" id="player-count" aria-live="polite">Looking for players</p>
       <p id="ready-hint">Stand back until everyone has a name tag. Freeze can see up to 6 players, at least from the waist up.</p>
       <p id="ready-loading" hidden>Getting body tracking ready. The first time takes a few seconds.</p>
@@ -67,6 +67,7 @@
         <label class="game"><input type="radio" name="game" value="mix"><span><strong>Mix</strong> A bit of each</span></label>
       </fieldset>
 
+      <p id="ready-gesture">Ready? Everyone raise both hands for a second to start, or choose Start the game.</p>
       <div class="actions">
         <button id="btn-play" class="btn primary" type="button" disabled>Start the game</button>
         <button id="btn-ready-back" class="btn" type="button">Back</button>
@@ -133,6 +134,7 @@
         <thead><tr><th scope="col">Round</th><th scope="col">Game</th><th scope="col">What to do</th><th scope="col">Points</th></tr></thead>
         <tbody id="done-rounds"></tbody>
       </table>
+      <p id="done-gesture" hidden>Everyone raise both hands for a second to play again.</p>
       <p class="fine" id="done-note">Playing on more than one laptop? Laptops that play the same game with the same number of players get the same rounds, so you can compare scores.</p>
       <div class="actions">
         <button id="btn-again" class="btn primary" type="button">Play again</button>
