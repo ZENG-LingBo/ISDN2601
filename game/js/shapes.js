@@ -66,7 +66,7 @@
     zigzag: {
       name: 'Zigzag',
       rings: [[[0.05, 1], [0.05, 0.45], [0.2, 0.2], [0.35, 0.45], [0.5, 0.2], [0.65, 0.45], [0.8, 0.2], [0.95, 0.45], [0.95, 1]]],
-      tip: 'Take turns: tall, short, tall.',
+      tip: 'Tall, short, tall, short, tall.',
     },
   };
 

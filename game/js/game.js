@@ -136,7 +136,7 @@
   function cameraMessage(err) {
     const name = err && err.name;
     if (name === 'NotAllowedError' || name === 'SecurityError') {
-      return "Freeze isn't allowed to use the camera. Allow the camera in your browser, usually from the address bar, then try again. If Freeze is open inside another page, that page may block the camera: open Freeze on its own, or try it without a camera.";
+      return "Freeze isn't allowed to use the camera. Allow the camera in your browser, usually from the address bar, then try again. If Freeze is open inside another page, that page may block the camera. Open Freeze on its own, or try it without a camera.";
     }
     if (name === 'NotFoundError' || name === 'OverconstrainedError') {
       return "Freeze couldn't find a camera. Check that this laptop has one, or try it without a camera.";
@@ -153,7 +153,7 @@
     errBox.hidden = true;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       errBox.textContent =
-        "This page can't use the camera. Open Freeze on its own in Chrome, Edge, Firefox or Safari, from a file on this laptop or from a secure link that starts with https. You can also try it without a camera.";
+        "This page can't use the camera. Open the Freeze file on this laptop in Chrome or Edge, or open a link to Freeze that starts with https. You can also try it without a camera.";
       errBox.hidden = false;
       return;
     }
@@ -239,7 +239,7 @@
     $('learn-label').textContent = 'Everyone step out of the picture';
     $('learn-number').hidden = false;
     st.lastBeep = -1;
-    say('Everyone step out of the picture. Freeze learns the room in 5 seconds.');
+    say('Everyone step out of the picture. Freeze starts learning the room in 5 seconds.');
   }
 
   function learnTick(now, small) {
@@ -279,7 +279,7 @@
       say(warn.textContent);
     } else {
       warn.hidden = true;
-      say('Done. Now step back in. You should show up in colour.');
+      say('Done. Now step back in. You should turn teal.');
     }
     $('btn-play').focus();
   }
@@ -369,7 +369,7 @@
     });
     $('done-note').textContent =
       st.mode === 'practice'
-        ? 'Real groups usually do better than the practice players. Every laptop that picks the same group size gets the same 5 shapes, so teams on different laptops can compare scores.'
+        ? "The practice players aren't very good at this, so a real group should do better. Every laptop that picks the same group size gets the same 5 shapes, so teams on different laptops can compare scores."
         : 'Playing on more than one laptop? Every laptop that picked the same group size got the same 5 shapes, so you can compare scores.';
     show('done');
     say(`Game over. ${$('done-mode').textContent} ${R.total(g)} of ${R.maxTotal(g)}.`);
@@ -667,8 +667,7 @@
   function toggleSound() {
     st.sound = !st.sound;
     const b = $('btn-sound');
-    b.textContent = st.sound ? 'Sound on' : 'Sound off';
-    b.setAttribute('aria-pressed', String(st.sound));
+    b.textContent = st.sound ? 'Turn sound off' : 'Turn sound on';
   }
 
   function toggleFull() {
@@ -678,7 +677,7 @@
   }
 
   document.addEventListener('fullscreenchange', () => {
-    $('btn-full').textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen';
+    $('btn-full').textContent = document.fullscreenElement ? 'Exit full screen' : 'Enter full screen';
     fitView();
   });
 
