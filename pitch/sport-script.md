@@ -22,7 +22,7 @@ The research behind every number is in [`research/sport-background.md`](../resea
 
 > Mandy is my target user.
 
-*Point to the persona and pause for a moment. The slide shows the rest. Don't read the pain points aloud.*
+*Point to the persona and pause for a moment. The slide does the rest. Don't read the pain points aloud.*
 
 ## Slide 3: Activity drops when school ends (0:19–0:39)
 
@@ -33,7 +33,7 @@ The research behind every number is in [`research/sport-background.md`](../resea
 
 ## Slide 4: Three things a game needs (0:39–0:58)
 
-> On her own, a game needs three things: a group that's free at the same time, a court that bots haven't booked, and the nerve to be the weakest player.
+> Without school, a game needs three things: a group that's free at the same time, a court that bots haven't booked, and the nerve to be the weakest player.
 > People picked last at school say they're less active as adults.
 
 *Count the three things on your fingers.*
@@ -52,7 +52,7 @@ The research behind every number is in [`research/sport-background.md`](../resea
 
 > Problem statement: university students want to play together, but every game needs a group that's free, a booked court and the nerve to be the weakest player. So they stay on their phones.
 >
-> **How might we make starting a game together as easy as opening a phone, for university friend groups, in order to help them move and laugh together more often?**
+> **How might we make starting a game together as easy as checking your phone, for university friend groups, in order to help them move and laugh together more often?**
 
 *Slow down for the question. Stop after it and wait. Don't add "that's it" or "any questions?"*
 
@@ -100,7 +100,7 @@ Mandy is a persona built from the research, and the slide says so. My next step 
 Yes. It's the closest Hong Kong number I found. It shows the habit students bring with them to university. I haven't found a Hong Kong figure for university students yet.
 
 **"Is court booking really a problem?"**
-The LCSD found people using bots to book courts on SmartPLAY, and now bans those accounts for 360 days. In 2024, three suspected court scalpers were arrested at the Victoria Park tennis courts. I haven't found numbers on how many bookings fail, so that's one of my interview questions.
+The LCSD found people using bots to book courts on SmartPLAY, and now bans those accounts for 360 days. In 2024, three people suspected of reselling court bookings were arrested at the Victoria Park tennis courts. I haven't found numbers on how many bookings fail, so that's one of my interview questions.
 
 **"What about cost or injury?"**
 I looked at both. Public courts in Hong Kong are cheap, and cost isn't one of the top reasons in the LCSD survey. Only about 1 in 10 students give fear of injury as a reason. So I focused on time, place and confidence, which are the reasons people give most.
@@ -111,7 +111,7 @@ Yes, and it's a link, not proof of a cause. People remember being picked last an
 **"What's your solution?"**
 Today is only about the problem. I kept the question open on purpose, so the answer could be a new game, a place, a club habit or an app.
 
-**"Why 'as easy as opening a phone'? That's very hard."**
+**"Why 'as easy as checking your phone'? That's very hard."**
 It's meant to be. The phone is what students choose instead of playing, so that's the bar any idea has to meet.
 
 **"How does this fit 'Leisure in 2030'?"**

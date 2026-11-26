@@ -5,7 +5,7 @@ Compiled 26 Nov 2026. The raw source list is in [`sport-barriers.md`](sport-barr
 
 ## How the sources were checked
 
-The research session couldn't open any source page. PubMed, PMC, Europe PMC, CrossRef, info.gov.hk, lcsd.gov.hk and legco.gov.hk were all blocked by the network. Every number below was checked by searching and reading excerpts of the named page (for example, the PubMed abstract or the LegCo paper). None of the pages was opened in full.
+The research session couldn't open any source page. PubMed, PMC, Europe PMC, CrossRef, info.gov.hk, lcsd.gov.hk and legco.gov.hk were all blocked by the network. I checked every number below by searching and reading excerpts of the named page (for example, the PubMed abstract or the LegCo paper). None of the pages was opened in full.
 
 - **Confirmed through excerpts** means the number and the wording match in the search tool's excerpt of the source's own page.
 - **Not confirmed** means no excerpt of the source showed it.
@@ -29,7 +29,7 @@ The research session couldn't open any source page. PubMed, PMC, Europe PMC, Cro
 
 | Finding | Source | Check | Caveats |
 |---|---|---|---|
-| In July 2024, 3 suspected court scalpers were arrested at the **Victoria Park tennis courts** in a joint LCSD, police and immigration operation. | LCSD press release, 25 Jul 2024 ([P2024072500232](https://www.info.gov.hk/gia/general/202407/25/P2024072500232.htm)) | Confirmed through excerpts. **Open before the pitch** if you mention it. | Tennis courts, not basketball, and not linked to bots. The slide says "resellers" in general, so it's safe either way. |
+| In July 2024, 3 people suspected of reselling court bookings were arrested at the **Victoria Park tennis courts** in a joint LCSD, police and immigration operation. | LCSD press release, 25 Jul 2024 ([P2024072500232](https://www.info.gov.hk/gia/general/202407/25/P2024072500232.htm)) | Confirmed through excerpts. **Open before the pitch** if you mention it. | Tennis courts, not basketball, and not linked to bots. The slide says "resellers" in general, so it's safe either way. |
 | Across 59 studies (22 with university students), the top barriers were lack of time, lack of motivation and lack of accessible places. | Silva et al. (2022). *PLOS ONE*, 17(4), e0265913. [PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8979430/) | Confirmed through excerpts. | Mostly from outside Hong Kong. |
 | Personal and social reasons (inside the person or between people) were linked to dropping out of sport more often than practical ones. | Crane & Temple (2015). *European Physical Education Review*, 21(1), 114–131. | Confirmed through excerpts of the abstract. | The earlier note's "feeling less skilled than others" wasn't confirmed word for word. |
 | In 12 studies (6,304 adolescent team players), motivation and experience in the sport had the strongest links with dropout. | Back et al. (2022). *Psychology of Sport and Exercise*, 61, 102205. | Confirmed through excerpts. | The full title ends "…of prospective studies". |
@@ -78,7 +78,7 @@ A persona built from the research, not a real person.
 2. Public courts are booked before she can get one.
 3. She's out of practice and worries she'll hold the team back.
 4. In a big group, some people sit out and watch.
-5. Her phone is easier, so the evening goes there.
+5. Her phone is easier, so she spends the evening on it.
 
 Pain point 4 comes from the design brief that everyone should take part. It isn't backed by a source yet, so it's a question for the interviews.
 
@@ -103,11 +103,12 @@ Pain point 4 comes from the design brief that everyone should take part. It isn'
 
 ### How Might We
 
-> **How might we make starting a game together as easy as opening a phone, for university friend groups, in order to help them move and laugh together more often?**
+> **How might we make starting a game together as easy as checking your phone, for university friend groups, in order to help them move and laugh together more often?**
 
 How it changed from the first draft ("…as quick to start as opening a laptop or phone, for university friend groups, so that they move, laugh and meet more often?"):
 
 - **"laptop" was taken out.** It points to a solution. The question should stay open to ideas that aren't on a laptop at all.
+- **"opening a phone" became "checking your phone"**, because people don't usually say they "open" a phone.
 - **"so that" became "in order to"**, to match the lecturers' template.
 - **"and meet" was taken out**, because the goal is playing together, and these friends already meet.
 
@@ -116,15 +117,15 @@ Check against the How Might We rules in [`background-study.md`](background-study
 | Rule | Met? | Why |
 |---|---|---|
 | Specific user | Yes | University friend groups |
-| Specific problem | Yes | Starting a game together is much harder than opening a phone |
-| No solution inside | Yes | No app, laptop, game, booking system or place is named. "Opening a phone" is the thing to match, not the answer. |
+| Specific problem | Yes | Starting a game together is much harder than checking a phone |
+| No solution inside | Yes | No app, laptop, game, booking system or place is named. "Checking your phone" is the thing to match, not the answer. |
 | Broad enough for many ideas | Yes | It could lead to a new game, a place, a club habit, a booking change or an app |
 | Focus on the result | Yes | Moving and laughing together more often |
 | Positive wording | Yes | Says what should happen, not what to stop |
 | More than giving information | Yes | The outcome is a behaviour (playing), not knowledge |
-| Follows the template | Yes | How might we [make starting a game together as easy as opening a phone] for [university friend groups] in order to [help them move and laugh together more often]? |
+| Follows the template | Yes | How might we [make starting a game together as easy as checking your phone] for [university friend groups] in order to [help them move and laugh together more often]? |
 
-A risk to watch: "as easy as opening a phone" sets a very high bar. That's on purpose. It names the real competition for free time.
+A risk to watch: "as easy as checking your phone" sets a very high bar. That's on purpose. It names the real competition for free time.
 
 Narrower questions for the ideas stage (not in the pitch):
 
