@@ -14,7 +14,7 @@ Anyone with the link can open the site, but search engines are told not to list 
 
 The site is a Cloudflare Worker called `isdn1001`. The whole site is packed into one script, and isdn1001.lbzeng.com is the Worker's custom domain in the lbzeng.com zone. The Worker's workers.dev address is turned off. The custom domain and the workers.dev setting were set once in Cloudflare, and `deploy.sh` doesn't change them.
 
-The lbzeng.com zone has Cloudflare Web Analytics switched on, which adds a tracking script to every page in the zone. The Worker sends every file with `Cache-Control: no-transform`, so Cloudflare doesn't add that script here. That way Cloudflare doesn't track visitors, which is what the home page promises.
+The lbzeng.com zone has Cloudflare Web Analytics switched on, which adds a tracking script to every page in the zone. The Worker sends every file with `Cache-Control: no-transform`, so Cloudflare doesn't add that script here. That way Cloudflare doesn't add its tracking script to these pages.
 
 ## Update the site
 
