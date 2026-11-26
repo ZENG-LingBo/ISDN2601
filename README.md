@@ -35,8 +35,9 @@ Before you present, open the sources marked "Open before the pitch" in `research
 
 [`game/`](game/) has **Freeze**, a working prototype for the next stage. A shape appears on the laptop screen, and everyone the camera can see fills it with their bodies, then holds still. The laptop keeps score, so nobody has to sit out and watch.
 
-- Try it with practice players (the camera is blocked on this page): https://claude.ai/artifact/UYranszNCaAjLjVq1FXNpD
-- How to play, how to run it with a real camera, and how the camera part works: [`game/README.md`](game/README.md)
+- Play it with a real camera: https://isdn1001.lbzeng.com/freeze/ (use Chrome or Edge on a laptop)
+- How to play, how to run it on your own laptop, and how the camera part works: [`game/README.md`](game/README.md)
+- The project website, https://isdn1001.lbzeng.com, links to Freeze and the Minibus demo. Search engines are told not to list it. How it's hosted and how to update it: [`site/README.md`](site/README.md)
 
 ## The first topic (turned down)
 

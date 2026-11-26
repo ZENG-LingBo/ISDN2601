@@ -1,18 +1,25 @@
 # The project website
 
-The demos are published at https://isdn1001.lbzeng.com on Cloudflare Pages:
+The demos are online at https://isdn1001.lbzeng.com:
 
 | Address | What it is |
 |---|---|
 | `/` | A home page with links to both demos |
-| `/freeze/` | Freeze, the camera game (`game/`) |
+| `/freeze/` | Freeze, the camera game (`game/`). The camera works here, because the site uses https. |
 | `/minibus/` | The Minibus demo with pretend friends (`prototype/`, demo mode) |
 
-The site is public, but it's kept out of Google and other search engines. Every page has a noindex tag, and Cloudflare sends a noindex header with every file (`_headers`). Anyone with the link can still open it.
+Anyone with the link can open the site, but it's kept out of Google and other search engines. Every page has a noindex tag, and every file is sent with a noindex header (`_headers`).
+
+## How it's hosted
+
+The site is a Cloudflare Worker called `isdn1001`. The whole site is packed into one script, and isdn1001.lbzeng.com is the Worker's custom domain in the lbzeng.com zone. The Worker's workers.dev address is turned off.
+
+The lbzeng.com zone has Cloudflare Web Analytics switched on, which adds a tracking script to every page in the zone. The Worker sends every file with `Cache-Control: no-transform`, so Cloudflare doesn't add that script here. That keeps the home page's line "Nothing you do on these pages is sent to a server" true.
 
 ## Update the site
 
-1. Build it: `node site/build.mjs`. This makes `site/dist/` from the current files in `game/` and `prototype/`.
-2. Upload `site/dist/` to the Cloudflare Pages project `isdn1001`, for example with `npx wrangler pages deploy site/dist --project-name isdn1001`. This needs a Cloudflare API token with permission to edit Cloudflare Pages.
+Run `site/deploy.sh`. It builds `site/dist` from the current `game/` and `prototype/` files, packs it into `site/worker/worker.js`, and uploads that to the Worker.
 
-The address isdn1001.lbzeng.com is a custom domain on that Pages project. Its DNS record is a CNAME to `isdn1001.pages.dev` in the lbzeng.com zone on Cloudflare.
+The script needs a Cloudflare API token in `CLOUDFLARE_API_TOKEN` that can read the lbzeng.com zone and edit Workers scripts. In the Claude cloud environment for this repository, the token is saved as a network secret, so you can leave the variable unset there.
+
+To check the site without uploading it, run `node site/build.mjs` and open `site/dist` with any local web server.
