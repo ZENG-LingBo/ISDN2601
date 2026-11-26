@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Freeze</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A camera game for everyone in front of one laptop: fill the shape with your bodies, then hold still.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main id="app">
+
+  <!-- Start -->
+  <section id="screen-start" class="screen start" aria-labelledby="start-title">
+    <div class="start-text">
+      <h1 id="start-title" class="wordmark">Freeze</h1>
+      <p class="lede">Fill the shape on the screen with your bodies, then hold still. Everyone the camera can see is on the team.</p>
+
+      <fieldset class="sizes">
+        <legend>How many of you are playing?</legend>
+        <div class="size-options">
+          <label class="size"><input type="radio" name="size" id="size-small" value="small"><span>1 or 2</span></label>
+          <label class="size"><input type="radio" name="size" id="size-medium" value="medium" checked><span>3 to 5</span></label>
+          <label class="size"><input type="radio" name="size" id="size-large" value="large"><span>6 or more</span></label>
+        </div>
+      </fieldset>
+
+      <div class="actions">
+        <button id="btn-camera" class="btn primary" type="button">Start the camera</button>
+        <button id="btn-practice" class="btn" type="button">Try it without a camera</button>
+      </div>
+      <p id="camera-error" class="error" role="alert" hidden></p>
+
+      <ol class="how">
+        <li><strong>Learn the room.</strong> Everyone steps out of the picture for a few seconds.</li>
+        <li><strong>Fill the shape.</strong> You have 8 seconds to get into it together.</li>
+        <li><strong>Freeze.</strong> Hold still for 3 seconds. You get points for filling the shape and for holding still.</li>
+      </ol>
+      <p class="fine">Freeze runs on this laptop. The video isn't recorded or sent anywhere.</p>
+    </div>
+    <figure class="start-preview">
+      <canvas id="preview" width="320" height="240" aria-hidden="true"></canvas>
+      <figcaption>Practice players filling the Steps shape</figcaption>
+    </figure>
+  </section>
+
+  <!-- Setup: learn the room -->
+  <section id="screen-setup" class="screen stage-screen" aria-labelledby="setup-title" hidden>
+    <div class="stage" id="setup-stage"></div>
+    <div class="panel setup-panel" id="setup-panel">
+      <p class="mode-tag" id="setup-mode" hidden>Practice players</p>
+      <h2 id="setup-title">Set up the laptop</h2>
+      <div id="setup-before">
+        <ul class="steps">
+          <li>Put the laptop on a table, about 2 metres from where you'll stand.</li>
+          <li>Check that the camera can see all of you, at least from the waist up.</li>
+          <li>Then everyone steps out of the picture, so Freeze can learn what the empty room looks like.</li>
+        </ul>
+        <div class="actions">
+          <button id="btn-learn" class="btn primary" type="button">Learn the room</button>
+          <button id="btn-setup-back" class="btn" type="button">Back</button>
+        </div>
+      </div>
+      <div id="setup-after" hidden>
+        <p id="setup-check">Now step back in. You should show up in colour. If parts of the empty room show up in colour too, learn the room again.</p>
+        <p id="setup-warning" class="warning" role="alert" hidden></p>
+        <div class="actions">
+          <button id="btn-play" class="btn primary" type="button">Start the game</button>
+          <button id="btn-relearn" class="btn" type="button">Learn the room again</button>
+        </div>
+      </div>
+    </div>
+    <div class="countdown" id="learn-countdown" hidden>
+      <p class="count-label" id="learn-label">Everyone step out of the picture</p>
+      <p class="count-number" id="learn-number">5</p>
+    </div>
+  </section>
+
+  <!-- Play -->
+  <section id="screen-play" class="screen stage-screen play" aria-label="Game" hidden>
+    <div class="stage" id="play-stage"></div>
+    <header class="hud">
+      <div class="hud-left">
+        <p class="hud-small"><span id="hud-round">Round 1 of 5</span><span class="mode-tag" id="play-mode" hidden>Practice players</span></p>
+        <p class="callout-main" id="callout-main">Fill the shape</p>
+        <p class="callout-sub" id="callout-sub">Stand in a line, shoulder to shoulder.</p>
+      </div>
+      <p class="timer" id="timer" aria-hidden="true">8</p>
+    </header>
+    <p class="rush" id="rush" hidden>Slow down. There's time.</p>
+    <p class="flash" id="flash" aria-hidden="true" hidden>Freeze!</p>
+    <div class="result" id="result" hidden>
+      <p class="result-points"><span id="result-points">0</span> <span class="result-unit">points</span></p>
+      <dl class="result-parts">
+        <div><dt>Filled</dt><dd id="result-filled">0%</dd></div>
+        <div><dt>Outside the shape</dt><dd id="result-outside">0%</dd></div>
+        <div><dt>Held still</dt><dd id="result-still">0%</dd></div>
+      </dl>
+    </div>
+    <footer class="meter-row" id="play-bar">
+      <div class="meter" role="meter" aria-label="Shape filled" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="meter">
+        <div class="meter-fill" id="meter-fill"></div>
+        <p class="meter-text" id="meter-text">Filled 0%</p>
+      </div>
+      <p class="score"><span class="hud-small">Team score</span> <span class="score-total" id="hud-total">0</span></p>
+      <div class="controls">
+        <button id="btn-pause" class="btn small" type="button" aria-keyshortcuts="Space">Pause</button>
+        <button id="btn-sound" class="btn small" type="button" aria-pressed="true" aria-keyshortcuts="M">Sound on</button>
+        <button id="btn-full" class="btn small" type="button">Full screen</button>
+      </div>
+    </footer>
+    <div class="pause" id="pause" hidden>
+      <div class="panel">
+        <h2>Paused</h2>
+        <div class="actions stack">
+          <button id="btn-resume" class="btn primary" type="button">Resume</button>
+          <button id="btn-pause-relearn" class="btn" type="button">Learn the room again and restart</button>
+          <button id="btn-quit" class="btn" type="button">Quit to the start</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Done -->
+  <section id="screen-done" class="screen done" aria-labelledby="done-title" hidden>
+    <div class="done-text">
+      <p class="hud-small" id="done-mode">Your team scored</p>
+      <h2 id="done-title" class="done-total"><span id="done-total">0</span><span class="done-max"> of <span id="done-max">500</span></span></h2>
+      <table class="rounds">
+        <caption class="sr-only">Points for each round</caption>
+        <thead><tr><th scope="col">Round</th><th scope="col">Shape</th><th scope="col">Filled</th><th scope="col">Held still</th><th scope="col">Points</th></tr></thead>
+        <tbody id="done-rounds"></tbody>
+      </table>
+      <p class="fine" id="done-note">Playing on more than one laptop? Every laptop that picked the same group size got the same 5 shapes, so you can compare scores.</p>
+      <div class="actions">
+        <button id="btn-again" class="btn primary" type="button">Play again</button>
+        <button id="btn-change" class="btn" type="button">Change the group size</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="live" class="sr-only" role="status" aria-live="polite"></div>
+</main>
+<noscript><p>Freeze needs JavaScript to run.</p></noscript>
+<script src="js/vision.js"></script>
+<script src="js/shapes.js"></script>
+<script src="js/rounds.js"></script>
+<script src="js/practice.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

@@ -23,6 +23,13 @@ The slide deck (8 slides: 7 presented plus a references appendix) is a Claude Sl
 https://claude.ai/artifact/ChLZkzX5tjTnP63Hisntgn. It can be downloaded as PPTX or PDF from the
 deck’s Share › Export menu. The speaker notes on each slide match the script.
 
+## Freeze: the camera game (new direction)
+
+After the professor's feedback, the project moved to a new kind of group game that's quick to start, easy to learn, needs no equipment and is low risk. [`game/`](game/) has **Freeze**, a working prototype. A shape appears on the laptop screen, and everyone the camera can see fills it with their bodies, then holds still. The laptop keeps score, so nobody has to sit out and watch.
+
+- How to play, how to run it with a real camera, and how the camera part works: [`game/README.md`](game/README.md)
+- The research behind the new direction: [`research/sport-barriers.md`](research/sport-barriers.md)
+
 ## Prototype (next stage, not for the 26 Nov pitch)
 
 The pitch only covers the problem. For the next stage, [`prototype/`](prototype/) has **Minibus**, a working prototype that responds to the How Might We question. Friends say if they're in and tap the times they're free. If nobody knows what to do yet, each person tells Minibus privately what works for them (like no spicy food, or not hungry), and it suggests 3 things everyone can do. Names aren't shown with answers until the plan is confirmed. The plan is confirmed once enough people can make the same time.
