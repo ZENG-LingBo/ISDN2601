@@ -80,7 +80,7 @@ Freeze then works out the rest itself, in plain JavaScript (`js/pose.js` and `js
 
 There's no "learn the room" step and no need for a plain wall. The model is made for ordinary rooms and light, but this hasn't been tested here yet. Keep the laptop still, because moving it looks like everyone moving.
 
-If the body tracking fails, for example because the graphics chip was reset, the game pauses and the tracking starts again on the processor. Then you choose Resume. If it fails 3 times, Freeze asks you to end the game and start the camera again.
+If the body tracking fails, for example because the graphics chip was reset, the game pauses and the tracking starts again on the processor. Then you choose Resume. If it fails 3 times, Freeze asks you to end the game and start the camera again, which sets up the body tracking from the start.
 
 ## What still needs testing
 
@@ -132,7 +132,7 @@ No camera, or no internet? Choose **Play with practice players**. Practice playe
 
 The walkthrough:
 - plays every game with practice players at 8 times the normal speed, including 6 practice players
-- checks that Get in place comes before round 1, pause (button, space bar, Escape and switching tabs), play again, choose another game and quit
+- checks that Get in place comes before round 1, and checks pause (button, space bar, Escape and switching tabs), play again, choose another game and quit
 - checks that the top and bottom bars don't cover the picture
 - checks that the start screen and the Who's playing screen fit at phone width
 - starts the camera with Chromium's pretend camera, with the model's servers blocked, and checks that the screen explains the problem

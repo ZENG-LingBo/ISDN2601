@@ -105,5 +105,16 @@
     return { poses, mask };
   }
 
-  root.Sensing = { load, rebuild, detect, ready: () => !!landmarker, usingGpu: () => usingGpu, MAX_PLAYERS };
+  // Throw the tracker away, so the next load builds a new one.
+  function reset() {
+    try {
+      if (landmarker) landmarker.close();
+    } catch (e) {
+      // already gone
+    }
+    landmarker = null;
+    loading = null;
+  }
+
+  root.Sensing = { load, rebuild, reset, detect, ready: () => !!landmarker, usingGpu: () => usingGpu, MAX_PLAYERS };
 })(typeof self !== 'undefined' ? self : this);

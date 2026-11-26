@@ -41,6 +41,7 @@
     players: [],
     tracked: null,
     gestureArmed: false,
+    trackDead: false,
     screenSince: 0,
     mask: null,
     lead: null,
@@ -351,6 +352,11 @@
 
   function quitToStart() {
     st.ticket++;
+    if (st.trackDead) {
+      Sensing.reset(); // starting the camera again builds a new tracker
+      st.trackDead = false;
+      st.errors = 0;
+    }
     st.game = null;
     st.lead = null;
     st.mode = null;
@@ -1030,15 +1036,30 @@
     }
     st.tracking = false;
     st.errors++;
-    pauseGame('Body tracking stopped for a moment. Wait a few seconds, then choose Resume.');
+    pauseGame('Body tracking stopped for a moment. Resume works again when it has restarted.');
+    $('btn-resume').disabled = true;
+    if (st.screen === 'ready') {
+      $('ready-error').textContent = 'Body tracking stopped for a moment. It is restarting.';
+      $('ready-error').hidden = false;
+    }
     const ticket = st.ticket;
-    const retry = st.errors <= 3 ? Sensing.rebuild() : Promise.reject(err);
+    const retry = st.errors <= 2 ? Sensing.rebuild() : Promise.reject(err);
     retry
       .then(() => {
-        if (ticket === st.ticket) st.tracking = true;
+        if (ticket !== st.ticket) return;
+        st.tracking = true;
+        $('btn-resume').disabled = false;
+        $('ready-error').hidden = true;
       })
       .catch(() => {
         if (ticket !== st.ticket) return;
+        st.trackDead = true;
+        $('btn-resume').disabled = false;
+        if (st.screen === 'ready') {
+          $('ready-error').textContent = 'Body tracking stopped. Go back, then start the camera again.';
+          $('ready-error').hidden = false;
+          return;
+        }
         pauseGame();
         const why = $('pause-reason');
         why.textContent = 'Body tracking stopped. Choose End the game, then start the camera again.';
