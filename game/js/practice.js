@@ -1,17 +1,29 @@
-// Freeze: practice players, for trying the game without a camera.
-// Draws a pretend room with simple pretend people into a pixel buffer. The game then runs the
-// same vision code on it as on a real camera, so the scores are worked out the same way.
-// The pretend people aren't very good at the game, which is honest: real groups do better.
+// Freeze: practice players, for trying the games without a camera.
+// Draws a pretend room with simple pretend people into a pixel buffer, and gives the game the
+// same things the body-tracking model gives it for a real camera: a mask of where people are,
+// and each player's body points. So every game is scored the same way as with a camera.
+// The practice players aren't very good at the games, which is honest: real groups do better.
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./shapes.js'));
-  else root.Practice = factory(root.Shapes);
-})(typeof self !== 'undefined' ? self : this, function (Shapes) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./shapes.js'), require('./pose.js'));
+  else root.Practice = factory(root.Shapes, root.Pose);
+})(typeof self !== 'undefined' ? self : this, function (Shapes, Pose) {
   'use strict';
 
   const SHIRTS = [[196, 58, 52], [38, 86, 160], [36, 126, 78], [214, 164, 36], [116, 58, 138], [32, 32, 36], [226, 116, 164], [24, 140, 150]];
   const SKIN = [[224, 172, 138], [198, 134, 96], [141, 85, 54], [238, 198, 166], [170, 112, 80]];
-  const STAND_TOP = 0.2; // where a standing person's head starts
-  const FIDGET_ROUND = 2; // in this round one pretend person keeps moving after Freeze
+  const STAND_TOP = 0.2; // where a standing person's head starts in Shapes rounds
+  const ROW_TOP = 0.32; // in the other games, players stand a bit further back so raised arms fit
+  const HIP_Y = 0.78;
+  const FIDGET_ROUND = 2; // in this round one practice player keeps moving after Freeze
+
+  // Arms for each pose card: [left, right], the player's own left and right.
+  const CARD_ARMS = {
+    'arms-up': ['up', 'up'],
+    'arms-crossed': ['cross', 'cross'],
+    'right-up': ['down', 'up'],
+    'left-up': ['up', 'down'],
+    'hands-on-head': ['head', 'head'],
+  };
 
   function rng(seed) {
     let s = seed >>> 0 || 1;
@@ -48,9 +60,9 @@
     return buf;
   }
 
-  // Where the pretend people stand for a shape. Their feet go where the shape meets the bottom
+  // Where the practice players stand for a shape. Their feet go where the shape meets the bottom
   // of the picture. Each one is as tall as the part of the shape above their feet, and they hold
-  // their arms out where the shape is wider than they are.
+  // their arms out where the shape is wider than they are. x values are shares of the width.
   function layout(shape, n) {
     const W = 120;
     const H = 90;
@@ -62,13 +74,11 @@
     const spots = [];
     for (let i = 0; i < n; i++) {
       const cx = (feet[Math.min(feet.length - 1, Math.floor(((i + 0.5) / n) * feet.length))] + 0.5) / W;
-      // Climb up from the feet while still inside the shape.
       let top = H - 1;
       const c = Math.floor(cx * W);
       while (at(c, top - 1)) top--;
-      spots.push({ cx, top: Math.min(top / H, 0.75), width, arms: null });
+      spots.push({ cx, top: Math.min(top / H, 0.75), width, bar: null });
     }
-    // Arms out along the shape at shoulder height, but never past the middle to the next person.
     for (let i = 0; i < n; i++) {
       const s = spots[i];
       const head = Math.max(s.top, STAND_TOP);
@@ -81,7 +91,7 @@
       while (at(r + 1, sy)) r++;
       const left = Math.max(l / W, i > 0 ? (spots[i - 1].cx + s.cx) / 2 : 0, s.cx - 0.22);
       const right = Math.min((r + 1) / W, i < n - 1 ? (spots[i + 1].cx + s.cx) / 2 : 1, s.cx + 0.22);
-      if (right - left > s.width + 0.03) s.arms = { y: head + 0.08, left, right };
+      if (right - left > s.width + 0.03) s.bar = { y: head + 0.08, left, right };
     }
     return spots;
   }
@@ -98,10 +108,22 @@
         shirt: SHIRTS[i % SHIRTS.length],
         skin: SKIN[Math.floor(rand() * SKIN.length)],
         phase: rand() * Math.PI * 2,
-        idle: { cx: (i + 0.5) / n, top: STAND_TOP + rand() * 0.06, width: Math.min(0.13, 0.8 / n), arms: null },
+        delay: rand(),
+        idle: { cx: 0.1 + (0.8 * (i + 0.5)) / n, top: ROW_TOP + rand() * 0.05, width: Math.min(0.13, 0.7 / n), bar: null },
       });
     }
-    return { w, h, n, room: drawRoom(w, h), buf: new Uint8ClampedArray(w * h * 4), noise: rng((o.seed || 7) + 99), players, layouts: {} };
+    return {
+      w,
+      h,
+      aspect: w / h,
+      n,
+      room: drawRoom(w, h),
+      buf: new Uint8ClampedArray(w * h * 4),
+      mask: new Uint8Array(w * h),
+      noise: rng((o.seed || 7) + 99),
+      players,
+      layouts: {},
+    };
   }
 
   function mix(a, b, k) {
@@ -113,71 +135,168 @@
     return x * x * (3 - 2 * x);
   }
 
-  // Where each person is now. state: { present, shape, phase, elapsed, fillMs, round, t }.
-  function positions(scene, state) {
+  // The arms each player ends up with in a Hands up or Copy the pose round. Practice players
+  // make a mistake in some rounds, so the scores show what a mistake costs.
+  function plannedArms(scene, round, roundIndex) {
+    const n = scene.n;
+    if (round.type === 'hands') {
+      let want = Math.min(round.target, 2 * n);
+      if (roundIndex % 2 === 1) want = want === 2 * n ? want - 1 : want + 1; // one hand off
+      return scene.players.map(() => {
+        if (want >= 2) {
+          want -= 2;
+          return ['up', 'up'];
+        }
+        if (want === 1) {
+          want = 0;
+          return ['down', 'up'];
+        }
+        return ['down', 'down'];
+      });
+    }
+    const arms = CARD_ARMS[round.card] || ['down', 'down'];
+    return scene.players.map((p, i) => (roundIndex % 3 === 2 && i === n - 1 ? ['down', 'down'] : arms.slice()));
+  }
+
+  // Each player's figure right now. state: { present, round, roundIndex, phase, elapsed, fillMs, t }.
+  function figures(scene, state) {
     if (!state.present) return [];
-    const target = state.shape ? (scene.layouts[state.shape.id] ||= layout(state.shape, scene.n)) : null;
+    const round = state.round || null;
+    const isShape = round && round.type === 'shape';
+    const target = isShape ? (scene.layouts[round.shape.id] ||= layout(round.shape, scene.n)) : null;
+    const arms = round && !isShape ? plannedArms(scene, round, state.roundIndex || 0) : null;
     return scene.players.map((p, i) => {
       let spot = p.idle;
-      if (target && state.phase === 'fill') {
+      let left = 'down';
+      let right = 'down';
+      if (isShape && state.phase === 'fill') {
         const k = ease(state.elapsed / (state.fillMs * 0.65));
         const t = target[i];
-        spot = { cx: mix(p.idle.cx, t.cx, k), top: mix(p.idle.top, t.top, k), width: mix(p.idle.width, t.width, k), arms: k > 0.9 ? t.arms : null };
-      } else if (target && (state.phase === 'freeze' || state.phase === 'result')) {
+        spot = { cx: mix(p.idle.cx, t.cx, k), top: mix(p.idle.top, t.top, k), width: mix(p.idle.width, t.width, k), bar: k > 0.9 ? t.bar : null };
+      } else if (isShape && (state.phase === 'freeze' || state.phase === 'result')) {
         spot = target[i];
+      }
+      if (isShape) {
+        if (spot.bar) left = right = 'out';
+        else if (spot.top < STAND_TOP) left = right = 'up';
+      } else if (arms) {
+        const ready = state.phase !== 'fill' || state.elapsed > state.fillMs * (0.25 + 0.4 * p.delay);
+        if (ready) [left, right] = arms[i];
       }
       let dx = 0.004 * Math.sin(state.t / 400 + p.phase); // small sway
       if (state.phase === 'freeze') {
         dx = 0;
-        if (state.round === FIDGET_ROUND && i === 0 && state.elapsed < 1800) dx = 0.04 * Math.sin(state.t / 200);
+        if (state.roundIndex === FIDGET_ROUND && i === 0 && state.elapsed < 1800) dx = 0.05 * Math.sin(state.t / 120);
       }
-      return Object.assign({}, spot, { cx: spot.cx + dx, shirt: p.shirt, skin: p.skin });
+      return { cx: spot.cx + dx, top: spot.top, width: spot.width, bar: spot.bar, shapeRound: !!isShape, left, right, shirt: p.shirt, skin: p.skin };
     });
   }
 
-  // Draw the room and the people into scene.buf (RGBA, scene.w × scene.h) and return it.
+  // Body points for a figure, in the same form as the body-tracking model gives:
+  // x from 0 to the picture's width ÷ height, y from 0 to 1, player's left on the screen's left.
+  function landmarks(scene, f) {
+    const a = scene.aspect;
+    const pts = [];
+    for (let i = 0; i < 33; i++) pts.push({ x: 0, y: 0, v: 0 });
+    const half = f.width / 2;
+    const R = half * 0.62 * a; // head radius
+    const headTop = f.shapeRound ? Math.max(f.top, STAND_TOP) : f.top;
+    const cx = f.cx * a;
+    const nose = { x: cx, y: headTop + R };
+    const sy = headTop + 2 * R + 0.02;
+    const k = HIP_Y - sy;
+    const set = (i, x, y) => {
+      const inside = x >= 0 && x <= a && y >= 0 && y <= 1;
+      pts[i] = { x, y, v: inside ? 0.99 : 0.2 };
+    };
+    set(Pose.P.NOSE, nose.x, nose.y);
+    const sides = [
+      ['left', -1, Pose.P.L_SHOULDER, Pose.P.L_ELBOW, Pose.P.L_WRIST, Pose.P.L_HIP],
+      ['right', 1, Pose.P.R_SHOULDER, Pose.P.R_ELBOW, Pose.P.R_WRIST, Pose.P.R_HIP],
+    ];
+    for (const [side, s, S, E, Wr, Hp] of sides) {
+      const sx = cx + s * half * 0.85 * a;
+      set(S, sx, sy);
+      set(Hp, cx + s * half * 0.55 * a, HIP_Y);
+      const state = f[side];
+      if (state === 'up') {
+        set(E, sx + s * 0.08 * k, sy - 0.55 * k);
+        set(Wr, sx + s * 0.1 * k, sy - 1.1 * k);
+      } else if (state === 'out') {
+        set(E, sx + s * 0.55 * k, sy - 0.02 * k);
+        set(Wr, sx + s * 1.1 * k, sy - 0.04 * k);
+      } else if (state === 'cross') {
+        set(E, sx + s * 0.15 * k, sy + 0.45 * k);
+        set(Wr, cx - s * 0.35 * k, sy + 0.3 * k);
+      } else if (state === 'head') {
+        set(E, sx + s * 0.45 * k, sy - 0.45 * k);
+        set(Wr, nose.x + s * 0.18 * k, nose.y - 0.3 * k);
+      } else {
+        set(E, sx + s * 0.06 * k, sy + 0.55 * k);
+        set(Wr, sx + s * 0.08 * k, sy + 1.05 * k);
+      }
+    }
+    return pts;
+  }
+
+  // Draw the room and the people. Returns { rgba, mask, poses }: the picture (scene.w × scene.h),
+  // a mask of the same size (1 where a person is), and each player's body points.
   function frame(scene, state) {
-    const { w, h, room, buf, noise } = scene;
+    const { w, h, room, buf, mask, noise } = scene;
     buf.set(room);
+    mask.fill(0);
+    const a = scene.aspect;
+    const px = (c, i) => {
+      buf[i * 4] = c[0];
+      buf[i * 4 + 1] = c[1];
+      buf[i * 4 + 2] = c[2];
+      mask[i] = 1;
+    };
+    // x0, x1 as shares of the width; y0, y1 as shares of the height
     const box = (x0, y0, x1, y1, c) => {
-      const ya = Math.max(0, Math.round(y0 * h));
-      const yb = Math.min(h, Math.round(y1 * h));
-      const xa = Math.max(0, Math.round(x0 * w));
-      const xb = Math.min(w, Math.round(x1 * w));
-      for (let y = ya; y < yb; y++) {
-        for (let x = xa; x < xb; x++) {
-          const i = (y * w + x) * 4;
-          buf[i] = c[0];
-          buf[i + 1] = c[1];
-          buf[i + 2] = c[2];
-        }
+      for (let y = Math.max(0, Math.round(y0 * h)); y < Math.min(h, Math.round(y1 * h)); y++) {
+        for (let x = Math.max(0, Math.round(x0 * w)); x < Math.min(w, Math.round(x1 * w)); x++) px(c, y * w + x);
       }
     };
+    // centre and radius in body-point units (x up to the aspect ratio, y up to 1)
     const disc = (cx, cy, r, c) => {
-      const R = r * w;
-      for (let y = Math.max(0, Math.floor(cy * h - R)); y < Math.min(h, Math.ceil(cy * h + R)); y++) {
-        for (let x = Math.max(0, Math.floor(cx * w - R)); x < Math.min(w, Math.ceil(cx * w + R)); x++) {
-          const dx = x + 0.5 - cx * w;
-          const dy = y + 0.5 - cy * h;
-          if (dx * dx + dy * dy <= R * R) {
-            const i = (y * w + x) * 4;
-            buf[i] = c[0];
-            buf[i + 1] = c[1];
-            buf[i + 2] = c[2];
-          }
+      const X = cx * h;
+      const Y = cy * h;
+      const Rp = r * h;
+      for (let y = Math.max(0, Math.floor(Y - Rp)); y < Math.min(h, Math.ceil(Y + Rp)); y++) {
+        for (let x = Math.max(0, Math.floor(X - Rp)); x < Math.min(w, Math.ceil(X + Rp)); x++) {
+          const dx = x + 0.5 - X;
+          const dy = y + 0.5 - Y;
+          if (dx * dx + dy * dy <= Rp * Rp) px(c, y * w + x);
         }
       }
     };
-    for (const p of positions(scene, state)) {
-      const half = p.width / 2;
-      const head = Math.max(p.top, STAND_TOP);
-      const r = half * 0.62; // head radius, as a share of the picture's width
-      const rh = (r * w) / h; // the same radius as a share of the height
-      if (p.top < STAND_TOP) box(p.cx - half * 0.55, p.top, p.cx + half * 0.55, head + rh, p.shirt); // arms up
-      if (p.arms) box(p.arms.left, p.arms.y, p.arms.right, p.arms.y + 0.09, p.shirt); // arms out
-      disc(p.cx, head + rh, r, p.skin);
-      box(p.cx - half, head + 2 * rh, p.cx + half, 0.8, p.shirt);
-      box(p.cx - half * 0.85, 0.8, p.cx + half * 0.85, 1, [52, 54, 66]); // legs
+    const limb = (p, q, r, c) => {
+      const steps = Math.max(1, Math.ceil(Math.hypot(q.x - p.x, q.y - p.y) * h));
+      for (let s = 0; s <= steps; s++) disc(mix(p.x, q.x, s / steps), mix(p.y, q.y, s / steps), r, c);
+    };
+    const poses = [];
+    for (const f of figures(scene, state)) {
+      const pts = landmarks(scene, f);
+      poses.push(pts);
+      const half = f.width / 2;
+      const nose = pts[Pose.P.NOSE];
+      const R = half * 0.62 * a;
+      const sy = pts[Pose.P.L_SHOULDER].y;
+      if (f.shapeRound) {
+        // Shapes rounds: block arms, as wide as the shape needs.
+        if (f.top < STAND_TOP) box(f.cx - half * 0.55, f.top, f.cx + half * 0.55, nose.y, f.shirt);
+        if (f.bar) box(f.bar.left, f.bar.y, f.bar.right, f.bar.y + 0.09, f.shirt);
+      } else {
+        for (const [S, E, Wr] of [[Pose.P.L_SHOULDER, Pose.P.L_ELBOW, Pose.P.L_WRIST], [Pose.P.R_SHOULDER, Pose.P.R_ELBOW, Pose.P.R_WRIST]]) {
+          limb(pts[S], pts[E], 0.03, f.shirt);
+          limb(pts[E], pts[Wr], 0.026, f.shirt);
+          disc(pts[Wr].x, pts[Wr].y, 0.03, f.skin);
+        }
+      }
+      disc(nose.x, nose.y, R, f.skin);
+      box(f.cx - half, sy - 0.02, f.cx + half, 0.8, f.shirt);
+      box(f.cx - half * 0.85, 0.8, f.cx + half * 0.85, 1, [52, 54, 66]); // legs
     }
     for (let i = 0; i < buf.length; i += 4) {
       const d = ((noise() * 7) | 0) - 3; // camera noise
@@ -185,8 +304,8 @@
       buf[i + 1] += d;
       buf[i + 2] += d;
     }
-    return buf;
+    return { rgba: buf, mask, poses };
   }
 
-  return { createScene, frame, layout, positions, FIDGET_ROUND };
+  return { createScene, frame, layout, figures, landmarks, plannedArms, FIDGET_ROUND, CARD_ARMS };
 });

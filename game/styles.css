@@ -286,17 +286,106 @@ fieldset {
   letter-spacing: 0.02em;
 }
 
-.setup-panel {
-  position: absolute;
-  left: calc(var(--gutter-l) + 8px);
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  width: min(32rem, calc(100% - var(--gutter-l) - var(--gutter-r) - 16px));
+/* Ready: the panel sits beside the picture, so players can see their name tags. */
+#screen-ready {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 26rem);
 }
 
-.steps {
+#screen-ready .stage {
+  position: relative;
+  inset: auto;
+  min-height: 0;
+}
+
+.ready-panel {
+  align-content: start;
+  overflow-y: auto;
+  border-radius: 0;
+  background: var(--panel);
+  backdrop-filter: none;
+  padding-block: calc(1.25rem + env(safe-area-inset-top, 0px)) calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  padding-left: 1.25rem;
+  padding-right: var(--gutter-r);
+}
+
+.count {
+  font: 900 clamp(2.4rem, 7vh, 3.6rem)/1 var(--display);
+  color: var(--tape);
+  font-variant-numeric: tabular-nums;
+}
+
+.games {
   display: grid;
-  gap: 0.4rem;
-  padding-left: 1.2rem;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.games legend {
+  padding: 0;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.game {
+  position: relative;
+}
+
+.game input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.game span {
+  display: grid;
+  gap: 0.1rem;
+  min-height: 48px;
+  padding: 0.6rem 0.9rem;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  color: var(--text-2);
+}
+
+.game strong {
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.game input:checked + span {
+  border-color: var(--fill);
+  box-shadow: inset 0 0 0 1px var(--fill);
+}
+
+.game input:focus-visible + span {
+  outline: 3px solid var(--fill);
+  outline-offset: 3px;
+}
+
+.card {
+  flex: none;
+  width: clamp(72px, 14vh, 120px);
+  height: auto;
+  aspect-ratio: 4 / 5;
+  border: 2px solid var(--tape);
+  border-radius: 10px;
+}
+
+.banner {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 0.6rem 1.1rem;
+  border-radius: 8px;
+  background: var(--shade);
+  font: 700 clamp(1.2rem, 3.5vh, 1.8rem)/1.2 var(--body);
+  text-align: center;
 }
 
 .mode-tag {
@@ -308,31 +397,6 @@ fieldset {
   color: var(--tape);
   font: 700 0.85rem/1.4 var(--body);
   letter-spacing: 0.02em;
-}
-
-.countdown {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 0.5rem;
-  padding-left: var(--gutter-l);
-  padding-right: var(--gutter-r);
-  background: rgba(15, 19, 32, 0.6);
-  text-align: center;
-}
-
-.count-label {
-  font: 700 clamp(1.8rem, 5vw, 3.2rem)/1.1 var(--display);
-  letter-spacing: 0.02em;
-  text-wrap: balance;
-}
-
-.count-number {
-  font: 900 clamp(7rem, 32vh, 18rem)/0.9 var(--display);
-  color: var(--tape);
-  font-variant-numeric: tabular-nums;
 }
 
 /* Play */
@@ -353,7 +417,7 @@ fieldset {
 
 .hud {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 1rem;
   padding-block: calc(8px + env(safe-area-inset-top, 0px)) 8px;
@@ -388,6 +452,7 @@ fieldset {
 }
 
 .timer {
+  margin-left: auto;
   font: 900 clamp(3.5rem, 13vh, 8rem)/0.85 var(--display);
   color: var(--tape);
   font-variant-numeric: tabular-nums;
@@ -573,10 +638,6 @@ fieldset {
   font-size: 1.15rem;
 }
 
-.countdown:focus {
-  outline: none;
-}
-
 /* Done */
 .done {
   display: grid;
@@ -641,6 +702,19 @@ fieldset {
 @media (max-width: 760px) {
   .start {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  #screen-ready {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 40vh minmax(0, 1fr);
+  }
+
+  #screen-ready .stage {
+    order: -1;
+  }
+
+  .ready-panel {
+    padding-left: var(--gutter-l);
   }
 
   .start-preview {

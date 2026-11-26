@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Freeze</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="A camera game for everyone in front of one laptop: fill the shape with your bodies, then hold still.">
+<meta name="description" content="Party games for everyone in front of one laptop. The laptop sees you, counts the players and keeps score.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
@@ -18,16 +18,7 @@
   <section id="screen-start" class="screen start" aria-labelledby="start-title">
     <div class="start-text">
       <h1 id="start-title" class="wordmark">Freeze</h1>
-      <p class="lede">Fill the shape on the screen with your bodies, then hold still. Everyone the camera can see is on the team.</p>
-
-      <fieldset class="sizes">
-        <legend>How many of you are playing?</legend>
-        <div class="size-options">
-          <label class="size"><input type="radio" name="size" id="size-small" value="small"><span>1 or 2</span></label>
-          <label class="size"><input type="radio" name="size" id="size-medium" value="medium" checked><span>3 to 5</span></label>
-          <label class="size"><input type="radio" name="size" id="size-large" value="large"><span>6 or more</span></label>
-        </div>
-      </fieldset>
+      <p class="lede">Party games for everyone in front of one laptop. The laptop sees your bodies, counts the players and keeps score.</p>
 
       <div class="actions">
         <button id="btn-camera" class="btn primary" type="button">Start the camera</button>
@@ -36,11 +27,11 @@
       <p id="camera-error" class="error" role="alert" hidden></p>
 
       <ol class="how">
-        <li><strong>Learn the room.</strong> Everyone steps out of the picture for a few seconds.</li>
-        <li><strong>Fill the shape.</strong> <span id="how-fill">You have 10 seconds to get into it together.</span></li>
-        <li><strong>Freeze.</strong> Hold still for 3 seconds. You get points for filling the shape and for holding still.</li>
+        <li><strong>Stand back.</strong> Freeze finds everyone in view and gives each player a name tag.</li>
+        <li><strong>Pick a game.</strong> Fill a shape with your bodies, show the right number of hands, or copy a pose.</li>
+        <li><strong>Do it, then freeze.</strong> You get points for getting it right and for holding still.</li>
       </ol>
-      <p class="fine">Freeze runs on this laptop. The video isn't recorded or sent anywhere.</p>
+      <p class="fine">Freeze works out where people are on this laptop. The video isn't recorded or sent anywhere. The first time you start the camera, Freeze downloads its body-tracking model, about 6 MB.</p>
     </div>
     <figure class="start-preview">
       <canvas id="preview" width="320" height="240" aria-hidden="true"></canvas>
@@ -48,36 +39,38 @@
     </figure>
   </section>
 
-  <!-- Setup: learn the room -->
-  <section id="screen-setup" class="screen stage-screen" aria-labelledby="setup-title" hidden>
-    <div class="stage" id="setup-stage"></div>
-    <div class="panel setup-panel" id="setup-panel">
-      <p class="mode-tag" id="setup-mode" hidden>Practice players</p>
-      <h2 id="setup-title">Set up the laptop</h2>
-      <div id="setup-before">
-        <ul class="steps">
-          <li>Put the laptop on a table.</li>
-          <li id="setup-stand">Stand about 3 metres from the laptop.</li>
-          <li>Check that the camera can see all of you, at least from the waist up.</li>
-          <li>When you choose Learn the room, everyone has 5 seconds to step out of the picture, so Freeze can learn what the empty room looks like.</li>
-        </ul>
-        <div class="actions">
-          <button id="btn-learn" class="btn primary" type="button">Learn the room</button>
-          <button id="btn-setup-back" class="btn" type="button">Back</button>
+  <!-- Ready: who's playing, and which game -->
+  <section id="screen-ready" class="screen stage-screen" aria-labelledby="ready-title" hidden>
+    <div class="stage" id="ready-stage"></div>
+    <div class="panel ready-panel" id="ready-panel">
+      <p class="mode-tag" id="ready-mode" hidden>Practice players</p>
+      <h2 id="ready-title">Who's playing?</h2>
+      <p class="count" id="player-count" aria-live="polite">Looking for players</p>
+      <p id="ready-hint">Stand back until everyone has a name tag. The camera should see you at least from the waist up.</p>
+      <p id="ready-loading" hidden>Getting body tracking ready. The first time takes a few seconds.</p>
+      <p id="ready-error" class="error" role="alert" hidden></p>
+
+      <fieldset class="sizes" id="practice-size" hidden>
+        <legend>How many practice players?</legend>
+        <div class="size-options">
+          <label class="size"><input type="radio" name="practice-n" value="2"><span>2</span></label>
+          <label class="size"><input type="radio" name="practice-n" value="4" checked><span>4</span></label>
+          <label class="size"><input type="radio" name="practice-n" value="7"><span>7</span></label>
         </div>
+      </fieldset>
+
+      <fieldset class="games">
+        <legend>Pick a game</legend>
+        <label class="game"><input type="radio" name="game" value="shapes" checked><span><strong>Shapes</strong> Fill a shape with your bodies</span></label>
+        <label class="game"><input type="radio" name="game" value="hands"><span><strong>Hands up</strong> Show exactly the right number of hands</span></label>
+        <label class="game"><input type="radio" name="game" value="pose"><span><strong>Copy the pose</strong> Everyone copies the pose on screen</span></label>
+        <label class="game"><input type="radio" name="game" value="mix"><span><strong>Mix</strong> A bit of each</span></label>
+      </fieldset>
+
+      <div class="actions">
+        <button id="btn-play" class="btn primary" type="button" disabled>Start the game</button>
+        <button id="btn-ready-back" class="btn" type="button">Back</button>
       </div>
-      <div id="setup-after" hidden>
-        <p id="setup-check">Now step back in. You should turn teal. If parts of the empty room turn teal too, learn the room again.</p>
-        <p id="setup-warning" class="warning" role="alert" hidden></p>
-        <div class="actions">
-          <button id="btn-play" class="btn primary" type="button">Start the game</button>
-          <button id="btn-relearn" class="btn" type="button">Learn the room again</button>
-        </div>
-      </div>
-    </div>
-    <div class="countdown" id="learn-countdown" tabindex="-1" hidden>
-      <p class="count-label" id="learn-label">Everyone step out of the picture</p>
-      <p class="count-number" id="learn-number">5</p>
     </div>
   </section>
 
@@ -89,22 +82,24 @@
         <p class="callout-main" id="callout-main">Fill the shape</p>
         <p class="callout-sub" id="callout-sub">Stand in a line, shoulder to shoulder.</p>
       </div>
+      <canvas class="card" id="card" width="120" height="150" aria-hidden="true" hidden></canvas>
       <p class="timer" id="timer" aria-hidden="true">10</p>
     </header>
     <div class="stage" id="play-stage">
       <p class="rush" id="rush" hidden>Slow down. There's time.</p>
+      <p class="banner" id="nobody" hidden>Nobody in view. Step back into the picture.</p>
       <p class="flash" id="flash" aria-hidden="true" hidden>Freeze!</p>
       <div class="result" id="result" hidden>
         <p class="result-points"><span id="result-points">0</span> <span class="result-unit">points</span></p>
         <dl class="result-parts">
-          <div><dt>Filled</dt><dd id="result-filled">0%</dd></div>
-          <div><dt>Outside the shape</dt><dd id="result-outside">0%</dd></div>
+          <div><dt id="result-a-label">Filled</dt><dd id="result-a">0%</dd></div>
+          <div id="result-b-box"><dt id="result-b-label">Outside the shape</dt><dd id="result-b">0%</dd></div>
           <div><dt>Held still</dt><dd id="result-still">0%</dd></div>
         </dl>
       </div>
     </div>
     <footer class="meter-row" id="play-bar">
-      <div class="meter" role="meter" aria-label="Shape filled" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="meter">
+      <div class="meter" role="meter" aria-label="Progress this round" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="meter">
         <div class="meter-fill" id="meter-fill"></div>
         <p class="meter-text" id="meter-text">Filled 0%</p>
       </div>
@@ -121,7 +116,7 @@
         <p id="pause-reason" hidden></p>
         <div class="actions stack">
           <button id="btn-resume" class="btn primary" type="button" aria-keyshortcuts="Escape">Resume</button>
-          <button id="btn-pause-relearn" class="btn" type="button">Learn the room again and restart</button>
+          <button id="btn-pause-change" class="btn" type="button">Choose another game</button>
           <button id="btn-quit" class="btn" type="button">End the game</button>
         </div>
       </div>
@@ -135,21 +130,13 @@
       <h2 id="done-title" class="done-total"><span id="done-total">0</span><span class="done-max"> of <span id="done-max">500</span></span></h2>
       <table class="rounds">
         <caption class="sr-only">Points for each round</caption>
-        <thead><tr><th scope="col">Round</th><th scope="col">Shape</th><th scope="col">Filled</th><th scope="col">Held still</th><th scope="col">Points</th></tr></thead>
+        <thead><tr><th scope="col">Round</th><th scope="col">Game</th><th scope="col">What to do</th><th scope="col">Points</th></tr></thead>
         <tbody id="done-rounds"></tbody>
       </table>
-      <p class="fine" id="done-note">Playing on more than one laptop? Every laptop that picked the same group size got the same 5 shapes, so you can compare scores.</p>
-      <fieldset class="sizes">
-        <legend>Group size for the next game</legend>
-        <div class="size-options">
-          <label class="size"><input type="radio" name="size-next" id="next-small" value="small"><span>1 or 2</span></label>
-          <label class="size"><input type="radio" name="size-next" id="next-medium" value="medium" checked><span>3 to 5</span></label>
-          <label class="size"><input type="radio" name="size-next" id="next-large" value="large"><span>6 or more</span></label>
-        </div>
-        <p class="fine" id="next-stand">Stand about 3 metres from the laptop.</p>
-      </fieldset>
+      <p class="fine" id="done-note">Playing on more than one laptop? Laptops that play the same game with the same number of players get the same rounds, so you can compare scores.</p>
       <div class="actions">
         <button id="btn-again" class="btn primary" type="button">Play again</button>
+        <button id="btn-change" class="btn" type="button">Choose another game</button>
         <button id="btn-done-quit" class="btn" type="button">Back to the start</button>
       </div>
     </div>
@@ -160,8 +147,10 @@
 <noscript><p>Freeze needs JavaScript to run.</p></noscript>
 <script src="js/vision.js"></script>
 <script src="js/shapes.js"></script>
+<script src="js/pose.js"></script>
 <script src="js/rounds.js"></script>
 <script src="js/practice.js"></script>
+<script src="js/sensing.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

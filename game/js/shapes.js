@@ -107,11 +107,18 @@
     return out;
   }
 
+  // Which shapes suit a group, from the number of players Freeze can see.
+  function sizeFor(players) {
+    if (players <= 2) return 'small';
+    if (players <= 5) return 'medium';
+    return 'large';
+  }
+
   function roundsFor(size) {
     const s = SIZES[size];
     if (!s) throw new Error('Unknown group size: ' + size);
     return s.shapes.map((id) => Object.assign({ id }, SHAPES[id]));
   }
 
-  return { SHAPES, SIZES, insideRing, inside, rasterize, roundsFor };
+  return { SHAPES, SIZES, insideRing, inside, rasterize, sizeFor, roundsFor };
 });

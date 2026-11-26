@@ -1,10 +1,17 @@
 # Freeze
 
-A camera game for everyone in front of one laptop. A shape appears on the screen. Your group fills it with your bodies, then holds still for 3 seconds. You get points for filling the shape and for holding still. A game is 5 rounds and takes about a minute and a half.
+Party games for everyone in front of one laptop. The laptop sees your bodies, counts the players and keeps score. Every round works the same way: do what the screen says, then freeze for 3 seconds.
 
-Everyone the camera can see is on the team, so it works for 1 person or 8. Nobody has to sit out to watch or keep score, because the laptop keeps score.
+- **Shapes:** fill a shape on the screen with your bodies.
+- **Hands up:** show exactly the right number of hands, for example "Show 7 hands".
+- **Copy the pose:** everyone copies the pose on the screen, such as "Both arms up" or "Hands on your head".
+- **Mix:** a bit of each.
 
-This is a working prototype for the ISDN 1001 project. It hasn't been tested with real groups yet.
+Everyone the camera can see is on the team, from 1 person to 6. Nobody has to sit out to watch or keep score, because the laptop keeps score. A game is 5 rounds and takes a minute and a half or less.
+
+Try it at https://isdn1001.lbzeng.com/freeze/.
+
+This is a working prototype for the ISDN 1001 project. Practice mode has been tested here. **The body tracking with a real camera hasn't been tested yet.** See "What still needs testing" below.
 
 ## Why a game like this
 
@@ -12,89 +19,111 @@ University students say they want to play together, but most games are hard to s
 
 | What stops people | How Freeze handles it |
 |---|---|
-| You need a full group, at the same time, in a booked place | Any number of people in front of any laptop, in a dorm, a classroom or a common room. Nothing to book. |
-| There's a lot to learn, and you don't want to be the weakest player | You only have to fill the shape and hold still. There's one team score, and shapes need short and tall people, standing and crouching, so everyone has a part to fill. |
+| You need a full group, at the same time, in a booked place | Any number of people in front of any laptop, in a dorm, a classroom or a common room. Nothing to book, and nothing to set up: Freeze counts the players by itself. |
+| There's a lot to learn, and you don't want to be the weakest player | Each game has one rule. There's one team score, and the shapes need short and tall people, standing and crouching, so everyone has a part to fill. |
 | You need to buy equipment | Students already carry a laptop with a camera. |
-| You can get hurt | No ball, no running and no tackles. The game rewards holding still, bigger groups get more time, and the screen says "Slow down" if anyone runs. |
+| You can get hurt | No ball, no running and no tackles. The game rewards holding still, and the screen says "Slow down" if anyone runs. |
 
-Freeze uses a laptop, not a phone, because a laptop camera on a table can see a whole group, and the screen is big enough to read from across a room. With several laptops in one room, each laptop can be a team. Every laptop that picks the same group size gets the same 5 shapes, so teams can compare scores.
+Freeze uses a laptop, not a phone, because a laptop camera on a table can see a whole group, and the screen is big enough to read from across a room. A host voice also reads out each round, so players don't have to read the screen from 3 metres away. With several laptops in one room, each laptop can be a team. Laptops that play the same game with the same number of players get the same rounds, so teams can compare scores.
 
 ## How to play
 
-1. Pick how many of you are playing: 1 or 2, 3 to 5, or 6 or more. Bigger groups get wider shapes and more time.
-2. Put the laptop on a table. Stand about 2 metres from it if there are 1 or 2 of you, about 3 metres for 3 to 5, and 3 to 4 metres for 6 or more. The camera should see all of you, at least from the waist up.
-3. Choose **Learn the room**. Everyone steps out of the picture. After a 5-second countdown, Freeze takes a second or two to learn the empty room.
-4. Step back in. You turn teal on the screen. Choose **Start the game**.
-5. Each round: **Fill the shape** (8 seconds for 1 or 2 people, 10 for 3 to 5, 12 for 6 or more), then **Freeze!** (hold still for 3 seconds), then see your points.
+1. Open Freeze and choose **Start the camera**. Allow the camera when your browser asks.
+2. Put the laptop on a table and stand back: about 2 metres for 1 or 2 players, about 3 metres for 3 to 5, and 3 to 4 metres for 6. Each player gets a name tag, P1, P2 and so on, and the screen shows how many players it can see.
+3. Pick a game and choose **Start the game**.
+4. Each round: do what the screen says, then **Freeze!** Hold still for 3 seconds. Then see your points.
 
-On the screen, the shape is outlined in yellow. Parts of you inside the shape are teal. Parts of you outside the shape have coral stripes, and they cost points.
+During a round you can see what Freeze sees: a line along each player's arms, a yellow ring on every hand that counts as up, and a ring round each head in Copy the pose (solid teal when that player has the pose, dashed coral when not). In Shapes, the shape is outlined in yellow, the parts of you inside it are teal, and the parts outside it have coral stripes.
 
-Press the space bar to pause, and the space bar or Escape to resume. Press M to turn the sound on or off. Freeze also pauses if you switch to another tab. After a game, you can pick a different group size and play again without learning the room again.
+Press the space bar to pause, and the space bar or Escape to resume. Press M to turn the sound and the voice on or off. Freeze also pauses if you switch to another tab.
 
-**Points for a round** = 100 × fit × still.
+### Points
 
-- Fit is how much of the shape you filled, minus half of what was outside it, averaged over the last 2.5 seconds of Freeze. The first half second doesn't count, so people have time to stop.
-- Still is the share of those 2.5 seconds in which nobody moved much. If anyone moves, it counts, even in a big group.
+Points for a round = 100 × how well you did × how still you held.
+
+- **How well you did** is averaged over the last 2.5 seconds of Freeze. The first half second doesn't count, so people have time to stop.
+  - Shapes: how much of the shape you filled, minus half of what was outside it.
+  - Hands up: exactly the right number of hands scores full marks, and one off scores half.
+  - Copy the pose: the share of players who have the pose.
+- **How still you held** is the share of those 2.5 seconds in which nobody moved much. If anyone moves, it counts.
 - If you pause during Freeze, the 3 seconds start again when you resume.
+
+Time to do it: Shapes 8, 10 or 12 seconds (more for bigger groups), Hands up 6 seconds, Copy the pose 5 seconds.
+
+## How the camera part works
+
+Freeze uses Google's MediaPipe Pose Landmarker, a small AI model that finds people in a camera picture. It runs in the browser on this laptop. The video isn't recorded or sent anywhere. The first time you start the camera, the browser downloads the MediaPipe code from jsDelivr and the model (about 6 MB) from Google, then keeps them.
+
+For each player in view, up to 6, the model gives:
+- **33 body points**, such as the nose, shoulders, elbows, wrists and hips. Hands up and Copy the pose use these.
+- **An outline of the body.** Shapes uses this.
+
+Freeze then works out the rest itself, in plain JavaScript (`js/pose.js` and `js/vision.js`):
+- **Players** are poses with both shoulders visible, listed left to right.
+- **Body size** is the distance from shoulders to hips. Arm positions and movement are measured in body sizes, so players near the camera and far from it are judged the same way.
+- **A hand is up** when the wrist is above the nose.
+- **Poses:**
+  - Both arms up: both wrists well above the head.
+  - Arms crossed: each wrist has crossed the middle of the body at chest height.
+  - Right or left hand up: one wrist well above the head and the other arm down.
+  - Hands on your head: both wrists at head height and close to the head.
+
+  Every pose fits in the space a standing person takes, so big groups don't need more room.
+- **Holding still:** while frozen, Freeze compares each moment with the moment 0.4 seconds before. If any player's head, shoulders, elbows, wrists or hips moved more than 0.15 of a body size, that moment doesn't count as still.
+- **Running:** if any player crosses the room faster than 3.5 body sizes a second for 0.4 seconds, the screen says "Slow down. There's time." Waving arms doesn't count.
+- **Shapes:** the body outlines are compared with the shape, pixel by pixel.
+
+There's no "learn the room" step and no need for a plain wall. The model finds people in any room and light, even if the laptop moves.
+
+## What still needs testing
+
+The body tracking hasn't been tried with a real camera here. The test browser here was only allowed to run Freeze's own code, not code downloaded from other sites, and its pretend camera has no people in it anyway. Before a class test, try it on a laptop:
+
+1. Start the camera with 1 person, then 3 to 4 people. Check that everyone gets a name tag, and that the count is right.
+2. Play Hands up and Copy the pose. Check that raised hands get a yellow ring, and that each pose turns the head rings teal.
+3. Stand still while frozen, then sway gently, then step to one side. Only the step should cost points.
+4. Walk across the room, then run. "Slow down" should appear only for running.
+5. If any of these is off, the numbers to change are in `js/pose.js` (how poses are judged) and `js/rounds.js` (`MOVE_LIMIT` and `RUSH_LIMIT`).
 
 ## Run it
 
-The easiest way is the project website: open https://isdn1001.lbzeng.com/freeze/ in Chrome or Edge on a laptop, and allow the camera when your browser asks.
+The easiest way is the project website: open https://isdn1001.lbzeng.com/freeze/ in Chrome or Edge on a laptop.
 
 Browsers only allow the camera on a secure page. To run Freeze from your own copy, pick one of these:
 
 - **Open the file.** Open `game/index.html` in Chrome or Edge. Chrome treats files on your own laptop as secure, so the camera works. So far this has only been tried in Chromium.
-- **Run the small server.** In the `game` folder, run `node server.js`, then open http://localhost:8080. This needs Node.js 18 or later. This way doesn't depend on Chrome's rule for files. It serves only the game's files, and only this laptop can open them.
-- **Put it on a web host.** Upload the `game` folder to any host that uses https, such as GitHub Pages. Freeze doesn't need any server code.
+- **Run the small server.** In the `game` folder, run `node server.js`, then open http://localhost:8080. This needs Node.js 18 or later. It serves only the game's files, and only this laptop can open them.
+- **Put it on a web host.** Upload the `game` folder to any host that uses https. Freeze doesn't need any server code.
 
-No camera, or the camera is blocked? Choose **Play with practice players**. Practice players walk in and fill the shapes, and the same vision code scores them. The practice players aren't very good at this, so a real group should do better. If Freeze is open inside another page, such as an online preview, that page may block the camera, so only the practice players work.
+Each way needs an internet connection the first time, to download the body-tracking model.
 
-## How the camera part works
-
-All of it is plain JavaScript written for this project, in `js/vision.js`. There's no machine learning model and no library, and the camera code doesn't use the network. The video stays on the laptop and isn't recorded.
-
-1. **The empty room.** While everyone is out of the picture, Freeze averages 20 frames. That average is the room. It also measures how much each pixel flickers. If a lot of the picture changed, someone was probably still in it, and Freeze asks you to try again.
-2. **Finding people.** Freeze asks for a wide (16:9) picture, so more people fit side by side. Each frame is shrunk to 160 pixels wide and compared with the room. A pixel that differs by more than the camera's normal flicker counts as a person. Two adjustments help in real rooms:
-   - Laptop cameras brighten or darken the whole picture when people walk in. Freeze measures that change from the parts of the picture that were room in the last frame, so a big group covering most of the picture doesn't fool it.
-   - A pixel that is the same colour as the room and 85% to 97% as bright counts as a soft shadow, not a person. Anything darker counts as a person, so grey and beige clothes in front of a pale wall still show up.
-3. **Clean-up.** A pixel is kept only if most of its neighbours agree. This removes specks and fills small gaps.
-4. **Fit.** The people are compared with the shape, pixel by pixel.
-5. **Movement.** The picture is split into 8 strips, side by side, and Freeze compares frames in each strip. The strip with the most movement counts, so one person moving in a big group shows up. Normal swaying only changes thin lines along the edges of people, and the clean-up step removes those first, so standing with your arms out counts as holding still. While frozen, each frame is compared with the frame 0.4 seconds before it, so slow drifting adds up. Freeze looks at about 15 frames a second, skips repeated frames from slow cameras, and allows for the time between frames, so fast and slow laptops are judged the same way.
-6. **Checks.** If nearly the whole picture looks like people for a second, or so little of the room is in view that Freeze can't judge the brightness, the light probably changed or the laptop moved. Freeze then pauses and asks you to learn the room again. If the camera stops, Freeze stops the game and says so.
-
-### Known limits
-
-- It needs a steady camera and steady light. If the laptop moves or a light turns on, learn the room again (pause, then **Learn the room again and restart**).
-- Clothes the same colour as the wall can be missed. A plain wall behind the players works best.
-- Even room light works best. A bright window or lamp behind the players makes them harder to see, and dark shadows on the wall can count as people.
-- Someone walking behind the players counts as a player.
-- If someone stays in the picture without moving while Freeze learns the room, Freeze can't tell. They become part of the room. Check that everyone is out of the picture.
-- One person walking fast close to the camera can make "Slow down" appear. Freeze may also measure a group walking about the same as one person running. Before a class test, record real players walking and running, and check that the warning appears only when someone runs.
-- It hasn't been tried with real groups, real rooms or many laptop models yet. The numbers in `js/vision.js` and `js/rounds.js` (how different a pixel must be, how much movement counts as moving or rushing) are first guesses to tune in a real test.
+No camera, or no internet? Choose **Play with practice players**. Practice players stand in a pretend room and play every game, and Freeze scores them the same way. You can pick 2, 4 or 7 practice players. They aren't very good at this, so a real group should do better. If Freeze is open inside another page, such as an online preview, that page may block the camera, so only the practice players work.
 
 ## Safety
 
 - Clear chairs and bags from the space first.
 - Shapes never need jumping or lifting anyone, and no shape has a gap so low that someone would have to lie down under it. A test checks every shape for this.
-- You can play sitting down. People who are sitting can fill the low parts of shapes.
-- If anyone runs while filling a shape, the screen says "Slow down. There's time."
+- You can play sitting down. People who are sitting can fill the low parts of shapes, and can do every pose.
+- If anyone runs, the screen says "Slow down. There's time."
 
 ## Files
 
 | File | What it does |
 |---|---|
 | `index.html`, `styles.css` | The screens |
-| `js/vision.js` | Finding people, fit and movement |
+| `js/sensing.js` | Runs the body-tracking model on the camera picture |
+| `js/pose.js` | Reads poses: players, hands up, the pose cards, movement and speed |
+| `js/vision.js` | Body outlines: shrinking, cleaning up and comparing with a shape |
 | `js/shapes.js` | The 15 shapes, which 5 shapes each group size gets, the time to fill and how far to stand |
-| `js/rounds.js` | The rules: timing, points, pause |
+| `js/rounds.js` | The rules: the games, timing, points and pause |
 | `js/practice.js` | The practice room and practice players |
-| `js/game.js` | The camera, drawing, sound and buttons |
+| `js/game.js` | The camera, drawing, sound, the host's voice and the buttons |
 | `server.js` | The small local server |
 | `test/` | Unit tests (`npm test`) and a browser walkthrough (`npm run e2e`) |
 
 The walkthrough:
-- plays a whole practice game at 8 times the normal speed
-- checks pause (button, space bar, Escape and switching tabs), play again with a new group size, and quit
+- plays every game with practice players at 8 times the normal speed, including 7 practice players
+- checks pause (button, space bar, Escape and switching tabs), play again, choose another game and quit
 - checks that the top and bottom bars don't cover the picture
-- checks the page at phone width
-- starts the camera with Chromium's pretend camera
+- checks the screens at phone width
+- starts the camera with Chromium's pretend camera, with the model's servers blocked, and checks that the screen explains the problem

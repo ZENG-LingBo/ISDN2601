@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const S = require('../js/shapes.js');
 const R = require('../js/rounds.js');
+const Pose = require('../js/pose.js');
 
 const W = 160;
 const H = 120;
@@ -100,7 +101,7 @@ test('gaps are empty and the parts around them are filled', () => {
 });
 
 // Helpers for the rules.
-const PERFECT = { filled: 1, outside: 0, fit: 1, motion: 0 };
+const PERFECT = { players: 4, fit: 1, filled: 1, outside: 0, hands: 4, matching: 4, motion: 0, rush: 0 };
 
 function play(game, from, ms, m, every) {
   let t = from;
@@ -112,72 +113,145 @@ function play(game, from, ms, m, every) {
   return { t, events };
 }
 
-test('a perfect group scores 100 a round and 500 a game', () => {
-  const g = R.createGame('medium', 0);
-  const { events } = play(g, 0, 5 * 17000 + 1000, PERFECT);
-  assert.equal(g.phase, 'done');
-  assert.equal(g.results.length, 5);
-  assert.ok(g.results.every((r) => r.points === 100));
-  assert.equal(R.total(g), 500);
-  assert.equal(R.maxTotal(g), 500);
-  assert.equal(events.filter((e) => e === 'freeze').length, 5);
-  assert.equal(events.filter((e) => e === 'next').length, 4);
-  assert.equal(events.at(-1), 'done');
+// Perfect play for whatever the current round asks.
+function perfect(game) {
+  const r = game.rounds[game.round];
+  return { ...PERFECT, hands: r.type === 'hands' ? R.handsTarget(r, 4) : 0 };
+}
+
+test('the players-to-group-size rule', () => {
+  assert.equal(S.sizeFor(1), 'small');
+  assert.equal(S.sizeFor(2), 'small');
+  assert.equal(S.sizeFor(3), 'medium');
+  assert.equal(S.sizeFor(5), 'medium');
+  assert.equal(S.sizeFor(6), 'large');
+});
+
+test('every game has 5 rounds, and Mix has each kind of round', () => {
+  for (const kind of Object.keys(R.GAMES)) {
+    const rounds = R.planRounds(kind, 4);
+    assert.equal(rounds.length, 5, kind);
+    assert.ok(rounds.every((r) => r.title && r.tip && r.fillMs > 0), kind);
+  }
+  const types = new Set(R.planRounds('mix', 4).map((r) => r.type));
+  assert.deepEqual([...types].sort(), ['hands', 'pose', 'shape']);
+  assert.throws(() => R.planRounds('golf', 4));
+});
+
+test('Shapes picks the shape set from the number of players', () => {
+  assert.equal(R.planRounds('shapes', 2)[0].id, 'door');
+  assert.equal(R.planRounds('shapes', 4)[0].id, 'wall');
+  assert.equal(R.planRounds('shapes', 7)[0].id, 'bigwall');
+  assert.equal(R.planRounds('shapes', 7)[0].fillMs, 12000);
+});
+
+test('the same game and number of players always give the same rounds', () => {
+  const a = R.planRounds('mix', 5).map((r) => r.title);
+  const b = R.planRounds('mix', 5).map((r) => r.title);
+  assert.deepEqual(a, b);
+});
+
+test('Hands up titles say how many hands, and the target fits the players in view', () => {
+  const rounds = R.planRounds('hands', 4);
+  assert.deepEqual(rounds.map((r) => r.title), ['Show 4 hands', 'Show 8 hands', 'Show 3 hands', 'Show 5 hands', 'Show 6 hands']);
+  assert.equal(R.handsTarget(rounds[1], 4), 8);
+  assert.equal(R.handsTarget(rounds[1], 2), 4); // two players left: 4 hands at most
+  assert.equal(R.planRounds('hands', 1)[2].title, 'Show 1 hand');
+});
+
+test('a perfect group scores 100 a round and 500 a game, in every game', () => {
+  for (const kind of Object.keys(R.GAMES)) {
+    const g = R.createGame(kind, 4, 0);
+    const { events } = play(g, 0, 5 * 20000, perfect);
+    assert.equal(g.phase, 'done', kind);
+    assert.ok(g.results.every((r) => r.points === 100), kind + ' ' + g.results.map((r) => r.points));
+    assert.equal(R.total(g), 500);
+    assert.equal(events.filter((e) => e === 'freeze').length, 5);
+    assert.equal(events.at(-1), 'done');
+  }
 });
 
 test('a round goes fill, then freeze, then result', () => {
-  const g = R.createGame('small', 0);
+  const g = R.createGame('shapes', 2, 0);
   R.step(g, 7900, PERFECT);
   assert.equal(g.phase, 'fill');
   assert.deepEqual(R.step(g, 8000, PERFECT), ['freeze']);
-  assert.equal(g.phase, 'freeze');
   R.step(g, 10900, PERFECT);
   assert.deepEqual(R.step(g, 11000, PERFECT), ['result']);
-  assert.equal(g.results[0].name, 'Door');
-  assert.deepEqual(R.step(g, 15000, PERFECT), ['next']);
+  assert.equal(g.results[0].name, 'Shapes');
+  assert.equal(g.results[0].what, 'Door');
+  assert.equal(g.results[0].title, 'Fill the shape');
+  assert.deepEqual(R.step(g, 14500, PERFECT), ['next']);
   assert.equal(g.round, 1);
-  assert.equal(g.live.filled, 0);
 });
 
-test('points are fit times the share of frozen frames held still', () => {
-  const g = R.createGame('small', 0);
-  play(g, 0, 8000, PERFECT);
+test('Hands up: exactly right scores 1, one off scores half, more is 0', () => {
+  const round = R.planRounds('hands', 4)[0]; // show 4
+  assert.equal(R.momentScore(round, { players: 4, hands: 4 }), 1);
+  assert.equal(R.momentScore(round, { players: 4, hands: 5 }), 0.5);
+  assert.equal(R.momentScore(round, { players: 4, hands: 3 }), 0.5);
+  assert.equal(R.momentScore(round, { players: 4, hands: 6 }), 0);
+  assert.equal(R.momentScore(round, { players: 0, hands: 4 }), 0);
+});
+
+test('Copy the pose scores the share of players copying', () => {
+  const round = R.planRounds('pose', 4)[0];
+  assert.equal(R.momentScore(round, { players: 4, matching: 3 }), 0.75);
+  assert.equal(R.momentScore(round, { players: 0, matching: 0 }), 0);
+});
+
+test('points are the average score times the share of frozen moments held still', () => {
+  const g = R.createGame('pose', 4, 0);
+  play(g, 0, 5000, PERFECT);
   let n = 0;
-  play(g, 8000, 3000, () => ({ filled: 0.9, outside: 0.2, fit: 0.8, motion: n++ % 2 ? 0.5 : 0 }));
+  play(g, 5000, 3000, () => ({ ...PERFECT, matching: 2, motion: n++ % 2 ? 0.5 : 0 }));
   const r = g.results[0];
-  assert.ok(Math.abs(r.fit - 0.8) < 1e-9);
+  assert.ok(Math.abs(r.score - 0.5) < 1e-9);
   assert.ok(Math.abs(r.still - 0.5) < 0.05);
-  assert.equal(r.points, Math.round(100 * r.fit * r.still));
+  assert.equal(r.points, Math.round(100 * r.score * r.still));
+  assert.ok(Math.abs(r.matched - 0.5) < 1e-9);
+});
+
+test('the Hands up result keeps the most common count and the target', () => {
+  const g = R.createGame('hands', 4, 0);
+  play(g, 0, 6000, PERFECT);
+  play(g, 6000, 3000, { ...PERFECT, hands: 3 });
+  assert.equal(g.results[0].hands, 3);
+  assert.equal(g.results[0].target, 4);
+  assert.equal(g.results[0].points, 50);
 });
 
 test('moving in the first half second after Freeze does not count', () => {
-  const g = R.createGame('small', 0);
+  const g = R.createGame('shapes', 2, 0);
   play(g, 0, 8000, PERFECT);
   play(g, 8000, 3000, (game, t) => ({ ...PERFECT, motion: t - 8000 < 450 ? 0.9 : 0 }));
   assert.equal(g.results[0].points, 100);
 });
 
-test('no picture while frozen gives 0 points for the round', () => {
-  const g = R.createGame('small', 0);
-  play(g, 0, 8000, PERFECT);
-  play(g, 8000, 3000, null);
+test('nobody in view while frozen gives 0 points for the round', () => {
+  const g = R.createGame('pose', 4, 0);
+  play(g, 0, 5000, PERFECT);
+  play(g, 5000, 3000, { ...PERFECT, players: 0, matching: 0 });
   assert.equal(g.results[0].points, 0);
+  const h = R.createGame('pose', 4, 0);
+  play(h, 0, 5000, PERFECT);
+  play(h, 5000, 3000, null);
+  assert.equal(h.results[0].points, 0);
 });
 
-test('rushing during fill raises a slow-down warning, which clears when people slow down', () => {
-  const g = R.createGame('large', 0);
-  const fast = { ...PERFECT, motion: 0.8 };
+test('crossing the room fast during fill raises a slow-down warning, which clears when people slow down', () => {
+  const g = R.createGame('shapes', 7, 0);
+  const fast = { ...PERFECT, rush: R.RUSH_LIMIT + 1 };
   assert.deepEqual(R.step(g, 100, fast), []);
   assert.deepEqual(R.step(g, 300, fast), []);
   assert.deepEqual(R.step(g, 500, fast), ['rushing']);
-  assert.equal(g.rushing, true);
   assert.deepEqual(R.step(g, 600, fast), []); // only once
   R.step(g, 700, PERFECT);
   assert.equal(g.rushing, false);
 });
 
 test('resuming during Freeze starts the 3 seconds again, with a new half second to settle', () => {
-  const g = R.createGame('small', 0);
+  const g = R.createGame('shapes', 2, 0);
   play(g, 0, 8000, PERFECT);
   play(g, 8000, 1500, PERFECT);
   assert.equal(g.phase, 'freeze');
@@ -185,25 +259,17 @@ test('resuming during Freeze starts the 3 seconds again, with a new half second 
   R.resume(g, 30000);
   assert.equal(g.frozen.length, 0);
   assert.equal(R.remaining(g, 30000), 3000);
-  // Moving in the first half second after resuming doesn't count.
   play(g, 30000, 3000, (game, t) => ({ ...PERFECT, motion: t - 30000 < 450 ? 0.9 : 0 }));
   assert.equal(g.results[0].points, 100);
 });
 
-test('the rush warning uses the fastest part of the picture when it is given', () => {
-  const g = R.createGame('small', 0);
-  R.step(g, 100, { ...PERFECT, motion: 0.05, rush: 0.9 });
-  assert.deepEqual(R.step(g, 600, { ...PERFECT, motion: 0.05, rush: 0.9 }), ['rushing']);
-});
-
 test('pausing stops the clock', () => {
-  const g = R.createGame('small', 0);
+  const g = R.createGame('shapes', 2, 0);
   R.step(g, 4000, PERFECT);
   R.pause(g, 4000);
   assert.deepEqual(R.step(g, 20000, PERFECT), []);
   assert.equal(R.remaining(g, 20000), 4000);
   R.resume(g, 20000);
-  assert.equal(g.phase, 'fill');
   R.step(g, 23900, PERFECT);
   assert.equal(g.phase, 'fill');
   R.step(g, 24000, PERFECT);
@@ -211,14 +277,8 @@ test('pausing stops the clock', () => {
 });
 
 test('the speed option shortens every part of a round, for tests', () => {
-  const g = R.createGame('small', 0, { speed: 10 });
-  R.step(g, 800, PERFECT);
+  const g = R.createGame('pose', 4, 0, { speed: 10 });
+  R.step(g, 500, PERFECT);
   assert.equal(g.phase, 'freeze');
-  assert.equal(R.times(g).result, 400);
-});
-
-test('every group size uses the same shapes in the same order each time', () => {
-  const a = R.createGame('large', 0).shapes.map((s) => s.id);
-  const b = R.createGame('large', 999).shapes.map((s) => s.id);
-  assert.deepEqual(a, b);
+  assert.equal(R.times(g).result, 350);
 });

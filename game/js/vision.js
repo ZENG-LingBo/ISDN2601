@@ -1,208 +1,37 @@
-// Freeze: the computer vision part.
-// Plain JavaScript on small pixel arrays, so it runs in any browser and in Node for the tests.
-// No libraries, no machine learning model and no network. The video never leaves the laptop.
-//
-// How it finds people:
-// 1. Everyone steps out of the picture and Freeze averages about 1 second of frames.
-//    That average is the background, the empty room.
-// 2. Each new frame is compared with the background, pixel by pixel. Pixels that differ
-//    by more than the camera's normal noise are "foreground": the people.
-// 3. A clean-up pass removes single stray pixels and fills small gaps.
-// 4. The foreground is compared with the target shape to get a fit score.
-// 5. Two frames in a row are compared to measure how much the people are moving.
+// Freeze: working with masks, small pictures where 1 means "a person is here" and 0 means
+// "room". The body-tracking model (or the practice players) gives Freeze a mask of everyone in
+// view; these functions shrink it, clean it and compare it with a shape.
+// Plain JavaScript on small arrays, so it runs in any browser and in Node for the tests.
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.Vision = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  // Tuning. Pixel values run from 0 to 255.
-  const MIN_DIFF = 30; // a pixel must differ from the room by at least this much to count as a person
-  const NOISE_K = 3; // ...or by 3 times that pixel's own noise, if the camera is noisy there
-  // A pixel 85–97% as bright as the room, with the same colour, is a shadow. Darker than that is
-  // treated as a person, because grey or beige clothes in front of a pale wall look like a deep
-  // shadow too. On a pale wall, shadows lighter than about 85% are already below MIN_DIFF.
-  const SHADOW_LOW = 0.85;
-  const SHADOW_HIGH = 0.97;
-  const SHADOW_CHROMA = 0.045;
-  const MOVE_DIFF = 20; // brightness change that counts as movement between two frames
-  const UNSTABLE_NOISE = 12; // background pixels noisier than this were probably someone moving
-
-  function luma(r, g, b) {
-    return (r * 77 + g * 150 + b * 29) >> 8;
-  }
-
-  // Average each block of f×f pixels. rgba is RGBA bytes, w×h pixels; w and h must divide by f.
-  function downscale(rgba, w, h, f) {
+  // Shrink a w×h mask by f in each direction. A cell is 1 if at least half its pixels are.
+  function shrinkMask(mask, w, h, f) {
     const sw = Math.floor(w / f);
     const sh = Math.floor(h / f);
-    const out = new Uint8ClampedArray(sw * sh * 4);
-    const n = f * f;
+    const out = new Uint8Array(sw * sh);
+    const half = (f * f) / 2;
     for (let y = 0; y < sh; y++) {
       for (let x = 0; x < sw; x++) {
-        let r = 0;
-        let g = 0;
-        let b = 0;
+        let s = 0;
         for (let dy = 0; dy < f; dy++) {
-          let i = ((y * f + dy) * w + x * f) * 4;
-          for (let dx = 0; dx < f; dx++, i += 4) {
-            r += rgba[i];
-            g += rgba[i + 1];
-            b += rgba[i + 2];
-          }
+          const row = (y * f + dy) * w + x * f;
+          for (let dx = 0; dx < f; dx++) s += mask[row + dx] ? 1 : 0;
         }
-        const o = (y * sw + x) * 4;
-        out[o] = r / n;
-        out[o + 1] = g / n;
-        out[o + 2] = b / n;
-        out[o + 3] = 255;
+        out[y * sw + x] = s >= half ? 1 : 0;
       }
     }
     return out;
-  }
-
-  function lumaOf(rgba, w, h) {
-    const out = new Uint8Array(w * h);
-    for (let i = 0, j = 0; j < out.length; i += 4, j++) out[j] = luma(rgba[i], rgba[i + 1], rgba[i + 2]);
-    return out;
-  }
-
-  // Background ("the empty room").
-  function createBackground(w, h) {
-    return { w, h, frames: 0, sum: new Float64Array(w * h * 3), sumSq: new Float64Array(w * h * 3) };
-  }
-
-  function addBackgroundFrame(acc, rgba) {
-    const { sum, sumSq } = acc;
-    for (let i = 0, j = 0; j < sum.length; i += 4, j += 3) {
-      for (let c = 0; c < 3; c++) {
-        const v = rgba[i + c];
-        sum[j + c] += v;
-        sumSq[j + c] += v * v;
-      }
-    }
-    acc.frames++;
-    return acc;
-  }
-
-  // Turn the collected frames into a model. `unstable` is the share of pixels that changed a lot
-  // while the room was being learned, which usually means someone was still in the picture.
-  function finishBackground(acc) {
-    const { w, h, frames, sum, sumSq } = acc;
-    if (frames < 1) throw new Error('No background frames');
-    const n = w * h;
-    const mean = new Float32Array(n * 3);
-    const noise = new Float32Array(n);
-    let unstable = 0;
-    for (let p = 0; p < n; p++) {
-      let worst = 0;
-      for (let c = 0; c < 3; c++) {
-        const j = p * 3 + c;
-        const m = sum[j] / frames;
-        mean[j] = m;
-        const v = Math.max(0, sumSq[j] / frames - m * m);
-        worst = Math.max(worst, Math.sqrt(v));
-      }
-      noise[p] = worst;
-      if (worst > UNSTABLE_NOISE) unstable++;
-    }
-    return { w, h, frames, mean, noise, unstable: unstable / n };
-  }
-
-  // Grow a mask by r pixels in every direction.
-  function dilate(mask, w, h, r) {
-    const tmp = new Uint8Array(w * h);
-    const out = new Uint8Array(w * h);
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        if (!mask[y * w + x]) continue;
-        for (let xx = Math.max(0, x - r); xx <= Math.min(w - 1, x + r); xx++) tmp[y * w + xx] = 1;
-      }
-    }
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        if (!tmp[y * w + x]) continue;
-        for (let yy = Math.max(0, y - r); yy <= Math.min(h - 1, y + r); yy++) out[yy * w + x] = 1;
-      }
-    }
-    return out;
-  }
-
-  // Laptop cameras change their brightness when people walk in. Estimate that change from the
-  // middle value of (frame brightness / room brightness) over the parts of the picture that are
-  // room. `people` is an optional mask of where people were in the last frame (grown a little);
-  // those pixels are skipped, so a big group covering most of the picture doesn't fool it.
-  // Returns a factor near 1, or null if too little of the room is visible to judge.
-  function gainOf(rgba, model, people) {
-    const { mean } = model;
-    const n = model.w * model.h;
-    const bins = new Uint32Array(201); // ratio 0.50 to 1.50 in steps of 0.005
-    let count = 0;
-    let looked = 0;
-    for (let p = 0; p < n; p += 3) {
-      looked++;
-      if (people && people[p]) continue;
-      const i = p * 4;
-      const j = p * 3;
-      const lb = mean[j] + mean[j + 1] + mean[j + 2];
-      if (lb < 60) continue; // too dark to judge
-      const ratio = (rgba[i] + rgba[i + 1] + rgba[i + 2]) / lb;
-      if (ratio < 0.5 || ratio > 1.5) continue;
-      bins[Math.round((ratio - 0.5) * 200)]++;
-      count++;
-    }
-    if (count < Math.max(20, looked * 0.15)) return null;
-    let seen = 0;
-    for (let k = 0; k < bins.length; k++) {
-      seen += bins[k];
-      if (seen * 2 >= count) {
-        const g = 0.5 + k / 200;
-        return Math.min(1.3, Math.max(0.75, g));
-      }
-    }
-    return 1;
-  }
-
-  // 1 where a person is, 0 where the room is.
-  function foregroundMask(rgba, model, opts) {
-    const o = opts || {};
-    const minDiff = o.minDiff ?? MIN_DIFF;
-    const noiseK = o.noiseK ?? NOISE_K;
-    const shadows = o.shadows !== false;
-    // gain: false for none, a number to use, or leave it out to measure it from this frame.
-    const gain = o.gain === false ? 1 : typeof o.gain === 'number' ? o.gain : gainOf(rgba, model) ?? 1;
-    const { mean, noise } = model;
-    const n = model.w * model.h;
-    const mask = new Uint8Array(n);
-    for (let p = 0; p < n; p++) {
-      const i = p * 4;
-      const j = p * 3;
-      const r = rgba[i];
-      const g = rgba[i + 1];
-      const b = rgba[i + 2];
-      const br = mean[j] * gain;
-      const bg = mean[j + 1] * gain;
-      const bb = mean[j + 2] * gain;
-      const d = Math.max(Math.abs(r - br), Math.abs(g - bg), Math.abs(b - bb));
-      if (d <= Math.max(minDiff, noiseK * noise[p] * gain)) continue;
-      if (shadows) {
-        const l = r + g + b;
-        const lb = br + bg + bb;
-        if (lb > 0 && l > SHADOW_LOW * lb && l < SHADOW_HIGH * lb) {
-          const chroma = Math.abs(r / l - br / lb) + Math.abs(g / l - bg / lb);
-          if (chroma < SHADOW_CHROMA) continue; // same colour, a bit darker: a shadow
-        }
-      }
-      mask[p] = 1;
-    }
-    return mask;
   }
 
   // Keep a pixel only if most of its 3×3 neighbours agree. Removes specks and fills pinholes.
   // Pixels outside the picture count as room.
   function cleanMask(mask, w, h, passes) {
     let cur = mask;
-    for (let k = 0; k < (passes ?? 2); k++) {
+    for (let k = 0; k < (passes ?? 1); k++) {
       const next = new Uint8Array(w * h);
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
@@ -249,78 +78,5 @@
     return { filled, outside, fit: Math.max(0, Math.min(1, filled - 0.5 * outside)) };
   }
 
-  // How much the people moved between two frames: the share of their pixels whose brightness
-  // changed by more than MOVE_DIFF. Divided by the people's size, so one person and eight
-  // people are judged the same way. Pixels in either mask count, so a person moving into
-  // empty room counts too.
-  function motion(prevLuma, curLuma, prevMask, curMask, opts) {
-    const o = opts || {};
-    const diff = o.diff ?? MOVE_DIFF;
-    const n = curLuma.length;
-    let moved = 0;
-    let people = 0;
-    for (let p = 0; p < n; p++) {
-      const inPeople = curMask[p] || prevMask[p];
-      if (!inPeople) continue;
-      people++;
-      if (Math.abs(curLuma[p] - prevLuma[p]) > diff) moved++;
-    }
-    const floor = Math.max(1, Math.round(n * 0.03)); // stops a tiny speck from looking like big movement
-    return moved / Math.max(people, floor);
-  }
-
-  // The largest movement in any of `strips` vertical strips of the picture. One person rushing
-  // shows up here even in a big group that is otherwise still. Each strip is judged against at
-  // least 15% of its own area, so a sliver of a person at a strip's edge can't look like a rush.
-  // With opts.clean, the changed pixels get one clean-up pass first. That removes the 1-pixel
-  // lines along sharp edges that change when someone sways by less than a pixel, so normal
-  // standing sway doesn't count, while drifting and walking (wider bands of change) still do.
-  function stripMotion(prevLuma, curLuma, prevMask, curMask, w, h, strips, opts) {
-    const o = opts || {};
-    const diff = o.diff ?? MOVE_DIFF;
-    const k = strips || 8;
-    let changed = new Uint8Array(w * h);
-    for (let p = 0; p < w * h; p++) {
-      if ((curMask[p] || prevMask[p]) && Math.abs(curLuma[p] - prevLuma[p]) > diff) changed[p] = 1;
-    }
-    if (o.clean) changed = cleanMask(changed, w, h, 1);
-    let worst = 0;
-    for (let s = 0; s < k; s++) {
-      const x0 = Math.floor((s * w) / k);
-      const x1 = Math.floor(((s + 1) * w) / k);
-      let moved = 0;
-      let people = 0;
-      for (let y = 0; y < h; y++) {
-        for (let x = x0; x < x1; x++) {
-          const p = y * w + x;
-          if (!curMask[p] && !prevMask[p]) continue;
-          people++;
-          moved += changed[p];
-        }
-      }
-      const floor = Math.max(1, Math.round((x1 - x0) * h * 0.15));
-      worst = Math.max(worst, moved / Math.max(people, floor));
-    }
-    return worst;
-  }
-
-  return {
-    MIN_DIFF,
-    MOVE_DIFF,
-    SHADOW_LOW,
-    dilate,
-    stripMotion,
-    luma,
-    downscale,
-    lumaOf,
-    createBackground,
-    addBackgroundFrame,
-    finishBackground,
-    gainOf,
-    foregroundMask,
-    cleanMask,
-    countOnes,
-    scoreFit,
-    motion,
-  };
+  return { shrinkMask, cleanMask, countOnes, scoreFit };
 });

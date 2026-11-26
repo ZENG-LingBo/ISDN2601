@@ -5,7 +5,7 @@
 // Every page gets a noindex tag. site/worker-build.mjs then packs this into the Cloudflare Worker,
 // which sends the headers from site/_headers (including noindex) with every file.
 // Usage: node site/build.mjs
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -32,8 +32,8 @@ await cp(path.join(here, '_headers'), path.join(out, '_headers'));
 await mkdir(path.join(out, 'freeze', 'js'), { recursive: true });
 await writeFile(path.join(out, 'freeze', 'index.html'), addNoindex(await readFile(path.join(root, 'game', 'index.html'), 'utf8')));
 await cp(path.join(root, 'game', 'styles.css'), path.join(out, 'freeze', 'styles.css'));
-for (const f of ['vision.js', 'shapes.js', 'rounds.js', 'practice.js', 'game.js']) {
-  await cp(path.join(root, 'game', 'js', f), path.join(out, 'freeze', 'js', f));
+for (const f of await readdir(path.join(root, 'game', 'js'))) {
+  if (f.endsWith('.js')) await cp(path.join(root, 'game', 'js', f), path.join(out, 'freeze', 'js', f));
 }
 
 // Minibus: its index.html is a page fragment, so wrap it the way prototype/server.js does,
