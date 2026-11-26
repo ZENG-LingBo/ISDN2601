@@ -569,6 +569,7 @@
   function closePause() {
     $('pause').hidden = true;
     $('btn-resume').hidden = false;
+    $('btn-resume').disabled = false;
     $('btn-pause-change').hidden = false;
     $('play-bar').inert = false;
     $('play-hud').inert = false;
