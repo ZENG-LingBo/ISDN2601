@@ -569,11 +569,15 @@
   function closePause() {
     $('pause').hidden = true;
     $('btn-resume').hidden = false;
+    $('btn-pause-change').hidden = false;
     $('play-bar').inert = false;
     $('play-hud').inert = false;
   }
 
   function resumeGame() {
+    // Resume is off while body tracking restarts, and hidden once it has stopped for good.
+    // The keyboard follows the same rule.
+    if ($('btn-resume').disabled || $('btn-resume').hidden) return;
     if (st.lead && st.lead.paused != null) {
       st.lead.start += performance.now() - st.lead.paused;
       st.lead.paused = null;
@@ -1065,6 +1069,7 @@
         why.textContent = 'Body tracking stopped. Choose End the game, then start the camera again.';
         why.hidden = false;
         $('btn-resume').hidden = true; // resuming would play on with nobody tracked
+        $('btn-pause-change').hidden = true; // only End the game sets up the tracking again
         $('btn-quit').focus();
       });
   }
