@@ -1,58 +1,50 @@
-# “We should hang out.”: ISDN 1001 problem-statement pitch
+# “We should play sometime.”: ISDN 1001 problem-statement pitch
 
 ISDN 1001 Introduction to Integrative Systems and Design, HKUST · Individual project
-Theme: Leisure, Entertainment and Culture in 2030 · 2-minute live pitch, 26 Nov 2026, 9:00 a.m.
+Theme: Leisure, Entertainment and Culture in 2030 · 2-minute live pitch
 
-**Problem:** University friend groups want to spend their free time together, but their plans fall through in the group chat, and friends with food or money limits stay quiet. Instead, they spend it alone on their phones.
+**Problem statement:** University students want to play together, but a game needs a time when everyone's free, a court and the nerve to be the weakest player. So they spend their free time on their phones.
 
-**HMW:** How might we turn “we should hang out” into real meetups for university friend groups,
-in order to keep their friendships close?
+**HMW:** How might we make starting an in-person game as easy as reaching for a phone, for university friend groups, in order to help them move and laugh together more often?
 
-This pitch covers the problem and background study only. It does not pitch a solution.
+The pitch covers the problem and background study only. It doesn't pitch a solution.
 
-## What is here
+This is the second topic. The professor turned down the first one (friend groups whose plans never happen), and asked for a new activity or game that is easy to gather people for, easy to learn, needs no expensive equipment and has a low risk of injury. The first topic's files are kept below as a record.
 
-Start with [`docs/next-steps.md`](docs/next-steps.md): what to do before the pitch, before a class test, and the decisions that are yours to make.
+## The pitch
 
-| File | What it is |
-|---|---|
-| [`pitch/script.md`](pitch/script.md) | Timed speaking script (about 240 words, about 1:50), lines to cut if you go over time, rehearsal checklist, likely questions |
-| [`research/background-study.md`](research/background-study.md) | Evidence tables with sources and caveats, target user, persona, pain points, empathy map, problem statement, HMW rule check, optional interview questions |
+- The deck (6 slides plus references): https://claude.ai/artifact/Lv9wyaiFPDMJEiTBteyor1. Download it as PowerPoint or PDF from Share › Export. The speaker notes on each slide match the script.
+- Its source files: [`pitch/sport-deck/`](pitch/sport-deck/)
+- [`pitch/sport-script.md`](pitch/sport-script.md): the timed speaking script, lines to cut if you go over time, a rehearsal checklist and likely questions
+- [`research/sport-background.md`](research/sport-background.md): the evidence with sources and caveats, the target user, pain points, empathy map, problem statement, HMW check and interview questions
+- [`research/sport-barriers.md`](research/sport-barriers.md): the first round of research on why young people stop playing sport after school
 
-The slide deck (8 slides: 7 presented plus a references appendix) is a Claude Slides artifact:
-https://claude.ai/artifact/ChLZkzX5tjTnP63Hisntgn. It can be downloaded as PPTX or PDF from the
-deck’s Share › Export menu. The speaker notes on each slide match the script.
+Deck outline:
 
-## Freeze: the camera game (new direction)
+1. Mandy at 15 and at 20
+2. Target user and empathy map
+3. Background: activity drops when school ends
+4. Pain points: without school, a game needs 3 things
+5. The phone is always there
+6. Problem statement and How Might We
+7. References (not presented)
 
-After the professor's feedback, the project moved to a new kind of group game that's quick to start, easy to learn, needs no equipment and is low risk. [`game/`](game/) has **Freeze**, a working prototype. A shape appears on the laptop screen, and everyone the camera can see fills it with their bodies, then holds still. The laptop keeps score, so nobody has to sit out and watch.
+Before you present, open the sources marked "Open before the pitch" in `research/sport-background.md`, and put your name and the date on slide 1.
 
+## Freeze: a camera game (next stage)
+
+[`game/`](game/) has **Freeze**, a working prototype for the next stage. A shape appears on the laptop screen, and everyone the camera can see fills it with their bodies, then holds still. The laptop keeps score, so nobody has to sit out and watch.
+
+- Try it with practice players (the camera is blocked on this page): https://claude.ai/artifact/UYranszNCaAjLjVq1FXNpD
 - How to play, how to run it with a real camera, and how the camera part works: [`game/README.md`](game/README.md)
-- The research behind the new direction: [`research/sport-barriers.md`](research/sport-barriers.md)
 
-## Prototype (next stage, not for the 26 Nov pitch)
+## The first topic (turned down)
 
-The pitch only covers the problem. For the next stage, [`prototype/`](prototype/) has **Minibus**, a working prototype that responds to the How Might We question. Friends say if they're in and tap the times they're free. If nobody knows what to do yet, each person tells Minibus privately what works for them (like no spicy food, or not hungry), and it suggests 3 things everyone can do. Names aren't shown with answers until the plan is confirmed. The plan is confirmed once enough people can make the same time.
+“We should hang out”: university friend groups whose plans fall through in the group chat. These files are kept as a record of the design process.
 
-- Try the demo (one device, pretend friends): https://claude.ai/artifact/Rk1gLXmtPHwNFv97aH3E8E
-- How it works, how to run it for real friends, privacy and consent: [`prototype/README.md`](prototype/README.md)
-- How it was reviewed and improved: [`docs/review-log.md`](docs/review-log.md)
-- A one-week study plan: [`docs/study-plan.md`](docs/study-plan.md)
+- The pitch deck: https://claude.ai/artifact/ChLZkzX5tjTnP63Hisntgn, with [`pitch/script.md`](pitch/script.md) and [`research/background-study.md`](research/background-study.md). The HMW rules in the background study also apply to the new topic.
+- The design-process deck (27 slides: research, persona, 4 versions of the problem statement, 6 possible solutions and the chosen one): https://claude.ai/artifact/KhSN9vcN4nD5KkXSsbDCuT, with source files in [`pitch/process-deck/`](pitch/process-deck/)
+- **Minibus**, the prototype for that topic: [`prototype/`](prototype/), with a demo at https://claude.ai/artifact/Rk1gLXmtPHwNFv97aH3E8E. How it was reviewed is in [`docs/review-log.md`](docs/review-log.md), and the study plan is in [`docs/study-plan.md`](docs/study-plan.md).
+- [`docs/next-steps.md`](docs/next-steps.md) was written for the first topic.
 
-## Deck outline
-
-1. **Hook:** a group chat where everyone agrees and nobody meets
-2. **Target user:** Mandy, Year 2 at HKUST; pain points
-3. **Background study:** 83.7% of young people in Hong Kong report moderate to high loneliness; young people in the US spend 70% less time with friends in person than in 2003; 68% of UK adults aged 18 to 34 cancel plans at the last minute
-4. **Say yes, then regret it:** relief when the plan is cancelled, then guilt
-5. **Why plans fall through:** no one in charge, no set time or place, fear of looking too eager, and “it’s always dinner”: friends with food or money limits stay quiet
-6. **Empathy map:** says / thinks / does / feels
-7. **Problem statement and HMW**
-8. References (appendix, not presented)
-
-## Design-process deck
-
-A longer deck (27 slides) that shows each step of the process: the brief, the research and its limits, how the target user and Mandy were built, the pain points and empathy map with a source for each item, the 4 versions of the problem statement, the new “it’s always dinner” insight, 6 possible solutions, the comparison, the chosen direction (Minibus 2030, a concept), and what was tested.
-
-- The deck: https://claude.ai/artifact/KhSN9vcN4nD5KkXSsbDCuT. Download it as PowerPoint or PDF from Share › Export.
-- Its source files: [`pitch/process-deck/`](pitch/process-deck/)
+The writing rules for all text are in [`docs/improvement-plan.md`](docs/improvement-plan.md) and [`docs/word-list.md`](docs/word-list.md).
