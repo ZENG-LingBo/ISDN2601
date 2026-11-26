@@ -477,11 +477,10 @@
       $('result-b-box').hidden = true;
       detail = `${pct(r.matched)} of players copying`;
     }
-    $('result').hidden = false;
     beep(990, 160);
     setTimeout(() => beep(1320, 220), 170);
-    say(`${r.points} points. ${detail}, held still ${pct(r.still)} of the time.`);
-    // The host says what went wrong, by name tag, so the group knows what to fix.
+    // The host says what went wrong, by name tag, so the group knows what to fix. The same
+    // note shows on the result card and goes to screen readers.
     let note = '';
     if (r.type === 'pose' && misses && misses.length) {
       const names = misses.map((id) => 'P' + id);
@@ -492,6 +491,11 @@
     } else if (r.still < 0.9) {
       note = ' Someone moved.';
     }
+    const noteBox = $('result-note');
+    noteBox.textContent = note.trim();
+    noteBox.hidden = !note;
+    $('result').hidden = false;
+    say(`${r.points} points. ${detail}, held still ${pct(r.still)} of the time.${note}`);
     speak(`${r.points} points.${note}`);
   }
 
@@ -711,7 +715,7 @@
     if (el.textContent !== text) el.textContent = text;
     $('btn-play').disabled = n < 1;
     if (st.mode === 'camera') {
-      let hint = 'Stand back until everyone has a name tag. Freeze can see up to 6 players, at least from the waist up.';
+      let hint = 'Stand back until everyone has a name tag. Freeze can follow up to 6 players, and needs to see each of you from the waist up.';
       if (n >= Sensing.MAX_PLAYERS) hint = 'Freeze can follow 6 players at a time. If there are more of you, swap players between games.';
       else if (n > 0) hint = S.SIZES[S.sizeFor(n)].stand + ' Everyone should have a name tag.';
       if ($('ready-hint').textContent !== hint) $('ready-hint').textContent = hint;
@@ -899,9 +903,10 @@
     if (st.screen === 'play' && st.lead) {
       const left = Math.max(0, LEAD_MS / SPEED - (now - st.lead.start));
       const n = playerCount();
-      $('hud-round').textContent = 'Get ready';
+      $('hud-round').textContent = 'Starting soon';
       $('callout-main').textContent = 'Get in place';
-      $('callout-sub').textContent = n < 1 ? 'Nobody in view yet. Step into the picture.' : S.SIZES[S.sizeFor(n)].stand;
+      $('callout-sub').textContent =
+        n < 1 ? 'Nobody in view yet. Step into the picture.' : st.mode === 'practice' ? 'The practice players are getting in place.' : S.SIZES[S.sizeFor(n)].stand;
       const timer = $('timer');
       timer.hidden = false;
       const k = Math.max(1, Math.ceil(left / (1000 / SPEED)));
@@ -911,7 +916,7 @@
         beep(660, 110);
       }
       $('meter-fill').style.width = '0%';
-      $('meter-text').textContent = n === 1 ? '1 player' : `${n} players`;
+      $('meter-text').textContent = n === 0 ? 'Nobody in view yet' : n === 1 ? '1 player' : `${n} players`;
       $('hud-total').textContent = '0';
       return;
     }

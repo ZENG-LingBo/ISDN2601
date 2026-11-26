@@ -31,7 +31,7 @@
         <li><strong>Pick a game.</strong> Fill a shape with your bodies, show the right number of hands, or copy a pose.</li>
         <li><strong>Do it, then freeze.</strong> You get points for getting it right and for holding still.</li>
       </ol>
-      <p class="fine">Freeze does its body tracking on this laptop. The video isn't recorded or sent anywhere. The first time you start the camera, Freeze downloads its body-tracking code from jsDelivr and its model from Google, about 6 MB.</p>
+      <p class="fine">Freeze does its body tracking on this laptop. The video isn't recorded or sent anywhere. The first time you start the camera, Freeze downloads its body-tracking code from jsDelivr (about 10 MB) and its model from Google (about 6 MB).</p>
     </div>
     <figure class="start-preview">
       <canvas id="preview" width="320" height="240" aria-hidden="true"></canvas>
@@ -46,7 +46,7 @@
       <p class="mode-tag" id="ready-mode" hidden>Practice players</p>
       <h2 id="ready-title" tabindex="-1">Who's playing?</h2>
       <p class="count" id="player-count" aria-live="polite">Looking for players</p>
-      <p id="ready-hint">Stand back until everyone has a name tag. Freeze can see up to 6 players, at least from the waist up.</p>
+      <p id="ready-hint">Stand back until everyone has a name tag. Freeze can follow up to 6 players, and needs to see each of you from the waist up.</p>
       <p id="ready-loading" hidden>Getting body tracking ready. The first time takes a few seconds.</p>
       <p id="ready-error" class="error" role="alert" hidden></p>
 
@@ -97,6 +97,7 @@
           <div id="result-b-box"><dt id="result-b-label">Outside the shape</dt><dd id="result-b">0%</dd></div>
           <div><dt>Held still</dt><dd id="result-still">0%</dd></div>
         </dl>
+        <p class="result-note" id="result-note" hidden></p>
       </div>
     </div>
     <footer class="meter-row" id="play-bar">
