@@ -140,7 +140,7 @@ How it changed:
 | Version | Text | Why it changed |
 |---|---|---|
 | 1. First draft | University friend groups want to spend time together, but their plans die in the group chat. No one owns the plan, it never gets a time or place, and cancelling feels like relief. So free time gets spent scrolling alone, and close friends drift apart. | Too long to say aloud easily. “Die” and “drift apart” are metaphors. The causes belong on the earlier slides. |
-| 2. After the text review | The problem: university friend groups want to spend time together, but their plans fall through in the group chat. Instead, they spend their free time alone on their phones. | A pitch coach found the pitch never said “problem statement”, and “free time”, the link to the leisure theme, came at the end. |
+| 2. After a wording review | The problem: university friend groups want to spend time together, but their plans fall through in the group chat. Instead, they spend their free time alone on their phones. | A pitch coach found the pitch never said “problem statement”, and “free time”, the link to the leisure theme, came at the end. |
 | 3. After the pitch coach | Problem statement: university friend groups want to spend their free time together, but their plans fall through in the group chat. Instead, they spend it alone on their phones. | The new insight (section 5): even when plans move forward, friends with food or money limits stay quiet. |
 | 4. Now | See above. | — |
 
