@@ -1,4 +1,5 @@
-# Cloudflare Pages headers for isdn1001.lbzeng.com.
+# Headers for every file on isdn1001.lbzeng.com. site/worker-build.mjs builds them into the Worker,
+# using the same format as Cloudflare Pages.
 # noindex keeps every page out of Google and other search engines, while anyone with the
 # link can still open it. Don't block the site in robots.txt as well: a search engine that
 # can't fetch a page never sees its noindex.

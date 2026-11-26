@@ -43,9 +43,9 @@ The easiest way is the project website: open https://isdn1001.lbzeng.com/freeze/
 
 Browsers only allow the camera on a secure page. To run Freeze from your own copy, pick one of these:
 
-- **Open the file.** In Chrome or Edge, open `game/index.html` from the folder. Chrome treats files on your own laptop as secure, so the camera works. This was tested in Chromium only.
-- **Run the small server.** In the `game` folder, run `node server.js`, then open http://localhost:8080. This needs Node.js 18 or later. It works in any browser. It serves only the game's files, and only this laptop can open them.
-- **A secure link (https).** Any static web host works, such as GitHub Pages. There's nothing to set up on a server.
+- **Open the file.** In Chrome or Edge, open `game/index.html` from the folder. Chrome treats files on your own laptop as secure, so the camera works. Chrome and Edge should work the same way, but so far it's only been tried in Chromium.
+- **Run the small server.** In the `game` folder, run `node server.js`, then open http://localhost:8080. This needs Node.js 18 or later. This way doesn't depend on Chrome's rule for files. It serves only the game's files, and only this laptop can open them.
+- **Put it on a web host.** Upload the `game` folder to any host that uses https, such as GitHub Pages. Freeze doesn't need any server code.
 
 No camera, or the camera is blocked? Choose **Play with practice players**. Practice players walk in and fill the shapes, and the same vision code scores them. The practice players aren't very good at this, so a real group should do better. If Freeze is open inside another page, such as an online preview, that page may block the camera, so only the practice players work.
 

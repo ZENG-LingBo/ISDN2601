@@ -2,7 +2,8 @@
 //   /          the home page (site/index.html)
 //   /freeze/   the Freeze camera game (game/)
 //   /minibus/  the Minibus demo with pretend friends (prototype/, demo mode)
-// Every page gets a noindex tag, and site/_headers adds a noindex header for Cloudflare Pages.
+// Every page gets a noindex tag. site/worker-build.mjs then packs this into the Cloudflare Worker,
+// which sends the headers from site/_headers (including noindex) with every file.
 // Usage: node site/build.mjs
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';

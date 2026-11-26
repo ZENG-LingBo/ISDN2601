@@ -8,13 +8,13 @@ The demos are online at https://isdn1001.lbzeng.com:
 | `/freeze/` | Freeze, the camera game (`game/`). The camera works here, because the site uses https. |
 | `/minibus/` | The Minibus demo with pretend friends (`prototype/`, demo mode) |
 
-Anyone with the link can open the site, but it's kept out of Google and other search engines. Every page has a noindex tag, and every file is sent with a noindex header (`_headers`).
+Anyone with the link can open the site, but search engines are told not to list it. Every page has a noindex tag, and every file is sent with a noindex header (`_headers`).
 
 ## How it's hosted
 
-The site is a Cloudflare Worker called `isdn1001`. The whole site is packed into one script, and isdn1001.lbzeng.com is the Worker's custom domain in the lbzeng.com zone. The Worker's workers.dev address is turned off.
+The site is a Cloudflare Worker called `isdn1001`. The whole site is packed into one script, and isdn1001.lbzeng.com is the Worker's custom domain in the lbzeng.com zone. The Worker's workers.dev address is turned off. The custom domain and the workers.dev setting were set once in Cloudflare, and `deploy.sh` doesn't change them.
 
-The lbzeng.com zone has Cloudflare Web Analytics switched on, which adds a tracking script to every page in the zone. The Worker sends every file with `Cache-Control: no-transform`, so Cloudflare doesn't add that script here. That keeps the home page's line "Nothing you do on these pages is sent to a server" true.
+The lbzeng.com zone has Cloudflare Web Analytics switched on, which adds a tracking script to every page in the zone. The Worker sends every file with `Cache-Control: no-transform`, so Cloudflare doesn't add that script here. That way Cloudflare doesn't track visitors, which is what the home page promises.
 
 ## Update the site
 
