@@ -48,7 +48,7 @@ try {
   check(await page.isVisible('#screen-start'), 'start screen shows');
   check(await page.getByRole('radio', { name: '3 to 5' }).isChecked(), '3 to 5 is chosen by default');
   await page.getByRole('radio', { name: '6 or more' }).check();
-  await page.getByRole('button', { name: 'Try it without a camera' }).click();
+  await page.getByRole('button', { name: 'Play with practice players' }).click();
   check(await page.isVisible('#screen-setup'), 'setup screen shows');
   check(await page.isVisible('#setup-mode'), 'setup says these are practice players');
   await page.screenshot({ path: `${outDir}/02-setup.png` });
@@ -124,7 +124,7 @@ try {
   check(true, 'play again uses the new group size without learning the room again');
   check(await page.evaluate(() => window.__freeze.scene.n) === 2, 'practice mode now has 2 players');
   await page.getByRole('button', { name: 'Pause' }).click();
-  await page.getByRole('button', { name: 'Quit to the start' }).click();
+  await page.getByRole('button', { name: 'End the game' }).click();
   check(await page.isVisible('#screen-start'), 'quit goes back to the start');
 
   // 2. Phone width: nothing sticks out sideways
@@ -165,7 +165,7 @@ try {
   });
   check(fits, 'the picture still fits after the window is resized');
   await cp.getByRole('button', { name: 'Pause' }).click();
-  await cp.getByRole('button', { name: 'Quit to the start' }).click();
+  await cp.getByRole('button', { name: 'End the game' }).click();
   const live = await cp.evaluate(() => window.__freeze.stream);
   check(live === null, 'quitting turns the camera off');
 

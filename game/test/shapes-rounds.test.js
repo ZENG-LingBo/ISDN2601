@@ -54,7 +54,7 @@ test('no shape needs anyone lower than a comfortable crouch', () => {
 test('bigger groups get more time to fill the shape', () => {
   assert.ok(S.SIZES.small.fillSeconds < S.SIZES.medium.fillSeconds);
   assert.ok(S.SIZES.medium.fillSeconds < S.SIZES.large.fillSeconds);
-  for (const s of Object.values(S.SIZES)) assert.match(s.stand, /^Stand .+ metres from it/);
+  for (const s of Object.values(S.SIZES)) assert.match(s.stand, /^Stand .+ metres from the laptop/);
 });
 
 test('every shape has a name and a tip, and a sensible size', () => {

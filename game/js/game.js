@@ -172,15 +172,15 @@
   function cameraMessage(err) {
     const name = err && err.name;
     if (name === 'NotAllowedError' || name === 'SecurityError') {
-      return "Freeze isn't allowed to use the camera. Allow the camera in your browser, usually from the address bar, then try again. If Freeze is open inside another page, that page may block the camera. Open Freeze on its own, or try it without a camera.";
+      return "Freeze isn't allowed to use the camera. Allow the camera in your browser, usually from the address bar, then try again. If Freeze is open inside another page, that page may block the camera. Open Freeze on its own, or play with practice players.";
     }
     if (name === 'NotFoundError' || name === 'OverconstrainedError') {
-      return "Freeze couldn't find a camera. Check that this laptop has one, or try it without a camera.";
+      return "Freeze couldn't find a camera. Check that this laptop has one, or play with practice players.";
     }
     if (name === 'NotReadableError') {
       return 'Another app may be using the camera. Close any video call apps and try again.';
     }
-    return "Freeze couldn't start the camera. Try again, or try it without a camera.";
+    return "Freeze couldn't start the camera. Try again, or play with practice players.";
   }
 
   function showStartError(text) {
@@ -204,7 +204,7 @@
     showStartError('');
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       showStartError(
-        "This page can't use the camera. Open the Freeze file on this laptop in Chrome or Edge, or open a link to Freeze that starts with https. You can also try it without a camera."
+        "This page can't use the camera. Open the Freeze file on this laptop in Chrome or Edge, or open a link to Freeze that starts with https. You can also play with practice players."
       );
       return;
     }
@@ -483,7 +483,7 @@
   }
 
   function showNextStand() {
-    $('next-stand').textContent = S.SIZES[chosenSize('size-next')].stand.replace(' it.', ' the laptop.');
+    $('next-stand').textContent = S.SIZES[chosenSize('size-next')].stand;
   }
   for (const r of document.querySelectorAll('input[name="size-next"]')) r.addEventListener('change', showNextStand);
 

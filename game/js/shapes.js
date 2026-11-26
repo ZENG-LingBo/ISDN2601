@@ -76,9 +76,9 @@
   // stand: how far from the laptop to stand, so the whole group fits in the picture.
   // fillSeconds: bigger groups get longer to rearrange, so nobody has to rush.
   const SIZES = {
-    small: { label: '1 or 2', practicePlayers: 2, fillSeconds: 8, stand: 'Stand about 2 metres from it, or a bit closer if you play alone.', shapes: ['door', 'tee', 'low', 'why', 'flag'] },
-    medium: { label: '3 to 5', practicePlayers: 4, fillSeconds: 10, stand: 'Stand about 3 metres from it.', shapes: ['wall', 'steps', 'towers', 'bridge', 'aitch'] },
-    large: { label: '6 or more', practicePlayers: 7, fillSeconds: 12, stand: 'Stand 3 to 4 metres from it.', shapes: ['bigwall', 'mountain', 'three', 'valley', 'zigzag'] },
+    small: { label: '1 or 2', practicePlayers: 2, fillSeconds: 8, stand: 'Stand about 2 metres from the laptop, or a bit closer if you play alone.', shapes: ['door', 'tee', 'low', 'why', 'flag'] },
+    medium: { label: '3 to 5', practicePlayers: 4, fillSeconds: 10, stand: 'Stand about 3 metres from the laptop.', shapes: ['wall', 'steps', 'towers', 'bridge', 'aitch'] },
+    large: { label: '6 or more', practicePlayers: 7, fillSeconds: 12, stand: 'Stand 3 to 4 metres from the laptop.', shapes: ['bigwall', 'mountain', 'three', 'valley', 'zigzag'] },
   };
 
   function insideRing(x, y, ring) {
