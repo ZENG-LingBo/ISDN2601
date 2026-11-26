@@ -17,6 +17,8 @@
   const NOBODY_MS = 1000; // how long nobody must be in view before the screen says so
   const LEAD_MS = 5000; // "Get in place" before round 1, so whoever pressed Start can step back
   const HANDS_START_MS = 1000; // everyone holding both hands up this long starts the game
+  const HANDS_AGAIN_MS = 2000; // ...or this long to play again from the end screen
+  const HANDS_IGNORE_MS = 3000; // the end screen ignores hands for this long, so cheering doesn't restart
 
   const $ = (id) => document.getElementById(id);
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -37,7 +39,9 @@
     h: 90,
     aspect: 16 / 9,
     players: [],
-    tracked: [],
+    tracked: null,
+    gestureArmed: false,
+    screenSince: 0,
     mask: null,
     lead: null,
     handsSince: null,
@@ -71,6 +75,11 @@
 
   // ---------- Screens ----------
   function show(name) {
+    if (st.screen !== name) {
+      st.screenSince = performance.now();
+      st.gestureArmed = false; // hands must come down first
+      st.handsSince = null;
+    }
     st.screen = name;
     for (const s of ['start', 'ready', 'play', 'done']) $('screen-' + s).hidden = s !== name;
     if (name === 'ready') $('ready-stage').appendChild(view);
@@ -313,7 +322,7 @@
 
   function resetFrames() {
     st.players = [];
-    st.tracked = [];
+    st.tracked = null;
     st.mask = null;
     st.history = [];
     st.nobodySince = null;
@@ -392,6 +401,7 @@
 
   function leadTick(now) {
     const L = st.lead;
+    if (L.paused != null) return;
     const left = LEAD_MS / SPEED - (now - L.start);
     if (left > 0) return;
     const n = playerCount();
@@ -530,9 +540,15 @@
 
   // ---------- Pause ----------
   function pauseGame(reason) {
+    if (st.screen !== 'play') return;
     const g = st.game;
-    if (!g || g.phase === 'done' || st.screen !== 'play' || g.paused !== null) return;
-    R.pause(g, performance.now());
+    if (st.lead) {
+      if (st.lead.paused != null) return;
+      st.lead.paused = performance.now();
+    } else {
+      if (!g || g.phase === 'done' || g.paused !== null) return;
+      R.pause(g, performance.now());
+    }
     const why = $('pause-reason');
     why.textContent = reason || '';
     why.hidden = !reason;
@@ -546,11 +562,20 @@
 
   function closePause() {
     $('pause').hidden = true;
+    $('btn-resume').hidden = false;
     $('play-bar').inert = false;
     $('play-hud').inert = false;
   }
 
   function resumeGame() {
+    if (st.lead && st.lead.paused != null) {
+      st.lead.start += performance.now() - st.lead.paused;
+      st.lead.paused = null;
+      closePause();
+      $('btn-pause').focus();
+      say('Playing. Get in place.');
+      return;
+    }
     const g = st.game;
     if (!g || g.paused === null) return;
     R.resume(g, performance.now());
@@ -561,10 +586,10 @@
   }
 
   function togglePause() {
-    const g = st.game;
-    if (!g) return;
-    if (g.paused === null) pauseGame();
-    else resumeGame();
+    const paused = st.lead ? st.lead.paused != null : st.game && st.game.paused !== null;
+    if (!st.lead && !st.game) return;
+    if (paused) resumeGame();
+    else pauseGame();
   }
 
   document.addEventListener('visibilitychange', () => {
@@ -655,13 +680,22 @@
 
   // Everyone in view holding both hands up for a second starts the game (or the next one), so
   // nobody has to stand at the laptop.
+  // Hands must be seen down first after a screen opens, and the end screen waits 3 seconds,
+  // so a group still celebrating with both arms up doesn't start a game by accident.
   function handsToStart(now, players) {
-    if (st.lead || !Pose.allHandsUp(players)) {
+    const onDone = st.screen === 'done';
+    if (st.lead || (onDone && now - st.screenSince < HANDS_IGNORE_MS / SPEED)) {
       st.handsSince = null;
       return;
     }
+    if (!Pose.allHandsUp(players)) {
+      if (players.length) st.gestureArmed = true;
+      st.handsSince = null;
+      return;
+    }
+    if (!st.gestureArmed) return;
     if (st.handsSince === null) st.handsSince = now;
-    if (now - st.handsSince >= HANDS_START_MS / SPEED) {
+    if (now - st.handsSince >= (onDone ? HANDS_AGAIN_MS : HANDS_START_MS) / SPEED) {
       st.handsSince = null;
       if (st.screen === 'done') setGame(st.kind);
       startGame();
@@ -671,11 +705,12 @@
   function process(now) {
     if (st.screen === 'start') return;
     if (st.game && st.game.paused !== null) return; // no tracking while paused
+    if (st.lead && st.lead.paused != null) return;
     const seen = sense(now);
     if (!seen) return;
     // Smooth each player's body points a little and keep their name tag with them.
-    st.tracked = Pose.track(st.tracked, seen.poses, 0.5);
-    const players = st.tracked;
+    st.tracked = Pose.track(st.tracked, seen.poses, now);
+    const players = st.tracked.players;
     st.players = players;
     st.mask = seen.mask ? V.cleanMask(seen.mask, st.w, st.h, 1) : null;
     st.counts.push(players.length);
@@ -901,7 +936,7 @@
 
   function hud(now) {
     if (st.screen === 'play' && st.lead) {
-      const left = Math.max(0, LEAD_MS / SPEED - (now - st.lead.start));
+      const left = Math.max(0, LEAD_MS / SPEED - ((st.lead.paused ?? now) - st.lead.start));
       const n = playerCount();
       $('hud-round').textContent = 'Starting soon';
       $('callout-main').textContent = 'Get in place';
@@ -911,7 +946,7 @@
       timer.hidden = false;
       const k = Math.max(1, Math.ceil(left / (1000 / SPEED)));
       timer.textContent = String(k);
-      if (k <= 3 && k !== st.lastBeep) {
+      if (k <= 3 && k !== st.lastBeep && st.lead.paused == null) {
         st.lastBeep = k;
         beep(660, 110);
       }
@@ -1008,6 +1043,8 @@
         const why = $('pause-reason');
         why.textContent = 'Body tracking stopped. Choose End the game, then start the camera again.';
         why.hidden = false;
+        $('btn-resume').hidden = true; // resuming would play on with nobody tracked
+        $('btn-quit').focus();
       });
   }
 
@@ -1104,7 +1141,7 @@
   const inBar = (t) => t instanceof Element && $('play-bar').contains(t);
   document.addEventListener('keydown', (e) => {
     if (st.screen !== 'play') return;
-    const paused = st.game && st.game.paused !== null;
+    const paused = st.lead ? st.lead.paused != null : st.game && st.game.paused !== null;
     const barButton = inBar(e.target);
     if (e.code === 'Space' && barButton) e.preventDefault(); // stop the focused button from pressing itself
     if (e.repeat) return;

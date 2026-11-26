@@ -34,11 +34,11 @@ Freeze uses a laptop, not a phone, because a laptop camera on a table can see a 
 4. **Get in place:** you have 5 seconds to stand back. Freeze counts the players at the end and plans the rounds for that many.
 5. Each round: do what the screen says, then **Freeze!** Hold still for 3 seconds. Then see your points. The host's voice says what went wrong, for example "P2 didn't have the pose" or "1 hand too many". The same note shows on the result card.
 
-More than 6 of you? Freeze can follow 6 players at a time, so swap players between games. After a game, everyone can raise both hands for a second to play again.
+More than 6 of you? Freeze can follow 6 players at a time, so swap players between games. After a game, wait a few seconds, then everyone can raise both hands for 2 seconds to play again. The wait means a group cheering with both arms up doesn't start a new game by accident.
 
 During a round you can see what Freeze sees: a white name tag over each player, which should stay with them when people swap places, a line along each player's arms, a yellow ring on every hand that counts as up in Hands up, and a ring round each head in Copy the pose (solid teal when that player has the pose, dashed coral when not). In Shapes, the shape is outlined in yellow, the parts of you inside it are teal, and the parts outside it have coral stripes.
 
-Press the space bar to pause, and the space bar or Escape to resume. Pausing works once round 1 has started. Press M to turn the sound and the voice on or off. Freeze also pauses if you switch to another tab.
+Press the space bar to pause, and the space bar or Escape to resume. Press M to turn the sound and the voice on or off. Freeze also pauses if you switch to another tab.
 
 ### Points
 
@@ -63,7 +63,7 @@ For each player in view, up to 6, the model gives:
 
 Freeze then works out the rest itself, in plain JavaScript (`js/pose.js` and `js/vision.js`):
 - **Players** are poses with both shoulders visible.
-- **Name tags** stay with each player. Freeze looks for each player where they're expected to be, from how they were moving, so two players walking past each other keep their own tags. A new player gets the lowest free number.
+- **Name tags** stay with each player. Freeze looks for each player where they're expected to be, from how they were moving, so two players walking past each other keep their own tags. If the model misses a player for a moment, Freeze keeps their tag for a second and gives it back when they reappear nearby. A new player gets the lowest number nobody else is using.
 - **Smoothing:** each body point is averaged with where it was a moment ago, to calm small tracking errors.
 - **Body size** is the distance from shoulders to hips. Arm positions and movement are measured in body sizes, so players near the camera and far from it are judged the same way.
 - **A hand is up** when the wrist is at least 0.4 of a body size above the nose. A hand resting on your head doesn't count.

@@ -88,6 +88,13 @@ try {
   await page.getByRole('button', { name: 'Start the game' }).click();
   await waitText(page, '#callout-main', /^Get in place$/, 'the game starts with Get in place, so the person at the laptop can step back');
   await page.screenshot({ path: `${outDir}/03a-get-in-place.png` });
+  await page.keyboard.press('Space');
+  check(await page.isVisible('#pause'), 'Get in place can be paused too');
+  const leadLeft = await page.textContent('#timer');
+  await page.waitForTimeout(900);
+  check((await page.textContent('#timer')) === leadLeft, 'the Get in place countdown waits while paused');
+  await page.keyboard.press('Escape');
+  check(!(await page.isVisible('#pause')), 'Escape resumes Get in place');
   await waitText(page, '#hud-round', /^Round 1 of 5: Wall$/, 'Shapes for 4 players starts with the Wall shape');
   const boxes = await page.evaluate(() => ({
     hud: document.getElementById('play-hud').getBoundingClientRect().bottom,

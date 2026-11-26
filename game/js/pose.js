@@ -196,42 +196,60 @@
     return list.length > 0 && list.every((p) => handsUp(p) === 2);
   }
 
-  // Smooth body points over a few moments, to calm small tracking errors. `prev` is the last
-  // smoothed list. Each player has an `id`, `raw` (where the model last saw them, before
-  // smoothing) and `vel` (how far that moved last time). Each player is looked for where
-  // they're expected to be now, so two players walking past each other keep their own name
-  // tags. New players get the lowest free id from 1.
-  function track(prev, cur, keep) {
+  const LOST_MS = 1000; // a player the model misses is remembered this long, with their name tag
+
+  // Follow players from moment to moment, so each keeps their name tag, and smooth their body
+  // points to calm small tracking errors.
+  //   state  what track returned last time, or null: { players, lost }
+  //   cur    the poses the model found now
+  //   now    the time in milliseconds
+  // Each player has an `id`, `raw` (where the model last saw them, before smoothing) and `vel`
+  // (how far that moved last time). Players are looked for where they're expected to be, so
+  // two players walking past each other keep their own tags. A player the model misses for a
+  // moment is kept in `lost` for a second and gets their tag back if they reappear nearby.
+  // New players get the lowest number that nobody in view or recently lost has.
+  function track(state, cur, now, keep) {
     const k = keep ?? 0.5;
+    const before = state || { players: [], lost: [] };
+    const recent = before.lost.filter((p) => now - p.lostAt < LOST_MS);
+    const known = before.players.concat(recent);
     const list = players(cur);
     const expected = (a) => {
       const c = a.raw || centre(a);
-      return a.vel ? { x: c.x + a.vel.x, y: c.y + a.vel.y } : c;
+      return a.vel && !a.lostAt ? { x: c.x + a.vel.x, y: c.y + a.vel.y } : c;
     };
-    const pairs = new Map(pairUp(prev, list, expected).map(([a, b]) => [b, a]));
-    const used = new Set();
+    const pairs = new Map(pairUp(known, list, expected).map(([a, b]) => [b, a]));
+    const taken = new Set();
     const out = list.map((b) => {
       const a = pairs.get(b);
       if (!a) return null;
-      used.add(a.id);
+      taken.add(a);
       const pts = b.map((q, i) => (a[i] && seen(a, i) && (q.v ?? 1) >= VISIBLE ? { x: a[i].x * k + q.x * (1 - k), y: a[i].y * k + q.y * (1 - k), v: q.v } : q));
       pts.id = a.id;
-      const before = a.raw || centre(a);
+      const was = a.raw || centre(a);
       pts.raw = centre(b);
-      pts.vel = { x: pts.raw.x - before.x, y: pts.raw.y - before.y };
+      pts.vel = a.lostAt ? { x: 0, y: 0 } : { x: pts.raw.x - was.x, y: pts.raw.y - was.y };
       return pts;
     });
+    const lost = known.filter((a) => !taken.has(a)).map((a) => {
+      if (a.lostAt) return a;
+      const copy = a.slice();
+      Object.assign(copy, { id: a.id, raw: a.raw, vel: a.vel, lostAt: now });
+      return copy;
+    });
+    const usedIds = new Set(out.filter(Boolean).map((p) => p.id).concat(lost.map((p) => p.id)));
     let next = 1;
-    return out.map((p, i) => {
+    const visible = out.map((p, i) => {
       if (p) return p;
-      while (used.has(next)) next++;
-      used.add(next);
+      while (usedIds.has(next)) next++;
+      usedIds.add(next);
       const fresh = list[i].slice();
       fresh.id = next;
       fresh.raw = centre(list[i]);
       return fresh;
     });
+    return { players: visible, lost };
   }
 
-  return { P, KEY, VISIBLE, POSES, POSE_ORDER, seen, isPlayer, size, centre, players, headY, handUp, handsUp, matches, handTargets, pairUp, movement, speed, stillShare, allHandsUp, track };
+  return { LOST_MS, P, KEY, VISIBLE, POSES, POSE_ORDER, seen, isPlayer, size, centre, players, headY, handUp, handsUp, matches, handTargets, pairUp, movement, speed, stillShare, allHandsUp, track };
 });

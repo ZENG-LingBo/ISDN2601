@@ -124,25 +124,41 @@ test('everyone holding both hands up starts the game, and only then', () => {
 test('name tags stay with each player when they swap places', () => {
   const a = body('down', 'down', 0.3);
   const b = body('down', 'down', 0.7);
-  let tracked = Pose.track([], [a, b]);
-  assert.deepEqual(tracked.map((p) => p.id), [1, 2]);
+  let state = Pose.track(null, [a, b], 0);
+  assert.deepEqual(state.players.map((p) => p.id), [1, 2]);
   // they walk past each other in small steps
   for (let s = 1; s <= 10; s++) {
     const t = s / 10;
-    tracked = Pose.track(tracked, [body('down', 'down', 0.3 + 0.4 * t), body('down', 'down', 0.7 - 0.4 * t)]);
+    state = Pose.track(state, [body('down', 'down', 0.3 + 0.4 * t), body('down', 'down', 0.7 - 0.4 * t)], s * 66);
   }
-  const left = Pose.players(tracked)[0];
-  assert.equal(left.id, 2, 'the player now on the left kept tag 2');
+  assert.equal(Pose.players(state.players)[0].id, 2, 'the player now on the left kept tag 2');
   // a newcomer gets the lowest free tag
-  tracked = Pose.track(tracked, [...Pose.players(tracked), body('down', 'down', 0.92)]);
-  assert.deepEqual(tracked.map((p) => p.id).sort(), [1, 2, 3]);
+  state = Pose.track(state, [...Pose.players(state.players), body('down', 'down', 0.92)], 800);
+  assert.deepEqual(state.players.map((p) => p.id).sort(), [1, 2, 3]);
+});
+
+test('a player missed for a moment gets their own tag back, and nobody else takes it', () => {
+  const p1 = body('down', 'down', 0.2);
+  const p2 = body('down', 'down', 0.5);
+  const p3 = body('down', 'down', 0.8);
+  let state = Pose.track(null, [p1, p2, p3], 0);
+  assert.deepEqual(state.players.map((p) => p.id), [1, 2, 3]);
+  state = Pose.track(state, [p2, p3], 66); // P1 leaves
+  state = Pose.track(state, [p2], 132); // P3 is missed for a moment
+  assert.deepEqual(state.lost.map((p) => p.id).sort(), [1, 3]);
+  state = Pose.track(state, [p2, p3], 198); // P3 is back
+  assert.equal(state.players.find((p) => Pose.centre(p).x > 0.9).id, 3, 'P3 is P3 again, not P1');
+  // after a second, a lost tag is free again
+  state = Pose.track(state, [p2, p3], 1500);
+  state = Pose.track(state, [p2, p3, body('down', 'down', 0.08)], 1566);
+  assert.deepEqual(state.players.map((p) => p.id).sort(), [1, 2, 3]);
 });
 
 test('smoothing halves a sudden jump in one frame', () => {
   const a = body('down', 'down', 0.5);
-  const first = Pose.track([], [a]);
+  const first = Pose.track(null, [a], 0);
   const k = Pose.size(a);
-  const next = Pose.track(first, [shift(a, 0.2 * k)]);
-  const moved = next[0][Pose.P.NOSE].x - a[Pose.P.NOSE].x;
+  const next = Pose.track(first, [shift(a, 0.2 * k)], 66);
+  const moved = next.players[0][Pose.P.NOSE].x - a[Pose.P.NOSE].x;
   assert.ok(Math.abs(moved - 0.1 * k) < 1e-9);
 });
