@@ -67,7 +67,7 @@ All of it is plain JavaScript written for this project, in `js/vision.js`. There
 - Even room light works best. A bright window or lamp behind the players makes them harder to see, and dark shadows on the wall can count as people.
 - Someone walking behind the players counts as a player.
 - If someone stays in the picture without moving while Freeze learns the room, Freeze can't tell. They become part of the room. Check that everyone is out of the picture.
-- One person walking briskly close to the camera can make "Slow down" appear, and the gap between a group walking and one person running is small. Record a short test with real players and check both before a class test.
+- One person walking fast close to the camera can make "Slow down" appear. Freeze may also measure a group walking about the same as one person running. Before a class test, record real players walking and running, and check that the warning appears only when someone runs.
 - It hasn't been tried with real groups, real rooms or many laptop models yet. The numbers in `js/vision.js` and `js/rounds.js` (how different a pixel must be, how much movement counts as moving or rushing) are first guesses to tune in a real test.
 
 ## Safety
