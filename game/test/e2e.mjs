@@ -66,6 +66,12 @@ try {
   await page.screenshot({ path: `${outDir}/05-fill.png` });
   const filled = await page.evaluate(() => window.__freeze.game.live.filled);
   check(filled > 0.3, `the meter shows the shape filling (${Math.round(filled * 100)}%)`);
+  const boxes = await page.evaluate(() => ({
+    hud: document.getElementById('play-hud').getBoundingClientRect().bottom,
+    bar: document.getElementById('play-bar').getBoundingClientRect().top,
+    view: document.getElementById('view').getBoundingClientRect().toJSON(),
+  }));
+  check(boxes.view.top >= boxes.hud - 1 && boxes.view.bottom <= boxes.bar + 1, 'the top and bottom bands do not cover the picture');
   await page.waitForFunction(() => window.__freeze.game.phase === 'freeze', null, { timeout: 4000 });
   await page.waitForTimeout(150);
   await page.screenshot({ path: `${outDir}/06-freeze.png` });
@@ -74,9 +80,21 @@ try {
   await page.screenshot({ path: `${outDir}/07-result.png` });
   const points = Number(await page.textContent('#result-points'));
   check(points > 40 && points <= 100, `round 1 gives ${points} points`);
-  // Pause and resume with the space bar
+  // Pause and resume with the keyboard
   await page.keyboard.press('Space');
   check(await page.isVisible('#pause'), 'space pauses');
+  await page.evaluate(() => document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', repeat: true, bubbles: true })));
+  check(await page.isVisible('#pause'), 'a held space key does not flip pause back and forth');
+  await page.keyboard.press('Escape');
+  check(!(await page.isVisible('#pause')), 'Escape resumes');
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  check(await page.isVisible('#pause'), 'switching to another tab pauses the game');
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+  });
   const phaseBefore = await page.evaluate(() => [window.__freeze.game.phase, window.__freeze.game.round]);
   await page.waitForTimeout(1200);
   const phaseAfter = await page.evaluate(() => [window.__freeze.game.phase, window.__freeze.game.round]);
@@ -93,8 +111,13 @@ try {
   const fidget = await page.evaluate(() => window.__freeze.game.results[2].still);
   check(fidget < 1, `in round 3 one practice player moves, so "held still" is ${Math.round(fidget * 100)}%`);
   check((await page.textContent('#done-mode')).includes('practice'), 'the end screen says the practice players scored');
+  check(await page.getByRole('radio', { name: '6 or more' }).last().isChecked(), 'the end screen keeps the group size');
+  await page.locator('#next-small').check();
   await page.getByRole('button', { name: 'Play again' }).click();
   check(await page.isVisible('#screen-play'), 'play again starts a new game');
+  await page.waitForFunction(() => document.getElementById('hud-round').textContent.startsWith('Round 1 of 5: Door'), null, { timeout: 2000 });
+  check(true, 'play again uses the new group size without learning the room again');
+  check(await page.evaluate(() => window.__freeze.scene.n) === 2, 'practice mode now has 2 players');
   await page.getByRole('button', { name: 'Pause' }).click();
   await page.getByRole('button', { name: 'Quit to the start' }).click();
   check(await page.isVisible('#screen-start'), 'quit goes back to the start');
@@ -128,6 +151,14 @@ try {
   await cp.getByRole('button', { name: 'Start the game' }).click();
   await cp.waitForFunction(() => window.__freeze.game && window.__freeze.game.results.length >= 1, null, { timeout: 6000 });
   check(true, 'a camera round finishes');
+  await cp.setViewportSize({ width: 1000, height: 700 });
+  await cp.waitForTimeout(300);
+  const fits = await cp.evaluate(() => {
+    const v = document.getElementById('view').getBoundingClientRect();
+    const s = document.getElementById('play-stage').getBoundingClientRect();
+    return v.width <= s.width + 1 && v.height <= s.height + 1;
+  });
+  check(fits, 'the picture still fits after the window is resized');
   await cp.getByRole('button', { name: 'Pause' }).click();
   await cp.getByRole('button', { name: 'Quit to the start' }).click();
   const live = await cp.evaluate(() => window.__freeze.stream);

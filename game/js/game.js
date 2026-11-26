@@ -14,6 +14,9 @@
   const LEARN_COUNT_MS = 5000; // time to step out of the picture
   const LEARN_FRAMES = 20; // frames averaged into the empty room
   const UNSTABLE_LIMIT = 0.08; // share of the room that may change while it's learned
+  const STILL_WINDOW_MS = 400; // while frozen, each frame is compared with the one this long before it
+  const ROOM_LOST_SHARE = 0.85; // if this much of the picture looks like people...
+  const ROOM_LOST_MS = 1000; // ...for this long, the room has probably changed
 
   const $ = (id) => document.getElementById(id);
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -22,18 +25,24 @@
     screen: 'start',
     mode: null, // 'camera' or 'practice'
     size: 'medium',
+    ticket: 0, // stops a slow camera start from taking over after the player chose something else
     stream: null,
     video: null,
+    lastVideoTime: -1,
     scene: null,
     capW: 320,
     capH: 240,
     w: 160,
     h: 120,
     model: null,
+    gain: 1,
     learn: null,
     game: null,
     prev: null,
+    history: [],
     mask: null,
+    grown: null,
+    overSince: null,
     shapeId: null,
     shapeMask: null,
     lastStep: 0,
@@ -59,7 +68,7 @@
     st.screen = name;
     for (const s of ['start', 'setup', 'play', 'done']) $('screen-' + s).hidden = s !== name;
     if (name === 'setup') $('setup-stage').appendChild(view);
-    if (name === 'play') $('play-stage').appendChild(view);
+    if (name === 'play') $('play-stage').prepend(view);
     if (name === 'start') startPreview();
     else stopPreview();
     fitView();
@@ -84,6 +93,11 @@
     view.style.height = cssH + 'px';
     view.width = Math.round(cssW * dpr);
     view.height = Math.round(cssH * dpr);
+  }
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(fitView);
+    ro.observe($('setup-stage'));
+    ro.observe($('play-stage'));
   }
   window.addEventListener('resize', fitView);
 
@@ -115,12 +129,32 @@
     }
   }
 
-  // ---------- Starting ----------
-  function chosenSize() {
-    const c = document.querySelector('input[name="size"]:checked');
+  // ---------- Group size ----------
+  function chosenSize(name) {
+    const c = document.querySelector(`input[name="${name}"]:checked`);
     return c ? c.value : 'medium';
   }
 
+  function setRadio(name, value) {
+    const r = document.querySelector(`input[name="${name}"][value="${value}"]`);
+    if (r) r.checked = true;
+  }
+
+  function showFillTime() {
+    $('how-fill').textContent = `You have ${S.SIZES[chosenSize('size')].fillSeconds} seconds to get into it together.`;
+  }
+  for (const r of document.querySelectorAll('input[name="size"]')) r.addEventListener('change', showFillTime);
+
+  function useSize(size) {
+    st.size = size;
+    setRadio('size', size);
+    setRadio('size-next', size);
+    showFillTime();
+    $('setup-stand').textContent = S.SIZES[size].stand;
+    if (st.mode === 'practice') st.scene = P.createScene({ players: S.SIZES[size].practicePlayers, seed: 7 });
+  }
+
+  // ---------- Starting ----------
   function setWorkSize(capW, capH) {
     st.capW = capW;
     st.capH = capH;
@@ -147,66 +181,101 @@
     return "Freeze couldn't start the camera. Try again, or try it without a camera.";
   }
 
+  function showStartError(text) {
+    const box = $('camera-error');
+    box.textContent = text;
+    box.hidden = !text;
+  }
+
+  function lockStart(locked) {
+    $('btn-camera').disabled = locked;
+    $('btn-practice').disabled = locked;
+  }
+
+  function stopTracks(stream) {
+    if (stream) for (const t of stream.getTracks()) t.stop();
+  }
+
   async function startCamera() {
     initAudio();
-    const errBox = $('camera-error');
-    errBox.hidden = true;
+    showStartError('');
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      errBox.textContent =
-        "This page can't use the camera. Open the Freeze file on this laptop in Chrome or Edge, or open a link to Freeze that starts with https. You can also try it without a camera.";
-      errBox.hidden = false;
+      showStartError(
+        "This page can't use the camera. Open the Freeze file on this laptop in Chrome or Edge, or open a link to Freeze that starts with https. You can also try it without a camera."
+      );
       return;
     }
-    $('btn-camera').disabled = true;
+    const ticket = ++st.ticket;
+    lockStart(true);
+    let stream = null;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }, audio: false });
+      // Ask for a wide picture: a 16:9 camera sees more people side by side.
+      stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: false });
+      if (ticket !== st.ticket) return stopTracks(stream);
       const video = document.createElement('video');
       video.muted = true;
       video.playsInline = true;
       video.srcObject = stream;
       await video.play();
       if (!video.videoWidth) await new Promise((r) => video.addEventListener('loadedmetadata', r, { once: true }));
+      if (ticket !== st.ticket) return stopTracks(stream);
       const capW = 320;
       const capH = Math.max(2, Math.round((capW * video.videoHeight) / video.videoWidth / 2) * 2);
       st.stream = stream;
       st.video = video;
+      st.lastVideoTime = -1;
       st.mode = 'camera';
-      st.size = chosenSize();
       setWorkSize(capW, capH);
+      useSize(chosenSize('size'));
+      for (const track of stream.getVideoTracks()) {
+        track.addEventListener('ended', () => cameraLost(stream));
+        track.addEventListener('mute', () => cameraPaused(stream));
+      }
       openSetup();
     } catch (err) {
-      errBox.textContent = cameraMessage(err);
-      errBox.hidden = false;
+      stopTracks(stream); // never leave the camera on after a failed start
+      if (ticket === st.ticket) showStartError(cameraMessage(err));
     } finally {
-      $('btn-camera').disabled = false;
+      if (ticket === st.ticket) lockStart(false);
     }
   }
 
   function startPractice() {
     initAudio();
-    $('camera-error').hidden = true;
+    showStartError('');
+    st.ticket++;
     st.mode = 'practice';
-    st.size = chosenSize();
     setWorkSize(320, 240);
-    st.scene = P.createScene({ players: S.SIZES[st.size].practicePlayers, seed: 7 });
+    useSize(chosenSize('size'));
     openSetup();
   }
 
   function stopCamera() {
-    if (st.stream) for (const t of st.stream.getTracks()) t.stop();
+    stopTracks(st.stream);
     st.stream = null;
     st.video = null;
+  }
+
+  function cameraLost(stream) {
+    if (stream !== st.stream) return;
+    quitToStart();
+    showStartError('The camera stopped. Check that no other app is using it, then start the camera again.');
+  }
+
+  function cameraPaused(stream) {
+    if (stream !== st.stream) return;
+    pauseGame("The camera picture stopped. When it's back, choose Resume.");
   }
 
   function openSetup() {
     st.model = null;
     st.learn = null;
     st.game = null;
-    st.prev = null;
-    st.mask = null;
+    resetFrames();
     $('setup-mode').hidden = st.mode !== 'practice';
     $('setup-before').hidden = false;
     $('setup-after').hidden = true;
+    $('setup-panel').hidden = false;
     $('learn-countdown').hidden = true;
     $('setup-warning').hidden = true;
     show('setup');
@@ -214,23 +283,31 @@
   }
 
   function quitToStart() {
-    if (st.game) R.pause(st.game, performance.now());
+    st.ticket++;
     st.game = null;
     st.learn = null;
     st.model = null;
+    st.mode = null;
     stopCamera();
     releaseWakeLock();
-    $('pause').hidden = true;
-    $('play-bar').inert = false;
+    closePause();
+    lockStart(false);
     show('start');
     $('btn-camera').focus();
+  }
+
+  function resetFrames() {
+    st.prev = null;
+    st.history = [];
+    st.mask = null;
+    st.grown = null;
+    st.overSince = null;
   }
 
   // ---------- Learning the room ----------
   function startLearn() {
     st.model = null;
-    st.prev = null;
-    st.mask = null;
+    resetFrames();
     st.learn = { phase: 'count', start: performance.now(), acc: V.createBackground(st.w, st.h) };
     $('setup-before').hidden = true;
     $('setup-after').hidden = true;
@@ -238,6 +315,7 @@
     $('learn-countdown').hidden = false;
     $('learn-label').textContent = 'Everyone step out of the picture';
     $('learn-number').hidden = false;
+    $('learn-countdown').focus();
     st.lastBeep = -1;
     say('Everyone step out of the picture. Freeze starts learning the room in 5 seconds.');
   }
@@ -268,6 +346,7 @@
   function finishLearn() {
     st.model = V.finishBackground(st.learn.acc);
     st.learn = null;
+    st.gain = 1;
     beep(880, 200);
     $('learn-countdown').hidden = true;
     $('setup-panel').hidden = false;
@@ -275,8 +354,7 @@
     const warn = $('setup-warning');
     if (st.model.unstable > UNSTABLE_LIMIT) {
       warn.textContent = 'Something moved while Freeze was learning the room. Check that everyone was out of the picture, then learn the room again.';
-      warn.hidden = false;
-      say(warn.textContent);
+      warn.hidden = false; // role="alert" reads it out
     } else {
       warn.hidden = true;
       say('Done. Now step back in. You should turn teal.');
@@ -288,14 +366,13 @@
   function startGame() {
     if (!st.model) return;
     st.game = R.createGame(st.size, performance.now(), { speed: SPEED });
-    st.prev = null;
+    resetFrames();
     st.lastBeep = -1;
     $('play-mode').hidden = st.mode !== 'practice';
     $('result').hidden = true;
     $('rush').hidden = true;
     $('flash').hidden = true;
-    $('pause').hidden = true;
-    $('play-bar').inert = false;
+    closePause();
     $('screen-play').classList.remove('freezing');
     show('play');
     requestWakeLock();
@@ -340,6 +417,7 @@
         announceRound();
       } else if (e === 'rushing') {
         $('rush').hidden = false;
+        say("Slow down. There's time.");
       } else if (e === 'done') {
         finishGame();
       }
@@ -371,29 +449,58 @@
       st.mode === 'practice'
         ? "The practice players aren't very good at this, so a real group should do better. Every laptop that picks the same group size gets the same 5 shapes, so teams on different laptops can compare scores."
         : 'Playing on more than one laptop? Every laptop that picked the same group size got the same 5 shapes, so you can compare scores.';
+    setRadio('size-next', st.size);
     show('done');
     say(`Game over. ${$('done-mode').textContent} ${R.total(g)} of ${R.maxTotal(g)}.`);
     $('btn-again').focus();
   }
 
+  function playAgain() {
+    useSize(chosenSize('size-next'));
+    startGame();
+  }
+
+  // ---------- Pause ----------
+  function pauseGame(reason) {
+    const g = st.game;
+    if (!g || g.phase === 'done' || st.screen !== 'play' || g.paused !== null) return;
+    R.pause(g, performance.now());
+    const why = $('pause-reason');
+    why.textContent = reason || '';
+    why.hidden = !reason;
+    $('pause').hidden = false;
+    $('play-bar').inert = true; // only the pause buttons work while paused
+    $('play-hud').inert = true;
+    $('btn-resume').focus();
+    say(reason ? 'Paused. ' + reason : 'Paused.');
+  }
+
+  function closePause() {
+    $('pause').hidden = true;
+    $('play-bar').inert = false;
+    $('play-hud').inert = false;
+  }
+
+  function resumeGame() {
+    const g = st.game;
+    if (!g || g.paused === null) return;
+    R.resume(g, performance.now());
+    resetFrames(); // people moved while paused; start the movement and brightness checks afresh
+    closePause();
+    $('btn-pause').focus();
+    say(g.phase === 'freeze' ? 'Playing. Freeze! Hold still.' : 'Playing.');
+  }
+
   function togglePause() {
     const g = st.game;
-    if (!g || g.phase === 'done' || st.screen !== 'play') return;
-    const now = performance.now();
-    if (g.paused === null) {
-      R.pause(g, now);
-      $('pause').hidden = false;
-      $('play-bar').inert = true; // only the pause buttons work while paused
-      $('btn-resume').focus();
-      say('Paused.');
-    } else {
-      R.resume(g, now);
-      $('pause').hidden = true;
-      $('play-bar').inert = false;
-      $('btn-pause').focus();
-      say('Playing.');
-    }
+    if (!g) return;
+    if (g.paused === null) pauseGame();
+    else resumeGame();
   }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) pauseGame();
+  });
 
   async function requestWakeLock() {
     try {
@@ -422,12 +529,16 @@
     return { present: true, t: now };
   }
 
-  // Get the next picture into cap (full size) and return it at working size.
+  // Get the next picture into cap (full size) and return it at working size, or null if there
+  // is no new picture yet. A slow camera repeats frames, and judging a repeat would look like
+  // perfect stillness.
   function grab(now) {
     if (st.mode === 'camera') {
-      if (!st.video || st.video.readyState < 2) return null;
+      const v = st.video;
+      if (!v || v.readyState < 2 || v.currentTime === st.lastVideoTime) return null;
+      st.lastVideoTime = v.currentTime;
       capCtx.setTransform(-1, 0, 0, 1, st.capW, 0); // mirror, so it works like a mirror
-      capCtx.drawImage(st.video, 0, 0, st.capW, st.capH);
+      capCtx.drawImage(v, 0, 0, st.capW, st.capH);
       capCtx.setTransform(1, 0, 0, 1, 0, 0);
       return V.downscale(capCtx.getImageData(0, 0, st.capW, st.capH).data, st.capW, st.capH, 2);
     }
@@ -453,6 +564,40 @@
     return st.shapeMask;
   }
 
+  // Movement for the "held still" score. While frozen, each frame is compared with the frame
+  // STILL_WINDOW_MS before it (but not from before the grace period ended), so slow drifting
+  // adds up. It's the largest movement in any of 8 strips of the picture, so one person moving
+  // in a big group still counts. At other times it's the change since the last frame.
+  function stillMotion(now, luma, mask) {
+    const g = st.game;
+    const h = st.history;
+    if (h.length < 2) return 0;
+    if (g.phase !== 'freeze') {
+      const prev = h[h.length - 2];
+      return V.motion(prev.luma, luma, prev.mask, mask);
+    }
+    const window = Math.max(STILL_WINDOW_MS / SPEED, 2 * STEP_MS); // at least two frames apart
+    const from = Math.max(now - window, g.phaseStart + R.times(g).grace);
+    const base = h.find((f) => f.t >= from);
+    if (!base || base.t >= now) return 0;
+    return V.stripMotion(base.luma, luma, base.mask, mask, st.w, st.h, 8);
+  }
+
+  // If nearly the whole picture looks like people for a second, the light changed or the
+  // laptop moved. Pause and ask for the room to be learned again.
+  function roomCheck(now, cover) {
+    const g = st.game;
+    if (st.screen !== 'play' || !g || g.paused !== null || g.phase === 'done' || cover < ROOM_LOST_SHARE) {
+      st.overSince = null;
+      return;
+    }
+    if (st.overSince === null) st.overSince = now;
+    if (now - st.overSince >= ROOM_LOST_MS) {
+      st.overSince = null;
+      pauseGame("Freeze can't tell people from the room anymore. This happens when the light changes or the laptop moves. Choose Learn the room again and restart.");
+    }
+  }
+
   function process(now) {
     const small = grab(now);
     if (st.learn) {
@@ -460,15 +605,28 @@
       return;
     }
     if (!small || !st.model) return;
-    const mask = V.cleanMask(V.foregroundMask(small, st.model), st.w, st.h);
+    // Brightness change, judged only from the parts of the picture that were room last frame.
+    const g0 = V.gainOf(small, st.model, st.grown);
+    if (g0 !== null) st.gain = st.prev ? st.gain * 0.6 + g0 * 0.4 : g0;
+    const mask = V.cleanMask(V.foregroundMask(small, st.model, { gain: st.gain }), st.w, st.h);
     const luma = V.lumaOf(small, st.w, st.h);
-    const motion = st.prev ? V.motion(st.prev.luma, luma, st.prev.mask, mask) : 0;
-    st.prev = { luma, mask };
+    let rush = 0;
+    if (st.prev) {
+      // A slow camera gives fewer frames with more movement between them; scale to STEP_MS.
+      const dt = Math.max(1, now - st.prev.t);
+      rush = V.stripMotion(st.prev.luma, luma, st.prev.mask, mask, st.w, st.h, 8) * Math.min(1, STEP_MS / dt);
+    }
+    st.prev = { t: now, luma, mask };
+    st.history.push(st.prev);
+    while (st.history.length && st.history[0].t < now - 1200) st.history.shift();
     st.mask = mask;
+    st.grown = V.dilate(mask, st.w, st.h, 2);
+    roomCheck(now, V.countOnes(mask) / mask.length);
     const shape = currentShape();
     if (shape && st.game.paused === null) {
       const fit = V.scoreFit(mask, shapeMaskFor(shape));
-      onEvents(R.step(st.game, now, Object.assign({ motion }, fit)), now);
+      const motion = stillMotion(now, luma, mask);
+      onEvents(R.step(st.game, now, Object.assign({ motion, rush }, fit)), now);
     }
   }
 
@@ -490,7 +648,7 @@
         const stripe = (x + y) % 6 < 3;
         d[i] = 255; d[i + 1] = 107; d[i + 2] = 127; d[i + 3] = stripe ? 190 : 70; // outside: coral stripes
       } else if (s) {
-        d[i] = 255; d[i + 1] = 210; d[i + 2] = 63; d[i + 3] = 38; // still empty: faint tape
+        d[i] = 255; d[i + 1] = 210; d[i + 2] = 63; d[i + 3] = 70; // still empty: faint tape
       }
     }
     lctx.putImageData(img, 0, 0);
@@ -648,26 +806,24 @@
   $('btn-relearn').addEventListener('click', startLearn);
   $('btn-setup-back').addEventListener('click', quitToStart);
   $('btn-play').addEventListener('click', startGame);
-  $('btn-pause').addEventListener('click', togglePause);
-  $('btn-resume').addEventListener('click', togglePause);
+  $('btn-pause').addEventListener('click', () => pauseGame());
+  $('btn-resume').addEventListener('click', resumeGame);
   $('btn-quit').addEventListener('click', quitToStart);
   $('btn-pause-relearn').addEventListener('click', () => {
     st.game = null;
-    $('pause').hidden = true;
-    $('play-bar').inert = false;
+    closePause();
     releaseWakeLock();
     openSetup();
     startLearn();
   });
-  $('btn-again').addEventListener('click', startGame);
-  $('btn-change').addEventListener('click', quitToStart);
+  $('btn-again').addEventListener('click', playAgain);
+  $('btn-done-quit').addEventListener('click', quitToStart);
   $('btn-sound').addEventListener('click', toggleSound);
   $('btn-full').addEventListener('click', toggleFull);
 
   function toggleSound() {
     st.sound = !st.sound;
-    const b = $('btn-sound');
-    b.textContent = st.sound ? 'Turn sound off' : 'Turn sound on';
+    $('btn-sound').textContent = st.sound ? 'Turn sound off' : 'Turn sound on';
   }
 
   function toggleFull() {
@@ -682,15 +838,20 @@
   });
 
   document.addEventListener('keydown', (e) => {
-    if (st.screen !== 'play') return;
-    if (e.code === 'Space' && !(e.target instanceof HTMLButtonElement)) {
+    if (st.screen !== 'play' || e.repeat) return;
+    const paused = st.game && st.game.paused !== null;
+    if (e.key === 'Escape' && paused) {
+      e.preventDefault();
+      resumeGame();
+    } else if (e.code === 'Space' && !(e.target instanceof HTMLButtonElement)) {
       e.preventDefault();
       togglePause();
-    } else if (e.key === 'm' || e.key === 'M') {
+    } else if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey) {
       toggleSound();
     }
   });
 
+  showFillTime();
   show('start');
   requestAnimationFrame(loop);
 })();

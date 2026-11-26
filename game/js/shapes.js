@@ -1,6 +1,7 @@
 // Freeze: the shapes and the rounds.
 // Points are [x, y] from 0 to 1 across the mirrored picture: x = 0 is the left of the screen,
-// y = 0 is the top. Rings inside a shape are holes. Parts never overlap, so "inside an odd
+// y = 0 is the top. A ring inside another ring would be a hole (none of the shapes use one now,
+// because a hole above the floor needs someone to crouch lower than is comfortable). Parts never overlap, so "inside an odd
 // number of rings" means "inside the shape", the same rule the canvas uses to draw it.
 //
 // Every part either touches the bottom of the picture, where people's bodies are, or sits at
@@ -18,18 +19,18 @@
     door: { name: 'Door', rings: [rect(0.37, 0.14, 0.63, 1)], tip: 'Stand tall, side by side.' },
     tee: {
       name: 'Letter T',
-      rings: [[[0.2, 0.22], [0.8, 0.22], [0.8, 0.4], [0.6, 0.4], [0.6, 1], [0.4, 1], [0.4, 0.4], [0.2, 0.4]]],
+      rings: [[[0.18, 0.22], [0.82, 0.22], [0.82, 0.4], [0.63, 0.4], [0.63, 1], [0.37, 1], [0.37, 0.4], [0.18, 0.4]]],
       tip: 'Arms out wide.',
     },
     why: {
       name: 'Letter Y',
-      rings: [[[0.24, 0.04], [0.37, 0.04], [0.5, 0.3], [0.63, 0.04], [0.76, 0.04], [0.6, 0.44], [0.6, 1], [0.4, 1], [0.4, 0.44]]],
+      rings: [[[0.22, 0.04], [0.36, 0.04], [0.5, 0.3], [0.64, 0.04], [0.78, 0.04], [0.63, 0.44], [0.63, 1], [0.37, 1], [0.37, 0.44]]],
       tip: 'Arms up and out.',
     },
     low: { name: 'Low wall', rings: [rect(0.3, 0.55, 0.7, 1)], tip: 'Crouch down low.' },
     flag: {
       name: 'Flag',
-      rings: [[[0.32, 0.1], [0.72, 0.1], [0.72, 0.34], [0.44, 0.34], [0.44, 1], [0.32, 1]]],
+      rings: [[[0.3, 0.1], [0.74, 0.1], [0.74, 0.34], [0.5, 0.34], [0.5, 1], [0.3, 1]]],
       tip: 'One arm out to the side, high up.',
     },
     // 3 to 5 people
@@ -53,10 +54,10 @@
     // 6 or more people
     bigwall: { name: 'Big wall', rings: [rect(0.06, 0.32, 0.94, 1)], tip: 'Everyone in one long line.' },
     mountain: { name: 'Mountain', rings: [[[0.05, 1], [0.5, 0.08], [0.95, 1]]], tip: 'Tallest in the middle, lowest at the sides.' },
-    window: {
-      name: 'Window',
-      rings: [rect(0.06, 0.15, 0.94, 1), rect(0.38, 0.35, 0.62, 0.7)],
-      tip: 'Leave a hole in the middle.',
+    valley: {
+      name: 'Valley',
+      rings: [[[0.05, 1], [0.05, 0.08], [0.5, 0.6], [0.95, 0.08], [0.95, 1]]],
+      tip: 'Tallest at the sides, lowest in the middle.',
     },
     three: {
       name: 'Three towers',
@@ -72,10 +73,12 @@
 
   // Everyone who picks the same group size gets the same shapes in the same order,
   // so teams on different laptops can compare scores.
+  // stand: how far from the laptop to stand, so the whole group fits in the picture.
+  // fillSeconds: bigger groups get longer to rearrange, so nobody has to rush.
   const SIZES = {
-    small: { label: '1 or 2', practicePlayers: 2, shapes: ['door', 'tee', 'low', 'why', 'flag'] },
-    medium: { label: '3 to 5', practicePlayers: 4, shapes: ['wall', 'steps', 'towers', 'bridge', 'aitch'] },
-    large: { label: '6 or more', practicePlayers: 7, shapes: ['bigwall', 'mountain', 'three', 'window', 'zigzag'] },
+    small: { label: '1 or 2', practicePlayers: 2, fillSeconds: 8, stand: 'Stand about 2 metres from it, or a bit closer if you play alone.', shapes: ['door', 'tee', 'low', 'why', 'flag'] },
+    medium: { label: '3 to 5', practicePlayers: 4, fillSeconds: 10, stand: 'Stand about 3 metres from it.', shapes: ['wall', 'steps', 'towers', 'bridge', 'aitch'] },
+    large: { label: '6 or more', practicePlayers: 7, fillSeconds: 12, stand: 'Stand 3 to 4 metres from it.', shapes: ['bigwall', 'mountain', 'three', 'valley', 'zigzag'] },
   };
 
   function insideRing(x, y, ring) {

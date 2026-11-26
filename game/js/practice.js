@@ -129,7 +129,7 @@
       let dx = 0.004 * Math.sin(state.t / 400 + p.phase); // small sway
       if (state.phase === 'freeze') {
         dx = 0;
-        if (state.round === FIDGET_ROUND && i === 0 && state.elapsed < 1800) dx = 0.03 * Math.sin(state.t / 60);
+        if (state.round === FIDGET_ROUND && i === 0 && state.elapsed < 1800) dx = 0.04 * Math.sin(state.t / 200);
       }
       return Object.assign({}, spot, { cx: spot.cx + dx, shirt: p.shirt, skin: p.skin });
     });

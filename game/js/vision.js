@@ -19,7 +19,10 @@
   // Tuning. Pixel values run from 0 to 255.
   const MIN_DIFF = 30; // a pixel must differ from the room by at least this much to count as a person
   const NOISE_K = 3; // ...or by 3 times that pixel's own noise, if the camera is noisy there
-  const SHADOW_LOW = 0.6; // a pixel 60–97% as bright as the room, with the same colour, is a shadow
+  // A pixel 85–97% as bright as the room, with the same colour, is a shadow. Darker than that is
+  // treated as a person, because grey or beige clothes in front of a pale wall look like a deep
+  // shadow too. On a pale wall, shadows lighter than about 85% are already below MIN_DIFF.
+  const SHADOW_LOW = 0.85;
   const SHADOW_HIGH = 0.97;
   const SHADOW_CHROMA = 0.045;
   const MOVE_DIFF = 20; // brightness change that counts as movement between two frames
@@ -106,15 +109,39 @@
     return { w, h, frames, mean, noise, unstable: unstable / n };
   }
 
+  // Grow a mask by r pixels in every direction.
+  function dilate(mask, w, h, r) {
+    const tmp = new Uint8Array(w * h);
+    const out = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (!mask[y * w + x]) continue;
+        for (let xx = Math.max(0, x - r); xx <= Math.min(w - 1, x + r); xx++) tmp[y * w + xx] = 1;
+      }
+    }
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (!tmp[y * w + x]) continue;
+        for (let yy = Math.max(0, y - r); yy <= Math.min(h - 1, y + r); yy++) out[yy * w + x] = 1;
+      }
+    }
+    return out;
+  }
+
   // Laptop cameras change their brightness when people walk in. Estimate that change from the
-  // middle value of (frame brightness / room brightness), which comes from the room as long as
-  // people cover less than half the picture. Returns a factor near 1.
-  function gainOf(rgba, model) {
+  // middle value of (frame brightness / room brightness) over the parts of the picture that are
+  // room. `people` is an optional mask of where people were in the last frame (grown a little);
+  // those pixels are skipped, so a big group covering most of the picture doesn't fool it.
+  // Returns a factor near 1, or null if too little of the room is visible to judge.
+  function gainOf(rgba, model, people) {
     const { mean } = model;
     const n = model.w * model.h;
     const bins = new Uint32Array(201); // ratio 0.50 to 1.50 in steps of 0.005
     let count = 0;
+    let looked = 0;
     for (let p = 0; p < n; p += 3) {
+      looked++;
+      if (people && people[p]) continue;
       const i = p * 4;
       const j = p * 3;
       const lb = mean[j] + mean[j + 1] + mean[j + 2];
@@ -124,7 +151,7 @@
       bins[Math.round((ratio - 0.5) * 200)]++;
       count++;
     }
-    if (count < 20) return 1;
+    if (count < Math.max(20, looked * 0.15)) return null;
     let seen = 0;
     for (let k = 0; k < bins.length; k++) {
       seen += bins[k];
@@ -142,7 +169,8 @@
     const minDiff = o.minDiff ?? MIN_DIFF;
     const noiseK = o.noiseK ?? NOISE_K;
     const shadows = o.shadows !== false;
-    const gain = o.gain === false ? 1 : gainOf(rgba, model);
+    // gain: false for none, a number to use, or leave it out to measure it from this frame.
+    const gain = o.gain === false ? 1 : typeof o.gain === 'number' ? o.gain : gainOf(rgba, model) ?? 1;
     const { mean, noise } = model;
     const n = model.w * model.h;
     const mask = new Uint8Array(n);
@@ -241,9 +269,39 @@
     return moved / Math.max(people, floor);
   }
 
+  // The largest movement in any of `strips` vertical strips of the picture. One person rushing
+  // shows up here even in a big group that is otherwise still. Each strip is judged against at
+  // least 15% of its own area, so a sliver of a person at a strip's edge can't look like a rush.
+  function stripMotion(prevLuma, curLuma, prevMask, curMask, w, h, strips, opts) {
+    const o = opts || {};
+    const diff = o.diff ?? MOVE_DIFF;
+    const k = strips || 8;
+    let worst = 0;
+    for (let s = 0; s < k; s++) {
+      const x0 = Math.floor((s * w) / k);
+      const x1 = Math.floor(((s + 1) * w) / k);
+      let moved = 0;
+      let people = 0;
+      for (let y = 0; y < h; y++) {
+        for (let x = x0; x < x1; x++) {
+          const p = y * w + x;
+          if (!curMask[p] && !prevMask[p]) continue;
+          people++;
+          if (Math.abs(curLuma[p] - prevLuma[p]) > diff) moved++;
+        }
+      }
+      const floor = Math.max(1, Math.round((x1 - x0) * h * 0.15));
+      worst = Math.max(worst, moved / Math.max(people, floor));
+    }
+    return worst;
+  }
+
   return {
     MIN_DIFF,
     MOVE_DIFF,
+    SHADOW_LOW,
+    dilate,
+    stripMotion,
     luma,
     downscale,
     lumaOf,

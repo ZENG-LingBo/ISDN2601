@@ -1,7 +1,7 @@
 /* Freeze
-   Layout: the camera picture fills the screen like a stage. A thin band at the top says what to
-   do and how long is left, big enough to read from 2 metres; a band at the bottom shows how much
-   of the shape is filled. The shape is drawn like yellow floor tape. Filled parts glow teal,
+   Layout: the camera picture fills the middle of the screen like a stage. A band above it says
+   what to do and how long is left, big enough to read from across a room; a band below shows how
+   much of the shape is filled. Neither band covers the picture, so no part of a shape is hidden. The shape is drawn like yellow floor tape. Filled parts glow teal,
    parts of people outside the shape show as coral stripes.
    One dark look on purpose: the video and the tape read best on a dark surround, and the screen
    is watched from across a room. */
@@ -336,18 +336,29 @@ fieldset {
 }
 
 /* Play */
+.play {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+.play .stage {
+  position: relative;
+  inset: auto;
+  min-height: 0;
+}
+
 .hud {
-  position: absolute;
-  inset: 0 0 auto;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
-  padding-block: calc(12px + env(safe-area-inset-top, 0px)) 2.5rem;
+  padding-block: calc(8px + env(safe-area-inset-top, 0px)) 8px;
   padding-left: var(--gutter-l);
   padding-right: var(--gutter-r);
-  background: linear-gradient(to bottom, rgba(15, 19, 32, 0.92), rgba(15, 19, 32, 0.6) 65%, transparent);
-  pointer-events: none;
 }
 
 .hud-left {
@@ -362,22 +373,22 @@ fieldset {
   align-items: center;
   gap: 0.6rem;
   color: var(--text-2);
-  font: 700 clamp(0.95rem, 2.2vh, 1.25rem)/1.3 var(--body);
+  font: 700 clamp(1.05rem, 2.8vh, 1.5rem)/1.3 var(--body);
   letter-spacing: 0.02em;
 }
 
 .callout-main {
-  font: 900 clamp(2.4rem, 8vh, 5rem)/0.95 var(--display);
+  font: 900 clamp(2.2rem, 7.5vh, 4.8rem)/0.95 var(--display);
   letter-spacing: 0.01em;
 }
 
 .callout-sub {
-  font-size: clamp(1.1rem, 3vh, 1.7rem);
+  font-size: clamp(1.15rem, 4vh, 2rem);
   line-height: 1.3;
 }
 
 .timer {
-  font: 900 clamp(4rem, 16vh, 9rem)/0.85 var(--display);
+  font: 900 clamp(3.5rem, 13vh, 8rem)/0.85 var(--display);
   color: var(--tape);
   font-variant-numeric: tabular-nums;
   min-width: 1.2ch;
@@ -471,25 +482,22 @@ fieldset {
 
 .result-parts dt {
   color: var(--text-2);
-  font-size: clamp(0.9rem, 2.2vh, 1.1rem);
+  font-size: clamp(1rem, 3.5vh, 1.8rem);
 }
 
 .result-parts dd {
-  font: 700 clamp(1.8rem, 5vh, 2.6rem)/1.1 var(--display);
+  font: 700 clamp(1.8rem, 6vh, 3rem)/1.1 var(--display);
   font-variant-numeric: tabular-nums;
 }
 
 .meter-row {
-  position: absolute;
-  inset: auto 0 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem 1.25rem;
-  padding-block: 2.5rem calc(12px + env(safe-area-inset-bottom, 0px));
+  gap: 0.5rem 1.25rem;
+  padding-block: 8px calc(8px + env(safe-area-inset-bottom, 0px));
   padding-left: var(--gutter-l);
   padding-right: var(--gutter-r);
-  background: linear-gradient(to top, rgba(15, 19, 32, 0.92), rgba(15, 19, 32, 0.6) 65%, transparent);
 }
 
 .meter {
@@ -556,7 +564,17 @@ fieldset {
 }
 
 .pause .panel {
-  width: min(26rem, 100%);
+  width: min(28rem, 100%);
+  background: var(--panel);
+  border: 2px solid var(--line);
+}
+
+#pause-reason {
+  font-size: 1.15rem;
+}
+
+.countdown:focus {
+  outline: none;
 }
 
 /* Done */

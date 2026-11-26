@@ -37,7 +37,7 @@
 
       <ol class="how">
         <li><strong>Learn the room.</strong> Everyone steps out of the picture for a few seconds.</li>
-        <li><strong>Fill the shape.</strong> You have 8 seconds to get into it together.</li>
+        <li><strong>Fill the shape.</strong> <span id="how-fill">You have 10 seconds to get into it together.</span></li>
         <li><strong>Freeze.</strong> Hold still for 3 seconds. You get points for filling the shape and for holding still.</li>
       </ol>
       <p class="fine">Freeze runs on this laptop. The video isn't recorded or sent anywhere.</p>
@@ -56,7 +56,8 @@
       <h2 id="setup-title">Set up the laptop</h2>
       <div id="setup-before">
         <ul class="steps">
-          <li>Put the laptop on a table, about 2 metres from where you'll stand.</li>
+          <li>Put the laptop on a table.</li>
+          <li id="setup-stand">Stand about 3 metres from it.</li>
           <li>Check that the camera can see all of you, at least from the waist up.</li>
           <li>Then everyone steps out of the picture, so Freeze can learn what the empty room looks like.</li>
         </ul>
@@ -74,32 +75,33 @@
         </div>
       </div>
     </div>
-    <div class="countdown" id="learn-countdown" hidden>
+    <div class="countdown" id="learn-countdown" tabindex="-1" hidden>
       <p class="count-label" id="learn-label">Everyone step out of the picture</p>
       <p class="count-number" id="learn-number">5</p>
     </div>
   </section>
 
   <!-- Play -->
-  <section id="screen-play" class="screen stage-screen play" aria-label="Game" hidden>
-    <div class="stage" id="play-stage"></div>
-    <header class="hud">
+  <section id="screen-play" class="screen play" aria-label="Game" hidden>
+    <header class="hud" id="play-hud">
       <div class="hud-left">
         <p class="hud-small"><span id="hud-round">Round 1 of 5</span><span class="mode-tag" id="play-mode" hidden>Practice players</span></p>
         <p class="callout-main" id="callout-main">Fill the shape</p>
         <p class="callout-sub" id="callout-sub">Stand in a line, shoulder to shoulder.</p>
       </div>
-      <p class="timer" id="timer" aria-hidden="true">8</p>
+      <p class="timer" id="timer" aria-hidden="true">10</p>
     </header>
-    <p class="rush" id="rush" hidden>Slow down. There's time.</p>
-    <p class="flash" id="flash" aria-hidden="true" hidden>Freeze!</p>
-    <div class="result" id="result" hidden>
-      <p class="result-points"><span id="result-points">0</span> <span class="result-unit">points</span></p>
-      <dl class="result-parts">
-        <div><dt>Filled</dt><dd id="result-filled">0%</dd></div>
-        <div><dt>Outside the shape</dt><dd id="result-outside">0%</dd></div>
-        <div><dt>Held still</dt><dd id="result-still">0%</dd></div>
-      </dl>
+    <div class="stage" id="play-stage">
+      <p class="rush" id="rush" hidden>Slow down. There's time.</p>
+      <p class="flash" id="flash" aria-hidden="true" hidden>Freeze!</p>
+      <div class="result" id="result" hidden>
+        <p class="result-points"><span id="result-points">0</span> <span class="result-unit">points</span></p>
+        <dl class="result-parts">
+          <div><dt>Filled</dt><dd id="result-filled">0%</dd></div>
+          <div><dt>Outside the shape</dt><dd id="result-outside">0%</dd></div>
+          <div><dt>Held still</dt><dd id="result-still">0%</dd></div>
+        </dl>
+      </div>
     </div>
     <footer class="meter-row" id="play-bar">
       <div class="meter" role="meter" aria-label="Shape filled" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="meter">
@@ -114,10 +116,11 @@
       </div>
     </footer>
     <div class="pause" id="pause" hidden>
-      <div class="panel">
-        <h2>Paused</h2>
+      <div class="panel" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+        <h2 id="pause-title">Paused</h2>
+        <p id="pause-reason" hidden></p>
         <div class="actions stack">
-          <button id="btn-resume" class="btn primary" type="button">Resume</button>
+          <button id="btn-resume" class="btn primary" type="button" aria-keyshortcuts="Escape">Resume</button>
           <button id="btn-pause-relearn" class="btn" type="button">Learn the room again and restart</button>
           <button id="btn-quit" class="btn" type="button">Quit to the start</button>
         </div>
@@ -136,9 +139,17 @@
         <tbody id="done-rounds"></tbody>
       </table>
       <p class="fine" id="done-note">Playing on more than one laptop? Every laptop that picked the same group size got the same 5 shapes, so you can compare scores.</p>
+      <fieldset class="sizes">
+        <legend>Group size for the next game</legend>
+        <div class="size-options">
+          <label class="size"><input type="radio" name="size-next" id="next-small" value="small"><span>1 or 2</span></label>
+          <label class="size"><input type="radio" name="size-next" id="next-medium" value="medium" checked><span>3 to 5</span></label>
+          <label class="size"><input type="radio" name="size-next" id="next-large" value="large"><span>6 or more</span></label>
+        </div>
+      </fieldset>
       <div class="actions">
         <button id="btn-again" class="btn primary" type="button">Play again</button>
-        <button id="btn-change" class="btn" type="button">Change the group size</button>
+        <button id="btn-done-quit" class="btn" type="button">Back to the start</button>
       </div>
     </div>
   </section>

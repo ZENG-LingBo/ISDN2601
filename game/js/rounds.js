@@ -1,7 +1,8 @@
 // Freeze: the rules of a game, with no camera or screen code, so the tests can run them.
 //
 // Each round has three parts:
-//   fill    8 seconds to get into the shape. The screen shows how much is filled.
+//   fill    8, 10 or 12 seconds to get into the shape, more for bigger groups so nobody has to rush.
+//           The screen shows how much is filled.
 //   freeze  3 seconds holding still. The first half second doesn't count, to give people time to stop.
 //   result  4 seconds showing the points, then the next round.
 // Points for a round = 100 × fit × still, where fit is the average fit while frozen and still is
@@ -12,14 +13,14 @@
 })(typeof self !== 'undefined' ? self : this, function (Shapes) {
   'use strict';
 
-  const TIMES = { fill: 8000, freeze: 3000, grace: 500, result: 4000 };
-  const MOVE_LIMIT = 0.08; // below this the group counts as still (see Vision.motion)
-  const RUSH_LIMIT = 0.35; // above this during fill, the screen asks people to slow down
+  const TIMES = { freeze: 3000, grace: 500, result: 4000 };
+  const MOVE_LIMIT = 0.08; // below this in every strip of the picture, the group counts as still (see Vision.stripMotion)
+  const RUSH_LIMIT = 0.6; // above this in any strip of the picture during fill, the screen asks people to slow down
   const RUSH_MS = 400; // ...after this long
 
   function times(game) {
     const k = game.speed;
-    return { fill: TIMES.fill / k, freeze: TIMES.freeze / k, grace: TIMES.grace / k, result: TIMES.result / k };
+    return { fill: game.fillMs / k, freeze: TIMES.freeze / k, grace: TIMES.grace / k, result: TIMES.result / k };
   }
 
   function createGame(size, now, opts) {
@@ -28,6 +29,7 @@
       size,
       shapes: Shapes.roundsFor(size),
       speed: o.speed || 1,
+      fillMs: Shapes.SIZES[size].fillSeconds * 1000,
       round: 0,
       phase: 'fill',
       phaseStart: now,
@@ -75,8 +77,12 @@
     return result;
   }
 
-  // Move the game on. m is the latest measurement, { filled, outside, fit, motion }, or null if
-  // there isn't one yet. Returns a list of things that happened, for sounds and the screen.
+  // Move the game on. m is the latest measurement, or null if there isn't one yet:
+  //   filled, outside, fit  from Vision.scoreFit
+  //   motion                the largest movement in any part of the picture, used while frozen
+  //   rush                  the fastest movement in any part of the picture (Vision.stripMotion),
+  //                         used while filling; motion is used if it's missing
+  // Returns a list of things that happened, for sounds and the screen.
   function step(game, now, m) {
     const events = [];
     if (game.paused !== null || game.phase === 'done') return events;
@@ -85,7 +91,7 @@
     if (game.phase === 'fill') {
       if (m) {
         game.live = { filled: m.filled, outside: m.outside, fit: m.fit };
-        if (m.motion > RUSH_LIMIT) {
+        if ((m.rush ?? m.motion) > RUSH_LIMIT) {
           if (game.rushStart === null) game.rushStart = now;
           if (now - game.rushStart >= RUSH_MS / game.speed && !game.rushing) {
             game.rushing = true;
@@ -133,10 +139,17 @@
     if (game.paused === null && game.phase !== 'done') game.paused = now;
   }
 
+  // Carry on after a pause. A pause during Freeze starts the 3 seconds again, with a new
+  // half-second to get back into position, because people move while the game is paused.
   function resume(game, now) {
     if (game.paused === null) return;
-    game.phaseStart += now - game.paused;
-    if (game.rushStart !== null) game.rushStart += now - game.paused;
+    if (game.phase === 'freeze') {
+      game.phaseStart = now;
+      game.frozen = [];
+    } else {
+      game.phaseStart += now - game.paused;
+    }
+    game.rushStart = null;
     game.paused = null;
   }
 

@@ -109,16 +109,33 @@ test('a person in front of the wall shows up in the mask, and nothing else does'
   assert.ok(V.countOnes(mask) - inBox <= 4);
 });
 
-test('a dark shirt counts, but a soft shadow on the wall does not', () => {
-  const m = roomModel();
-  const f = solid(W, H, WALL);
+const WHITE = [235, 232, 228];
+
+function whiteRoom() {
+  const acc = V.createBackground(W, H);
+  for (let k = 0; k < 10; k++) V.addBackgroundFrame(acc, noisy(solid(W, H, WHITE), 3, k + 1));
+  return V.finishBackground(acc);
+}
+
+test('a dark shirt counts, but a soft shadow on a white wall does not', () => {
+  const m = whiteRoom();
+  const f = solid(W, H, WHITE);
   paint(f, W, 2, 2, 10, 28, [30, 30, 32]); // dark shirt
-  paint(f, W, 20, 2, 30, 28, WALL.map((c) => Math.round(c * 0.8))); // shadow: same colour, 80% as bright
+  paint(f, W, 20, 2, 30, 28, WHITE.map((c) => Math.round(c * 0.86))); // soft shadow: same colour, 86% as bright
   const mask = V.foregroundMask(f, m);
   assert.ok(maskCount(mask, W, 2, 2, 10, 28) > 0.95 * 8 * 26);
   assert.equal(maskCount(mask, W, 20, 2, 30, 28), 0);
   const noShadow = V.foregroundMask(f, m, { shadows: false });
   assert.ok(maskCount(noShadow, W, 20, 2, 30, 28) > 0.95 * 10 * 26);
+});
+
+test('grey and light grey clothes in front of a white wall count as people', () => {
+  const m = whiteRoom();
+  for (const ratio of [0.68, 0.75, 0.8]) {
+    const f = paint(solid(W, H, WHITE), W, 10, 4, 26, 30, WHITE.map((c) => Math.round(c * ratio)));
+    const mask = V.foregroundMask(f, m);
+    assert.ok(maskCount(mask, W, 10, 4, 26, 30) > 0.95 * 16 * 26, `grey at ${ratio}`);
+  }
 });
 
 test('when the camera brightens the whole picture, the room still counts as empty', () => {
@@ -134,6 +151,34 @@ test('the brightness correction ignores the people, as long as they cover less t
   const f = solid(W, H, WALL.map((c) => Math.round(c * 1.1)));
   paint(f, W, 0, 0, 16, 30, [250, 250, 250]); // 40% of the picture is a person in white
   assert.ok(Math.abs(V.gainOf(f, m) - 1.1) < 0.02);
+});
+
+test('a big group covering 65% of the picture does not fool the brightness correction', () => {
+  const m = roomModel();
+  const f = solid(W, H, WALL.map((c) => Math.round(c * 1.06))); // the camera brightened by 6%
+  paint(f, W, 0, 0, 26, 30, [120, 110, 100]); // mid-tone clothes over 65% of the picture
+  const people = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < 26; x++) people[y * W + x] = 1;
+  const g = V.gainOf(f, m, V.dilate(people, W, H, 2));
+  assert.ok(Math.abs(g - 1.06) < 0.02, `gain ${g}`);
+  const mask = V.cleanMask(V.foregroundMask(f, m, { gain: g }), W, H);
+  assert.equal(maskCount(mask, W, 30, 0, 40, 30), 0, 'the empty room stays empty');
+  assert.ok(maskCount(mask, W, 0, 0, 26, 30) > 0.9 * 26 * 30);
+});
+
+test('with almost no room in view, the brightness correction says it cannot judge', () => {
+  const m = roomModel();
+  const people = new Uint8Array(W * H).fill(1);
+  assert.equal(V.gainOf(solid(W, H, WALL), m, people), null);
+});
+
+test('dilate grows a mask in every direction', () => {
+  const mask = new Uint8Array(W * H);
+  mask[10 * W + 10] = 1;
+  const out = V.dilate(mask, W, H, 2);
+  assert.equal(V.countOnes(out), 25);
+  assert.equal(out[12 * W + 12], 1);
+  assert.equal(out[13 * W + 10], 0);
 });
 
 test('clean-up removes a stray pixel and fills a pinhole', () => {
@@ -179,6 +224,19 @@ test('motion is 0 for a still group and high when someone moves', () => {
   }
   const m = V.motion(prev, cur, mask, mask2);
   assert.ok(m > 0.5, `motion ${m}`);
+});
+
+test('strip motion finds one person moving in a group that is otherwise still', () => {
+  const prev = new Uint8Array(W * H).fill(180);
+  const cur = new Uint8Array(W * H).fill(180);
+  const mask = new Uint8Array(W * H);
+  for (let y = 5; y < 30; y++) for (let x = 0; x < W; x++) mask[y * W + x] = 1; // a wide still group
+  for (let y = 5; y < 30; y++) for (let x = 0; x < 5; x++) cur[y * W + x] = 60; // one person moving at the left
+  const whole = V.motion(prev, cur, mask, mask);
+  const strips = V.stripMotion(prev, cur, mask, mask, W, H, 8);
+  assert.ok(whole < 0.15, `whole ${whole}`);
+  assert.ok(strips > 0.9, `strips ${strips}`);
+  assert.equal(V.stripMotion(prev, prev, mask, mask, W, H, 8), 0);
 });
 
 test('a tiny speck flickering is not big movement', () => {
