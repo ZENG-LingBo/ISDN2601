@@ -43,6 +43,8 @@
     mask: null,
     grown: null,
     overSince: null,
+    blindSince: null,
+    newFrame: false,
     shapeId: null,
     shapeMask: null,
     lastStep: 0,
@@ -187,9 +189,10 @@
     box.hidden = !text;
   }
 
+  // While the camera prompt is open, only the camera button is locked. Practice stays
+  // available; a camera answer that comes after that is ignored and the camera turned off.
   function lockStart(locked) {
     $('btn-camera').disabled = locked;
-    $('btn-practice').disabled = locked;
   }
 
   function stopTracks(stream) {
@@ -224,6 +227,7 @@
       st.stream = stream;
       st.video = video;
       st.lastVideoTime = -1;
+      watchFrames(video);
       st.mode = 'camera';
       setWorkSize(capW, capH);
       useSize(chosenSize('size'));
@@ -240,10 +244,23 @@
     }
   }
 
+  // Mark when the camera delivers a new frame. Chrome moves video.currentTime on with the clock
+  // even when the camera repeats a frame, so it can't be used to spot repeats there.
+  function watchFrames(video) {
+    if (!('requestVideoFrameCallback' in video)) return;
+    const onFrame = () => {
+      if (st.video !== video) return;
+      st.newFrame = true;
+      video.requestVideoFrameCallback(onFrame);
+    };
+    video.requestVideoFrameCallback(onFrame);
+  }
+
   function startPractice() {
     initAudio();
     showStartError('');
     st.ticket++;
+    lockStart(false);
     st.mode = 'practice';
     setWorkSize(320, 240);
     useSize(chosenSize('size'));
@@ -271,7 +288,7 @@
     st.model = null;
     st.learn = null;
     st.game = null;
-    resetFrames();
+    resetRoom();
     $('setup-mode').hidden = st.mode !== 'practice';
     $('setup-before').hidden = false;
     $('setup-after').hidden = true;
@@ -296,18 +313,27 @@
     $('btn-camera').focus();
   }
 
+  // Forget recent frames, for example after a pause, when people have moved. The brightness
+  // correction and the last known people mask stay, so a big group in view doesn't fool it.
   function resetFrames() {
     st.prev = null;
     st.history = [];
     st.mask = null;
-    st.grown = null;
     st.overSince = null;
+    st.blindSince = null;
+  }
+
+  // Forget everything about the room, before learning it again.
+  function resetRoom() {
+    resetFrames();
+    st.grown = null;
+    st.gain = 1;
   }
 
   // ---------- Learning the room ----------
   function startLearn() {
     st.model = null;
-    resetFrames();
+    resetRoom();
     st.learn = { phase: 'count', start: performance.now(), acc: V.createBackground(st.w, st.h) };
     $('setup-before').hidden = true;
     $('setup-after').hidden = true;
@@ -450,10 +476,16 @@
         ? "The practice players aren't very good at this, so a real group should do better. Every laptop that picks the same group size gets the same 5 shapes, so teams on different laptops can compare scores."
         : 'Playing on more than one laptop? Every laptop that picked the same group size got the same 5 shapes, so you can compare scores.';
     setRadio('size-next', st.size);
+    showNextStand();
     show('done');
     say(`Game over. ${$('done-mode').textContent} ${R.total(g)} of ${R.maxTotal(g)}.`);
     $('btn-again').focus();
   }
+
+  function showNextStand() {
+    $('next-stand').textContent = S.SIZES[chosenSize('size-next')].stand.replace(' it.', ' the laptop.');
+  }
+  for (const r of document.querySelectorAll('input[name="size-next"]')) r.addEventListener('change', showNextStand);
 
   function playAgain() {
     useSize(chosenSize('size-next'));
@@ -535,8 +567,14 @@
   function grab(now) {
     if (st.mode === 'camera') {
       const v = st.video;
-      if (!v || v.readyState < 2 || v.currentTime === st.lastVideoTime) return null;
-      st.lastVideoTime = v.currentTime;
+      if (!v || v.readyState < 2) return null;
+      if ('requestVideoFrameCallback' in v) {
+        if (!st.newFrame) return null;
+        st.newFrame = false;
+      } else {
+        if (v.currentTime === st.lastVideoTime) return null;
+        st.lastVideoTime = v.currentTime;
+      }
       capCtx.setTransform(-1, 0, 0, 1, st.capW, 0); // mirror, so it works like a mirror
       capCtx.drawImage(v, 0, 0, st.capW, st.capH);
       capCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -574,26 +612,29 @@
     if (h.length < 2) return 0;
     if (g.phase !== 'freeze') {
       const prev = h[h.length - 2];
-      return V.motion(prev.luma, luma, prev.mask, mask);
+      return V.stripMotion(prev.luma, luma, prev.mask, mask, st.w, st.h, 8, { clean: true });
     }
     const window = Math.max(STILL_WINDOW_MS / SPEED, 2 * STEP_MS); // at least two frames apart
     const from = Math.max(now - window, g.phaseStart + R.times(g).grace);
     const base = h.find((f) => f.t >= from);
     if (!base || base.t >= now) return 0;
-    return V.stripMotion(base.luma, luma, base.mask, mask, st.w, st.h, 8);
+    return V.stripMotion(base.luma, luma, base.mask, mask, st.w, st.h, 8, { clean: true });
   }
 
-  // If nearly the whole picture looks like people for a second, the light changed or the
-  // laptop moved. Pause and ask for the room to be learned again.
+  // If nearly the whole picture looks like people for a second, or so little of the room is in
+  // view that the brightness can't be judged, the light changed or the laptop moved. Pause and
+  // ask for the room to be learned again.
   function roomCheck(now, cover) {
     const g = st.game;
-    if (st.screen !== 'play' || !g || g.paused !== null || g.phase === 'done' || cover < ROOM_LOST_SHARE) {
+    const lost = cover >= ROOM_LOST_SHARE || (st.blindSince !== null && now - st.blindSince >= ROOM_LOST_MS);
+    if (st.screen !== 'play' || !g || g.paused !== null || g.phase === 'done' || !lost) {
       st.overSince = null;
       return;
     }
     if (st.overSince === null) st.overSince = now;
-    if (now - st.overSince >= ROOM_LOST_MS) {
+    if (now - st.overSince >= (cover >= ROOM_LOST_SHARE ? ROOM_LOST_MS : 0)) {
       st.overSince = null;
+      st.blindSince = null;
       pauseGame("Freeze can't tell people from the room anymore. This happens when the light changes or the laptop moves. Choose Learn the room again and restart.");
     }
   }
@@ -607,7 +648,12 @@
     if (!small || !st.model) return;
     // Brightness change, judged only from the parts of the picture that were room last frame.
     const g0 = V.gainOf(small, st.model, st.grown);
-    if (g0 !== null) st.gain = st.prev ? st.gain * 0.6 + g0 * 0.4 : g0;
+    if (g0 !== null) {
+      st.gain = st.grown ? st.gain * 0.6 + g0 * 0.4 : g0;
+      st.blindSince = null;
+    } else if (st.blindSince === null) {
+      st.blindSince = now; // too little of the room in view to judge the brightness
+    }
     const mask = V.cleanMask(V.foregroundMask(small, st.model, { gain: st.gain }), st.w, st.h);
     const luma = V.lumaOf(small, st.w, st.h);
     let rush = 0;

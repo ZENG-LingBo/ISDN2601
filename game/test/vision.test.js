@@ -239,6 +239,31 @@ test('strip motion finds one person moving in a group that is otherwise still', 
   assert.equal(V.stripMotion(prev, prev, mask, mask, W, H, 8), 0);
 });
 
+test('with clean-up, swaying by less than a pixel is not movement, but drifting is', () => {
+  // Two people with sharp edges. Swaying changes only a 1-pixel line along each edge;
+  // drifting by 3 pixels changes a band 3 pixels wide.
+  const person = (shift) => {
+    const luma = new Uint8Array(W * H).fill(200);
+    const mask = new Uint8Array(W * H);
+    for (const left of [6, 22]) {
+      for (let y = 4; y < H; y++) {
+        for (let x = left + shift; x < left + 10 + shift; x++) {
+          luma[y * W + x] = 50;
+          mask[y * W + x] = 1;
+        }
+      }
+    }
+    return { luma, mask };
+  };
+  const a = person(0);
+  const sway = person(1); // 1 working pixel is about 2 cm at 3 metres; real sway is less
+  const drift = person(3);
+  const opts = { clean: true };
+  assert.ok(V.stripMotion(a.luma, sway.luma, a.mask, sway.mask, W, H, 8, opts) < 0.03, 'sway');
+  assert.ok(V.stripMotion(a.luma, sway.luma, a.mask, sway.mask, W, H, 8) > 0.08, 'without clean-up, sway would count');
+  assert.ok(V.stripMotion(a.luma, drift.luma, a.mask, drift.mask, W, H, 8, opts) > 0.08, 'drift');
+});
+
 test('a tiny speck flickering is not big movement', () => {
   const prev = new Uint8Array(W * H).fill(100);
   const cur = new Uint8Array(prev);

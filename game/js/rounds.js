@@ -15,7 +15,7 @@
 
   const TIMES = { freeze: 3000, grace: 500, result: 4000 };
   const MOVE_LIMIT = 0.08; // below this in every strip of the picture, the group counts as still (see Vision.stripMotion)
-  const RUSH_LIMIT = 0.6; // above this in any strip of the picture during fill, the screen asks people to slow down
+  const RUSH_LIMIT = 0.45; // above this in any strip of the picture during fill, the screen asks people to slow down
   const RUSH_MS = 400; // ...after this long
 
   function times(game) {

@@ -15,7 +15,7 @@ University students say they want to play together, but most games are hard to s
 | You need a full group, at the same time, in a booked place | Any number of people in front of any laptop, in a dorm, a classroom or a common room. Nothing to book. |
 | There's a lot to learn, and you don't want to be the weakest player | You only have to fill the shape and hold still. There's one team score, and shapes need short and tall people, standing and crouching, so nobody's body is the wrong one. |
 | You need to buy equipment | Students already carry a laptop with a camera. |
-| You can get hurt | No ball, no running and no tackles. The game rewards holding still, bigger groups get more time, and the screen says "Slow down" if anyone rushes. |
+| You can get hurt | No ball, no running and no tackles. The game rewards holding still, bigger groups get more time, and the screen says "Slow down" if anyone runs. |
 
 Freeze uses a laptop, not a phone, because a laptop camera on a table can see a whole group, and the screen is big enough to read from across a room. With several laptops in one room, each laptop can be a team. Every laptop that picks the same group size gets the same 5 shapes, so teams can compare scores.
 
@@ -57,13 +57,14 @@ All of it is plain JavaScript written for this project, in `js/vision.js`. There
    - A pixel that is the same colour as the room and 85% to 97% as bright counts as a soft shadow, not a person. Anything darker counts as a person, so grey and beige clothes in front of a pale wall still show up.
 3. **Clean-up.** A pixel is kept only if most of its neighbours agree. This removes specks and fills small gaps.
 4. **Fit.** The people are compared with the shape, pixel by pixel.
-5. **Movement.** The picture is split into 8 strips, side by side, and Freeze compares frames in each strip. The strip with the most movement counts, so one person moving in a big group shows up. While frozen, each frame is compared with the frame 0.4 seconds before it, so slow drifting adds up. Freeze looks at about 15 frames a second, skips repeated frames from slow cameras, and allows for the time between frames, so fast and slow laptops are judged the same way.
-6. **Checks.** If nearly the whole picture looks like people for a second, the light probably changed or the laptop moved, so Freeze pauses and asks you to learn the room again. If the camera stops, Freeze stops the game and says so.
+5. **Movement.** The picture is split into 8 strips, side by side, and Freeze compares frames in each strip. The strip with the most movement counts, so one person moving in a big group shows up. Normal swaying only changes thin lines along the edges of people, and the clean-up step removes those first, so standing still with your arms out still counts as still. While frozen, each frame is compared with the frame 0.4 seconds before it, so slow drifting adds up. Freeze looks at about 15 frames a second, skips repeated frames from slow cameras, and allows for the time between frames, so fast and slow laptops are judged the same way.
+6. **Checks.** If nearly the whole picture looks like people for a second, or so little of the room is in view that Freeze can't judge the brightness, the light probably changed or the laptop moved. Freeze then pauses and asks you to learn the room again. If the camera stops, Freeze stops the game and says so.
 
 ### Known limits
 
 - It needs a steady camera and steady light. If the laptop moves or a light turns on, learn the room again (pause, then **Learn the room again and restart**).
 - Clothes the same colour as the wall can be missed. A plain wall behind the players works best.
+- Even room light works best. A bright window or lamp behind the players makes them harder to see, and dark shadows on the wall can count as people.
 - Someone walking behind the players counts as a player.
 - If someone stays in the picture without moving while Freeze learns the room, Freeze can't tell. They become part of the room. Check that everyone is out of the picture.
 - It hasn't been tried with real groups, real rooms or many laptop models yet. The numbers in `js/vision.js` and `js/rounds.js` (how different a pixel must be, how much movement counts as moving or rushing) are first guesses to tune in a real test.
@@ -73,7 +74,7 @@ All of it is plain JavaScript written for this project, in `js/vision.js`. There
 - Clear chairs and bags from the space first.
 - Shapes never need jumping or lifting anyone, and no shape has a gap so low that someone would have to lie down under it. A test checks every shape for this.
 - You can play sitting down. People who are sitting can fill the low parts of shapes.
-- If anyone rushes while filling a shape, the screen says "Slow down. There's time."
+- If anyone runs while filling a shape, the screen says "Slow down. There's time."
 
 ## Files
 

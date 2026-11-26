@@ -272,10 +272,18 @@
   // The largest movement in any of `strips` vertical strips of the picture. One person rushing
   // shows up here even in a big group that is otherwise still. Each strip is judged against at
   // least 15% of its own area, so a sliver of a person at a strip's edge can't look like a rush.
+  // With opts.clean, the changed pixels get one clean-up pass first. That removes the 1-pixel
+  // lines along sharp edges that change when someone sways by less than a pixel, so normal
+  // standing sway doesn't count, while drifting and walking (wider bands of change) still do.
   function stripMotion(prevLuma, curLuma, prevMask, curMask, w, h, strips, opts) {
     const o = opts || {};
     const diff = o.diff ?? MOVE_DIFF;
     const k = strips || 8;
+    let changed = new Uint8Array(w * h);
+    for (let p = 0; p < w * h; p++) {
+      if ((curMask[p] || prevMask[p]) && Math.abs(curLuma[p] - prevLuma[p]) > diff) changed[p] = 1;
+    }
+    if (o.clean) changed = cleanMask(changed, w, h, 1);
     let worst = 0;
     for (let s = 0; s < k; s++) {
       const x0 = Math.floor((s * w) / k);
@@ -287,7 +295,7 @@
           const p = y * w + x;
           if (!curMask[p] && !prevMask[p]) continue;
           people++;
-          if (Math.abs(curLuma[p] - prevLuma[p]) > diff) moved++;
+          moved += changed[p];
         }
       }
       const floor = Math.max(1, Math.round((x1 - x0) * h * 0.15));

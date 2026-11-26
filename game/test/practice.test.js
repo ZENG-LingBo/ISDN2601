@@ -76,7 +76,7 @@ test('the pretend people hold still after Freeze, except one person in the fidge
     const l1 = V.lumaOf(s1, W, H);
     const s2 = small(P.frame(scene, { present: true, shape, phase: 'freeze', elapsed: t2 - 8000, round, t: t2 }));
     const m2 = V.cleanMask(V.foregroundMask(s2, model), W, H);
-    return V.stripMotion(l1, V.lumaOf(s2, W, H), m1, m2, W, H, 8);
+    return V.stripMotion(l1, V.lumaOf(s2, W, H), m1, m2, W, H, 8, { clean: true });
   };
   assert.ok(move(0, 8600, 9000) < R.MOVE_LIMIT, 'still round');
   const fidget = Math.max(move(P.FIDGET_ROUND, 8600, 9000), move(P.FIDGET_ROUND, 8800, 9200), move(P.FIDGET_ROUND, 9000, 9400));
