@@ -46,7 +46,7 @@ press-release title and a Bastille Post report. **Open the HKFYG PDF once before
 
 | Reason | Evidence | How it shows up in a group chat |
 |---|---|---|
-| **No owner** | Diffusion of responsibility: the more people present, the less each one feels responsible to act. Darley & Latané (1968), *JPSP*, 8(4), 377–383, [doi:10.1037/h0025589](https://doi.org/10.1037/h0025589). | Five people “like” the idea; each assumes someone else will pick the date. |
+| **No owner** | Diffusion of responsibility: the more people present, the less each one feels responsible to act. Darley & Latané (1968), *JPSP*, 8(4), 377–383, [doi:10.1037/h0025589](https://doi.org/10.1037/h0025589). | Four friends “like” the idea; each assumes someone else will pick the date. |
 | **No time, no place** | A plan that says *when* and *where* (an “implementation intention”) makes people much more likely to follow through: d = 0.65 across 94 studies, 8,000+ people. Gollwitzer & Sheeran (2006), *Advances in Experimental Social Psychology*, 38, 69–119. Later reviews find smaller but still positive effects. | “Soon”, “after midterms” and “next week” are goals, not plans. |
 | **Fear of pushing** | Liking gap (Boothby et al., 2018); people undervalue reaching out (Liu et al., 2023); students think peers are more socially busy than they are (Whillans et al., 2017). | “If I chase everyone, I’ll look desperate.” |
 | **Cheap “yes”, easy relief** | 77% have said yes to things they didn’t want (Givi & Kirk, 2023); 56% of under-30s often regret plans (YouGov, 2022); 1 in 3 often feel relieved at a cancellation (YouGov, 2019). | Agreeing costs nothing, so it commits no one. |
