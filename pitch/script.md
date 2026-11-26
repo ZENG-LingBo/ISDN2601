@@ -78,7 +78,7 @@ Don't cut the How Might We question, the new “always dinner” lines, or the l
 
 A new reason was added: even when friends want to meet, choosing what to do stalls. Plans turn into
 a meal, and friends with food or money limits stay quiet and say “whatever” (Harvey, 1974). Slide 5
-now has 4 reasons, the empathy map has 2 new items, slide 2 has a fifth pain point, and the problem
+now has 4 reasons, the empathy map has 3 new items, slide 2 has a fifth pain point, and the problem
 statement on slide 7 has one new phrase. The How Might We question didn't change. To keep the
 time, three lines were cut for good: “Here’s the strange part.” on slide 4, “This year,” on slide 3, and “Why do plans fall through?” on slide 5. Slide 4’s spoken line is now “When we cancel, we feel guilty”, because the 86% guilt figure is about people who cancel, not people whose friend cancels.
 The research is in `research/background-study.md`, section 5.
