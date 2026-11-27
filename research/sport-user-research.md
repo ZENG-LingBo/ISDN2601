@@ -114,7 +114,7 @@ Don't turn the numbers into percentages with fewer than 20 answers. Write "9 of 
    - Follow up on what they mention: finding a time, a place, enough people, booking, money, energy.
 8. Have you ever decided not to join a game? What was going through your mind?
 9. Tell me about a time you played with people who were much better than you. How did it feel?
-10. Have you ever been hurt playing a sport?
+10. Have you ever been hurt playing a sport? If so, tell me what happened.
 11. Does the chance of getting hurt change what you play? How?
 
 *Free time and the phone*
@@ -177,6 +177,7 @@ Use the website on a laptop: https://isdn1001.lbzeng.com/freeze/.
 | Laughing, cheering, groaning | Roughly how often, and at what |
 | Confusion | What they said, and on which screen |
 | Anything that felt unsafe | What happened |
+| Did anyone ask to play again, without you asking? | Who, and when |
 | Scores for each game | From the end screen |
 
 **Questions after playing:**
