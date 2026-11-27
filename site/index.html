@@ -73,6 +73,8 @@
     text-decoration: none;
   }
   .btn.quiet { background: transparent; color: var(--text); border-color: var(--line); }
+  .links { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .links .btn { margin-top: 0.4rem; }
   .btn:focus-visible { outline: 3px solid var(--fill); outline-offset: 3px; }
   .fine { margin: 0; color: var(--text-2); font-size: 0.95rem; max-width: 40rem; }
 </style>
@@ -97,6 +99,14 @@
       <p>The prototype for the project's first topic, which the professor turned down. Friends say if they're in and when they're free, and the plan is confirmed once enough people can make the same time.</p>
       <p class="note">This demo uses pretend friends on one device.</p>
       <a class="btn quiet" href="minibus/">Open the Minibus demo</a>
+    </article>
+    <article class="demo">
+      <h2>Slides and research</h2>
+      <p>Every slide deck, with the speaker notes: the current pitch, the design process for the first topic, and the first topic's pitch. And the draft plan for the survey, interviews and playtests.</p>
+      <div class="links">
+        <a class="btn" href="slides/">See all slides</a>
+        <a class="btn quiet" href="research/">Read the research plan</a>
+      </div>
     </article>
   </section>
 
